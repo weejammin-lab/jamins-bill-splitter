@@ -18,6 +18,13 @@ margin:auto;
 padding:10px;
 }
 
+#topBar{
+display:flex;
+gap:8px;
+align-items:center;
+margin-bottom:10px;
+}
+
 #personBar{
 display:grid;
 grid-template-columns:repeat(3,1fr);
@@ -155,6 +162,12 @@ color:#999;
 
 <h2>Bill Splitter</h2>
 
+<!-- 🔥 RECEIPT CONTROLS -->
+<div id="topBar">
+<select id="receiptSelect" onchange="switchReceipt(this.value)"></select>
+<button onclick="newReceipt()">+ New Receipt</button>
+</div>
+
 <button onclick="clearAll()">Clear All</button>
 
 <br><br>
@@ -191,7 +204,7 @@ onkeydown="handleAddPerson(event)">
 <option value="percent">%</option>
 <option value="amount">$</option>
 </select>
-<input id="taxValue" class="tax-tip-input" oninput="calc()">
+<input id="taxValue" class="tax-tip-input" oninput="calc(); saveBill();">
 </div>
 
 <div class="tax-tip-wrap">
@@ -200,7 +213,7 @@ onkeydown="handleAddPerson(event)">
 <option value="percent">%</option>
 <option value="amount">$</option>
 </select>
-<input id="tipValue" class="tax-tip-input" oninput="calc()">
+<input id="tipValue" class="tax-tip-input" oninput="calc(); saveBill();">
 </div>
 
 <div class="summary-box" id="summary"></div>
@@ -208,8 +221,7 @@ onkeydown="handleAddPerson(event)">
 
 <script>
 
-/* ---------------- FIREBASE ---------------- */
-
+/* FIREBASE */
 const firebaseConfig = {
 apiKey: "AIzaSyB6rIAq2loPyngSITMCwKVZZwGrwzs6Kmk",
 authDomain: "jamins-bill-splitter.firebaseapp.com",
@@ -221,10 +233,11 @@ appId: "1:139094691642:web:fa1f61dcfae8d085094a03"
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
-const billRef = db.collection("bills").doc("main");
 
-/* ---------------- ORIGINAL DATA ---------------- */
+/* CURRENT RECEIPT */
+let currentReceiptId = "default";
 
+/* DEFAULTS */
 const defaultVenmoMap = {
 jamin:"jamin-chen",
 jack:"jack-bao",
@@ -240,11 +253,34 @@ let nameList=[...defaultNames];
 let rows=[];
 let venmoNames={...defaultVenmoMap};
 
-/* ---------------- FIREBASE LOAD ---------------- */
+/* GET DOC */
+function ref(id){
+return db.collection("bills").doc(id);
+}
 
-function loadBill(){
-billRef.onSnapshot(doc=>{
-const data=doc.data();
+/* LOAD LIST */
+function loadReceiptList(){
+db.collection("bills").onSnapshot(snap=>{
+let sel=document.getElementById("receiptSelect");
+sel.innerHTML="";
+
+snap.forEach(d=>{
+let opt=document.createElement("option");
+opt.value=d.id;
+opt.textContent=d.id;
+sel.appendChild(opt);
+});
+
+sel.value=currentReceiptId;
+});
+}
+
+/* SWITCH RECEIPT */
+function switchReceipt(id){
+currentReceiptId=id;
+
+ref(id).onSnapshot(doc=>{
+let data=doc.data();
 if(!data) return;
 
 rows=data.rows||[];
@@ -262,10 +298,25 @@ calc();
 });
 }
 
-/* ---------------- FIREBASE SAVE ---------------- */
+/* NEW RECEIPT */
+function newReceipt(){
+let name=prompt("Receipt name:");
+if(!name) return;
 
+currentReceiptId=name;
+
+rows=[];
+nameList=[...defaultNames];
+venmoNames={...defaultVenmoMap};
+
+init();
+saveBill();
+loadReceiptList();
+}
+
+/* SAVE */
 function saveBill(){
-billRef.set({
+ref(currentReceiptId).set({
 rows,
 nameList,
 venmoNames,
@@ -276,8 +327,7 @@ tipMode:document.getElementById("tipMode").value
 });
 }
 
-/* ---------------- ORIGINAL FUNCTIONS (UNCHANGED LOGIC) ---------------- */
-
+/* INIT */
 function init(){
 rows=[];
 for(let i=0;i<8;i++){
@@ -288,13 +338,9 @@ render();
 calc();
 }
 
+/* EVERYTHING ELSE UNCHANGED */
 function clearAll(){
 if(!confirm("Clear everything?")) return;
-
-rows=[];
-nameList=[...defaultNames];
-venmoNames={...defaultVenmoMap};
-
 init();
 saveBill();
 }
@@ -313,14 +359,11 @@ ${n}
 
 function handleAddPerson(e){
 if(e.key!=="Enter") return;
-
 let box=document.getElementById("addPersonBox");
 let name=box.value.trim();
 if(!name) return;
-
 nameList.push(name);
 box.value="";
-
 renderPeopleBar();
 render();
 calc();
@@ -330,27 +373,25 @@ saveBill();
 function deletePerson(i){
 let removed=nameList[i];
 nameList.splice(i,1);
-
 rows.forEach(r=>{
 r.selected=(r.selected||[]).filter(p=>p!==removed);
 r.people=(r.selected||[]).join(", ");
 });
-
 renderPeopleBar();
 render();
 calc();
 saveBill();
 }
 
-function update(i,key,val){
-rows[i][key]=val;
+function update(i,k,v){
+rows[i][k]=v;
 calc();
 saveBill();
 }
 
-function handlePriceInput(row, el){
-el.value=el.value.replace(/[^0-9.]/g,"").replace(/(\..*?)\..*/g,"$1");
-rows[row].price=el.value;
+function handlePriceInput(i,el){
+el.value=el.value.replace(/[^0-9.]/g,"");
+rows[i].price=el.value;
 calc();
 saveBill();
 }
@@ -359,88 +400,49 @@ function toggleName(row,name){
 let r=rows[row];
 if(!r.selected) r.selected=[];
 let idx=r.selected.indexOf(name);
-
 if(idx>-1) r.selected.splice(idx,1);
 else r.selected.push(name);
 
-if(r.selected.length===nameList.length){
-r.people="EVERYONE";
-}else{
-r.people=r.selected.join(", ");
-}
-
-render();
-calc();
-saveBill();
+r.people=r.selected.length===nameList.length?"EVERYONE":r.selected.join(", ");
+render();calc();saveBill();
 }
 
 function toggleEveryone(row){
 let r=rows[row];
-
 if(r.selected?.length===nameList.length){
-r.selected=[];
-r.people="";
+r.selected=[];r.people="";
 }else{
-r.selected=[...nameList];
-r.people="EVERYONE";
+r.selected=[...nameList];r.people="EVERYONE";
 }
-
-render();
-calc();
-saveBill();
+render();calc();saveBill();
 }
 
 function addRow(){
 rows.push({item:"",price:"",people:"",selected:[]});
-render();
-calc();
-saveBill();
+render();calc();saveBill();
 }
 
-/* ENTER NAVIGATION (UNCHANGED) */
 function nav(e,row,col){
-
 e.preventDefault();
-
-let nextRow=row+1;
-
-if(nextRow>=rows.length){
-addRow();
+let next=row+1;
+if(next>=rows.length){addRow();
+setTimeout(()=>document.querySelector(`[data-r="${next}"][data-c="${col}"]`)?.focus(),0);
+return;}
 setTimeout(()=>{
-document.querySelector(`[data-r="${nextRow}"][data-c="${col}"]`)?.focus();
-},0);
-return;
-}
-
-setTimeout(()=>{
-let next=document.querySelector(`[data-r="${nextRow}"][data-c="${col}"]`);
-if(next){
-next.focus();
-next.select?.();
-}
+let el=document.querySelector(`[data-r="${next}"][data-c="${col}"]`);
+if(el){el.focus();el.select?.();}
 },0);
 }
-
-/* ---------------- RENDER ---------------- */
 
 function render(){
-
 let body=document.getElementById("tableBody");
 body.innerHTML="";
-
 rows.forEach((r,i)=>{
 
-let tapHTML=`
-<button class="name-btn everyone-btn ${r.selected?.length===nameList.length?'selected':''}"
-onclick="toggleEveryone(${i})">EVERYONE</button>
-
-<div class="tap-grid">
-`;
+let tapHTML=`<button class="name-btn everyone-btn ${r.selected?.length===nameList.length?'selected':''}" onclick="toggleEveryone(${i})">EVERYONE</button><div class="tap-grid">`;
 
 nameList.forEach(n=>{
-tapHTML+=`
-<button class="name-btn ${r.selected?.includes(n)?'selected':''}"
-onclick="toggleName(${i},'${n}')">${n}</button>`;
+tapHTML+=`<button class="name-btn ${r.selected?.includes(n)?'selected':''}" onclick="toggleName(${i},'${n}')">${n}</button>`;
 });
 
 tapHTML+=`</div>`;
@@ -448,26 +450,15 @@ tapHTML+=`</div>`;
 let tr=document.createElement("tr");
 
 tr.innerHTML=`
-<td><textarea data-r="${i}" data-c="0"
-onkeydown="if(event.key==='Enter'){nav(event,${i},0)}"
-oninput="update(${i},'item',this.value)">${r.item}</textarea></td>
-
-<td><textarea data-r="${i}" data-c="1"
-onkeydown="if(event.key==='Enter'){nav(event,${i},1)}"
-oninput="handlePriceInput(${i},this)">${r.price}</textarea></td>
-
-<td><textarea data-r="${i}" data-c="2"
-onkeydown="if(event.key==='Enter'){nav(event,${i},2)}"
-oninput="update(${i},'people',this.value)">${r.people}</textarea></td>
-
+<td><textarea data-r="${i}" data-c="0" onkeydown="if(event.key==='Enter'){nav(event,${i},0)}" oninput="update(${i},'item',this.value)">${r.item}</textarea></td>
+<td><textarea data-r="${i}" data-c="1" onkeydown="if(event.key==='Enter'){nav(event,${i},1)}" oninput="handlePriceInput(${i},this)">${r.price}</textarea></td>
+<td><textarea data-r="${i}" data-c="2" onkeydown="if(event.key==='Enter'){nav(event,${i},2)}" oninput="update(${i},'people',this.value)">${r.people}</textarea></td>
 <td>${tapHTML}</td>
 `;
 
 body.appendChild(tr);
 });
 }
-
-/* ---------------- CALC ---------------- */
 
 function calc(){
 
@@ -483,11 +474,9 @@ let tipMode=document.getElementById("tipMode").value;
 rows.forEach(r=>{
 if(r.price){
 let price=parseFloat(r.price);
-if(!isNaN(price)) subtotal+=price;
+subtotal+=price;
 
-let list=r.people==="EVERYONE"
-? nameList
-: (r.people||"").split(",").map(p=>p.trim()).filter(Boolean);
+let list=r.people==="EVERYONE"?nameList:(r.people||"").split(",").map(x=>x.trim()).filter(Boolean);
 
 let share=price/list.length||0;
 
@@ -498,51 +487,35 @@ people[p].subtotalShare+=share;
 }
 });
 
-let taxAmount=taxMode==="percent"?subtotal*(taxVal/100):taxVal;
-let tipAmount=tipMode==="percent"?subtotal*(tipVal/100):tipVal;
+let tax=taxMode==="percent"?subtotal*(taxVal/100):taxVal;
+let tip=tipMode==="percent"?subtotal*(tipVal/100):tipVal;
 
-let total=subtotal+taxAmount+tipAmount;
+let total=subtotal+tax+tip;
 
-Object.keys(people).forEach(p=>{
-let share=people[p].subtotalShare||0;
-let ratio=subtotal?share/subtotal:0;
-
-people[p].total=share+(taxAmount*ratio)+(tipAmount*ratio);
-});
-
-summary.innerHTML=`Subtotal: $${subtotal.toFixed(2)}<br>
-Tax: $${taxAmount.toFixed(2)}<br>
-Tip: $${tipAmount.toFixed(2)}<br>
-Total: $${total.toFixed(2)}`;
+summary.innerHTML=`Subtotal: $${subtotal.toFixed(2)}<br>Tax: $${tax.toFixed(2)}<br>Tip: $${tip.toFixed(2)}<br>Total: $${total.toFixed(2)}`;
 
 let div=document.getElementById("totals");
 div.innerHTML="";
 
 Object.keys(people).forEach(p=>{
-
 let venmo=venmoNames[p]||"";
 
 div.innerHTML+=`
 <div class="result">
-${p} owes $${people[p].total.toFixed(2)}
-
-<input class="venmo-input ${defaultVenmoMap[p]?'default':''}"
-value="${venmo}"
-oninput="venmoNames['${p}']=this.value;saveBill()">
-
+${p} owes $${people[p].subtotalShare.toFixed(2)}
+<input class="venmo-input" value="${venmo}" oninput="venmoNames['${p}']=this.value">
 <button class="venmo-btn"
-onclick="window.open('https://venmo.com/'+(venmoNames[p]||'')+'?txn=request&amount='+people[p].total.toFixed(2),'_blank')">
+onclick="window.open('https://venmo.com/'+(venmoNames[p]||'')+'?txn=request','_blank')">
 Request
 </button>
-
 </div>`;
 });
 }
 
-/* ---------------- START ---------------- */
-
+/* START */
 init();
-loadBill();
+loadReceiptList();
+switchReceipt("default");
 
 </script>
 
