@@ -6,9 +6,6 @@
 
 <title>Bill Splitter</title>
 
-<!-- PNG SCREENSHOT LIB -->
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-
 <style>
 
 body{
@@ -212,15 +209,6 @@ onkeydown="handleAddPerson(event)">
 <div class="summary-box" id="summary"></div>
 <div id="totals"></div>
 
-<br>
-
-<!-- EMAIL + PNG -->
-<div class="tax-tip-wrap">
-<label>Email</label>
-<input id="emailTo" class="tax-tip-input" style="width:200px;" placeholder="recipient@email.com">
-<button onclick="sendPNG()">Send PNG</button>
-</div>
-
 <script>
 
 const defaultVenmoMap = {
@@ -365,7 +353,6 @@ render();
 calc();
 }
 
-/* ENTER FIX */
 function nav(e,row,col){
 
 e.preventDefault();
@@ -500,47 +487,12 @@ value="${venmo}"
 oninput="venmoNames['${p}']=this.value"
 placeholder="venmo id">
 <button class="venmo-btn"
-onclick="window.open('https://venmo.com/'+(venmoNames['${p}']||'' )+'?txn=request&amount=${people[p].total.toFixed(2)}','_blank')">
+onclick="window.open('https://venmo.com/'+(venmoNames[p]||'' )+'?txn=request&amount=${people[p].total.toFixed(2)}','_blank')">
 Request
 </button>
 </div>`;
 });
 
-}
-
-/* PNG EMAIL */
-async function sendPNG(){
-
-let email = document.getElementById("emailTo").value.trim();
-if(!email){
-alert("Enter email");
-return;
-}
-
-const canvas = await html2canvas(document.body, {
-scale: 2,
-useCORS: true
-});
-
-let img = canvas.toDataURL("image/png");
-
-/* download image */
-let a = document.createElement("a");
-a.href = img;
-a.download = "bill-split.png";
-a.click();
-
-/* email with venmo links */
-let body =
-"Bill Split Screenshot attached.\n\nVenmo Links:\n" +
-Object.keys(venmoNames)
-.map(p => `${p}: https://venmo.com/${venmoNames[p] || ""}`)
-.join("\n");
-
-let subject = encodeURIComponent("Bill Split Screenshot");
-
-window.location.href =
-`mailto:${email}?subject=${subject}&body=${encodeURIComponent(body)}`;
 }
 
 init();
