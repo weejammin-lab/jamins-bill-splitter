@@ -223,7 +223,7 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const billRef = db.collection("bills").doc("main");
 
-/* ---------------- DATA ---------------- */
+/* ---------------- ORIGINAL DATA ---------------- */
 
 const defaultVenmoMap = {
 jamin:"jamin-chen",
@@ -240,7 +240,7 @@ let nameList=[...defaultNames];
 let rows=[];
 let venmoNames={...defaultVenmoMap};
 
-/* ---------------- LOAD ---------------- */
+/* ---------------- FIREBASE LOAD ---------------- */
 
 function loadBill(){
 billRef.onSnapshot(doc=>{
@@ -262,7 +262,7 @@ calc();
 });
 }
 
-/* ---------------- SAVE ---------------- */
+/* ---------------- FIREBASE SAVE ---------------- */
 
 function saveBill(){
 billRef.set({
@@ -276,7 +276,7 @@ tipMode:document.getElementById("tipMode").value
 });
 }
 
-/* ---------------- INIT ---------------- */
+/* ---------------- ORIGINAL FUNCTIONS (UNCHANGED LOGIC) ---------------- */
 
 function init(){
 rows=[];
@@ -288,7 +288,16 @@ render();
 calc();
 }
 
-/* ---------------- UI ---------------- */
+function clearAll(){
+if(!confirm("Clear everything?")) return;
+
+rows=[];
+nameList=[...defaultNames];
+venmoNames={...defaultVenmoMap};
+
+init();
+saveBill();
+}
 
 function renderPeopleBar(){
 let bar=document.getElementById("personBar");
@@ -302,7 +311,36 @@ ${n}
 });
 }
 
-/* ---------------- LOGIC ---------------- */
+function handleAddPerson(e){
+if(e.key!=="Enter") return;
+
+let box=document.getElementById("addPersonBox");
+let name=box.value.trim();
+if(!name) return;
+
+nameList.push(name);
+box.value="";
+
+renderPeopleBar();
+render();
+calc();
+saveBill();
+}
+
+function deletePerson(i){
+let removed=nameList[i];
+nameList.splice(i,1);
+
+rows.forEach(r=>{
+r.selected=(r.selected||[]).filter(p=>p!==removed);
+r.people=(r.selected||[]).join(", ");
+});
+
+renderPeopleBar();
+render();
+calc();
+saveBill();
+}
 
 function update(i,key,val){
 rows[i][key]=val;
@@ -359,24 +397,80 @@ calc();
 saveBill();
 }
 
-function deletePerson(i){
-let removed=nameList[i];
-nameList.splice(i,1);
+/* ENTER NAVIGATION (UNCHANGED) */
+function nav(e,row,col){
 
-rows.forEach(r=>{
-r.selected=(r.selected||[]).filter(p=>p!==removed);
-r.people=(r.selected||[]).join(", ");
+e.preventDefault();
+
+let nextRow=row+1;
+
+if(nextRow>=rows.length){
+addRow();
+setTimeout(()=>{
+document.querySelector(`[data-r="${nextRow}"][data-c="${col}"]`)?.focus();
+},0);
+return;
+}
+
+setTimeout(()=>{
+let next=document.querySelector(`[data-r="${nextRow}"][data-c="${col}"]`);
+if(next){
+next.focus();
+next.select?.();
+}
+},0);
+}
+
+/* ---------------- RENDER ---------------- */
+
+function render(){
+
+let body=document.getElementById("tableBody");
+body.innerHTML="";
+
+rows.forEach((r,i)=>{
+
+let tapHTML=`
+<button class="name-btn everyone-btn ${r.selected?.length===nameList.length?'selected':''}"
+onclick="toggleEveryone(${i})">EVERYONE</button>
+
+<div class="tap-grid">
+`;
+
+nameList.forEach(n=>{
+tapHTML+=`
+<button class="name-btn ${r.selected?.includes(n)?'selected':''}"
+onclick="toggleName(${i},'${n}')">${n}</button>`;
 });
 
-renderPeopleBar();
-render();
-calc();
-saveBill();
+tapHTML+=`</div>`;
+
+let tr=document.createElement("tr");
+
+tr.innerHTML=`
+<td><textarea data-r="${i}" data-c="0"
+onkeydown="if(event.key==='Enter'){nav(event,${i},0)}"
+oninput="update(${i},'item',this.value)">${r.item}</textarea></td>
+
+<td><textarea data-r="${i}" data-c="1"
+onkeydown="if(event.key==='Enter'){nav(event,${i},1)}"
+oninput="handlePriceInput(${i},this)">${r.price}</textarea></td>
+
+<td><textarea data-r="${i}" data-c="2"
+onkeydown="if(event.key==='Enter'){nav(event,${i},2)}"
+oninput="update(${i},'people',this.value)">${r.people}</textarea></td>
+
+<td>${tapHTML}</td>
+`;
+
+body.appendChild(tr);
+});
 }
 
 /* ---------------- CALC ---------------- */
 
 function calc(){
+
 let subtotal=0;
 let people={};
 
@@ -412,6 +506,7 @@ let total=subtotal+taxAmount+tipAmount;
 Object.keys(people).forEach(p=>{
 let share=people[p].subtotalShare||0;
 let ratio=subtotal?share/subtotal:0;
+
 people[p].total=share+(taxAmount*ratio)+(tipAmount*ratio);
 });
 
@@ -424,49 +519,23 @@ let div=document.getElementById("totals");
 div.innerHTML="";
 
 Object.keys(people).forEach(p=>{
+
 let venmo=venmoNames[p]||"";
 
 div.innerHTML+=`
 <div class="result">
 ${p} owes $${people[p].total.toFixed(2)}
-<input class="venmo-input" value="${venmo}"
+
+<input class="venmo-input ${defaultVenmoMap[p]?'default':''}"
+value="${venmo}"
 oninput="venmoNames['${p}']=this.value;saveBill()">
+
+<button class="venmo-btn"
+onclick="window.open('https://venmo.com/'+(venmoNames[p]||'')+'?txn=request&amount='+people[p].total.toFixed(2),'_blank')">
+Request
+</button>
+
 </div>`;
-});
-}
-
-/* ---------------- RENDER ---------------- */
-
-function render(){
-let body=document.getElementById("tableBody");
-body.innerHTML="";
-
-rows.forEach((r,i)=>{
-
-let tapHTML=`
-<button class="name-btn everyone-btn"
-onclick="toggleEveryone(${i})">EVERYONE</button>
-<div class="tap-grid">
-`;
-
-nameList.forEach(n=>{
-tapHTML+=`
-<button class="name-btn"
-onclick="toggleName(${i},'${n}')">${n}</button>`;
-});
-
-tapHTML+=`</div>`;
-
-let tr=document.createElement("tr");
-
-tr.innerHTML=`
-<td><textarea oninput="update(${i},'item',this.value)">${r.item}</textarea></td>
-<td><textarea oninput="handlePriceInput(${i},this)">${r.price}</textarea></td>
-<td><textarea oninput="update(${i},'people',this.value)">${r.people}</textarea></td>
-<td>${tapHTML}</td>
-`;
-
-body.appendChild(tr);
 });
 }
 
@@ -474,6 +543,7 @@ body.appendChild(tr);
 
 init();
 loadBill();
+
 </script>
 
 </body>
