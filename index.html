@@ -34,12 +34,21 @@ input, button {
     margin: 5px;
 }
 
-/* Scroll list */
+/* Items list */
 #itemsList {
+    list-style: none;
     max-height: 300px;
     overflow-y: auto;
     border: 1px solid #ccc;
     padding: 10px;
+}
+
+#itemsList li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px;
+    border-bottom: 1px solid #eee;
 }
 
 /* Summary */
@@ -66,7 +75,6 @@ input, button {
 <h1>Bill Splitter</h1>
 
 <!-- FAST INPUT -->
-
 <div class="section">
 
 <h2>Fast Input</h2>
@@ -81,7 +89,6 @@ Add
 </div>
 
 <!-- OPTIONAL STRUCTURED INPUT -->
-
 <div class="section">
 
 <h2>Optional Item Input</h2>
@@ -102,8 +109,13 @@ Optional: use if you want clearer entry
 
 </div>
 
-<!-- ADJUSTMENTS -->
+<!-- LIVE ITEMS DISPLAY -->
+<div class="section">
+<h2>Items</h2>
+<ul id="itemsList"></ul>
+</div>
 
+<!-- ADJUSTMENTS -->
 <div class="section">
 
 <h2>Adjustments</h2>
@@ -125,7 +137,6 @@ Optional: use if you want clearer entry
 </div>
 
 <!-- SUMMARY -->
-
 <div class="section">
 
 <h2>Summary</h2>
@@ -135,7 +146,6 @@ Optional: use if you want clearer entry
 </div>
 
 <!-- TOTALS -->
-
 <div class="section">
 
 <h2>Totals</h2>
@@ -148,27 +158,22 @@ Optional: use if you want clearer entry
 
 let items = [];
 
-// normalize
 function norm(n){
-return n.trim().toLowerCase();
+    return n.trim().toLowerCase();
 }
 
-/* ---------------- FAST INPUT ---------------- */
-
+/* FAST INPUT */
 function addFastItem(){
 
-let input =
-document.getElementById("fastInput").value;
-
+let input = document.getElementById("fastInput").value;
 if (!input.trim()) return;
 
 let parts = input.split(" ");
-
 let price = parseFloat(parts[0]);
 
 if (isNaN(price)) {
-alert("Invalid price");
-return;
+    alert("Invalid price");
+    return;
 }
 
 let people = parts
@@ -178,10 +183,7 @@ let people = parts
 .map(p => p.trim())
 .filter(p => p);
 
-items.push({
-price,
-people
-});
+items.push({ price, people });
 
 document.getElementById("fastInput").value = "";
 
@@ -190,27 +192,20 @@ updateTotals();
 
 }
 
-/* -------- OPTIONAL STRUCTURED INPUT -------- */
-
+/* STRUCTURED INPUT */
 function addStructuredItem(){
 
-let name =
-document.getElementById("itemName").value;
+let name = document.getElementById("itemName").value;
+let price = parseFloat(document.getElementById("itemPrice").value);
+let people = document.getElementById("itemPeople").value;
 
-let price =
-parseFloat(document.getElementById("itemPrice").value);
-
-let people =
-document.getElementById("itemPeople").value;
-
-if (!price || !people) return;
+if (isNaN(price) || !people.trim()) return;
 
 items.push({
-price,
-people:
-people.split(",")
-.map(p => p.trim())
-.filter(p => p)
+    price,
+    people: people.split(",")
+        .map(p => p.trim())
+        .filter(p => p)
 });
 
 document.getElementById("itemName").value = "";
@@ -222,13 +217,10 @@ updateTotals();
 
 }
 
-/* ---------------- ITEMS LIST ---------------- */
-
+/* UPDATE ITEMS DISPLAY */
 function updateItems(){
 
-let list =
-document.getElementById("itemsList");
-
+let list = document.getElementById("itemsList");
 list.innerHTML = "";
 
 items.forEach((item,i)=>{
@@ -240,27 +232,23 @@ item.price.toFixed(2) +
 " → " +
 item.people.join(", ");
 
-let del =
-document.createElement("button");
-
+let del = document.createElement("button");
 del.textContent = "Delete";
 
 del.onclick = () => {
-items.splice(i,1);
-updateItems();
-updateTotals();
+    items.splice(i,1);
+    updateItems();
+    updateTotals();
 };
 
 li.appendChild(del);
-
 list.appendChild(li);
 
 });
 
 }
 
-/* ---------------- CLEAR ---------------- */
-
+/* CLEAR ALL */
 function clearAll(){
 
 if (!confirm("Clear all data?")) return;
@@ -272,30 +260,23 @@ updateTotals();
 
 }
 
-/* ---------------- PEOPLE MAP ---------------- */
-
+/* PEOPLE MAP */
 function getPeople(){
 
 let map = {};
 
 items.forEach(item=>{
-
 item.people.forEach(p=>{
-
-let key = norm(p);
-
-if (!map[key]) map[key] = p;
-
+    let key = norm(p);
+    if (!map[key]) map[key] = p;
 });
-
 });
 
 return map;
 
 }
 
-/* ---------------- CALCULATION ---------------- */
-
+/* CALCULATION */
 function updateTotals(){
 
 let peopleMap = getPeople();
@@ -307,19 +288,16 @@ keys.forEach(k=>base[k]=0);
 let subtotal = 0;
 
 items.forEach(item=>{
-
 subtotal += item.price;
 
-let share =
-item.price / item.people.length;
+let share = item.price / item.people.length;
 
 item.people.forEach(p=>{
-base[norm(p)] += share;
+    base[norm(p)] += share;
 });
 
 });
 
-// tax/tip/cashback
 let tax = subtotal * ((parseFloat(taxPercent.value)||0)/100);
 let tip = subtotal * ((parseFloat(tipPercent.value)||0)/100);
 let cashback = (parseFloat(cashbackPercent.value)||0)/100;
@@ -329,7 +307,6 @@ let total = subtotal + tax + tip;
 let final = {};
 
 keys.forEach(k=>{
-
 let val = base[k];
 
 let ratio = subtotal ? val/subtotal : 0;
@@ -339,19 +316,16 @@ val += tax*ratio + tip*ratio;
 val = val - val*cashback;
 
 final[k] = val;
-
 });
 
-// rounding fix
 let sum = Object.values(final).reduce((a,b)=>a+b,0);
-
 let diff = total - sum;
 
 if(keys.length){
 final[keys[0]] += diff;
 }
 
-// summary
+/* SUMMARY */
 document.getElementById("summary").innerHTML = `
 Subtotal: $${subtotal.toFixed(2)}<br>
 Tax: $${tax.toFixed(2)}<br>
@@ -363,15 +337,12 @@ Cashback: ${(cashback*100).toFixed(2)}%<br><br>
 Persons involved: ${keys.length}
 `;
 
-// totals
+/* TOTALS */
 let div = document.getElementById("totals");
-
 div.innerHTML = "";
 
 keys.forEach(k=>{
-
 let el = document.createElement("div");
-
 el.className = "result";
 
 el.textContent =
@@ -380,7 +351,6 @@ peopleMap[k] +
 (final[k]||0).toFixed(2);
 
 div.appendChild(el);
-
 });
 
 }
