@@ -1,23 +1,409 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bill Splitter</title>
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      font-family: sans-serif;
-    }
-    iframe {
-      width: 100%;
-      height: 100vh;
-      border: none;
-    }
-  </style>
+<meta charset="UTF-8">
+<title>Bill Splitter</title>
+
+<style>
+body {
+    font-family: Arial;
+    max-width: 850px;
+    margin: auto;
+    padding: 20px;
+}
+
+h1 {
+    text-align: center;
+}
+
+.section {
+    margin-bottom: 25px;
+}
+
+input, button {
+    padding: 8px;
+    margin: 5px;
+}
+
+.result {
+    font-weight: bold;
+}
+
+.note {
+    font-size: 0.9em;
+    color: gray;
+}
+
+.summary-box {
+    border: 1px solid #ccc;
+    padding: 15px;
+    margin-top: 10px;
+}
+</style>
 </head>
+
 <body>
-  <iframe src="https://docs.google.com/spreadsheets/d/e/2PACX-1vSdj8eRV-WQbaBlw_73fVrQsLD0-vkx6rjmLPk2blezwTEwHwExRchM6UOHi6Ipi5-bfEliF2CoFQOU/pubhtml?widget=true&amp;headers=false"></iframe>
+
+<h1>Bill Splitter</h1>
+
+<!-- People -->
+<div class="section">
+
+<h2>Add People</h2>
+
+<input id="personName" placeholder="Name">
+
+<button onclick="addPerson()">
+Add Person
+</button>
+
+<ul id="peopleList"></ul>
+
+</div>
+
+<!-- Items -->
+<div class="section">
+
+<h2>Add Items</h2>
+
+<input id="itemName" placeholder="Item">
+
+<input id="itemPrice"
+type="number"
+step="0.01"
+placeholder="Price">
+
+<input id="itemPeople"
+placeholder="People (comma separated)">
+
+<button onclick="addItem()">
+Add Item
+</button>
+
+<div class="note">
+Repeat names to give extra shares.  
+Example: Maria, Maria, Marianne
+</div>
+
+<ul id="itemsList"></ul>
+
+</div>
+
+<!-- Tax & Tip -->
+<div class="section">
+
+<h2>Tax & Tip</h2>
+
+<div>
+
+<label>Tax Amount:</label>
+<input id="taxAmount" type="number" step="0.01">
+
+<label>OR Tax %:</label>
+<input id="taxPercent" type="number" step="0.01">
+
+</div>
+
+<div>
+
+<label>Tip Amount:</label>
+<input id="tipAmount" type="number" step="0.01">
+
+<label>OR Tip %:</label>
+<input id="tipPercent" type="number" step="0.01">
+
+</div>
+
+<button onclick="updateTotals()">
+Recalculate
+</button>
+
+</div>
+
+<!-- Summary -->
+<div class="section">
+
+<h2>Receipt Summary</h2>
+
+<div id="summary" class="summary-box"></div>
+
+</div>
+
+<!-- Totals -->
+<div class="section">
+
+<h2>Totals Per Person</h2>
+
+<div id="totals"></div>
+
+</div>
+
+<script>
+
+let people = [];
+let items = [];
+
+// Add person
+function addPerson() {
+
+let name =
+document.getElementById("personName")
+.value
+.trim();
+
+if (!name) return;
+
+if (people.includes(name)) {
+
+alert("Person already exists.");
+return;
+
+}
+
+people.push(name);
+
+document.getElementById("personName").value = "";
+
+updatePeople();
+updateTotals();
+
+}
+
+// Show people
+function updatePeople() {
+
+let list =
+document.getElementById("peopleList");
+
+list.innerHTML = "";
+
+people.forEach(person => {
+
+let li =
+document.createElement("li");
+
+li.textContent = person;
+
+list.appendChild(li);
+
+});
+
+}
+
+// Add item
+function addItem() {
+
+let name =
+document.getElementById("itemName").value;
+
+let price =
+parseFloat(
+document.getElementById("itemPrice").value
+);
+
+let peopleInput =
+document.getElementById("itemPeople").value;
+
+if (!name || !price || !peopleInput)
+return;
+
+let splitPeople =
+peopleInput
+.split(",")
+.map(p => p.trim())
+.filter(p => p !== "");
+
+for (let p of splitPeople) {
+
+if (!people.includes(p)) {
+
+alert(p + " not in people list.");
+return;
+
+}
+
+}
+
+items.push({
+name,
+price,
+splitPeople
+});
+
+document.getElementById("itemName").value = "";
+document.getElementById("itemPrice").value = "";
+document.getElementById("itemPeople").value = "";
+
+updateItems();
+updateTotals();
+
+}
+
+// Show items
+function updateItems() {
+
+let list =
+document.getElementById("itemsList");
+
+list.innerHTML = "";
+
+items.forEach(item => {
+
+let li =
+document.createElement("li");
+
+li.textContent =
+item.name +
+" - $" +
+item.price.toFixed(2) +
+" (" +
+item.splitPeople.join(", ") +
+")";
+
+list.appendChild(li);
+
+});
+
+}
+
+// Main calculation
+function updateTotals() {
+
+let subtotal = 0;
+
+let totals = {};
+
+people.forEach(p => {
+totals[p] = 0;
+});
+
+// Calculate subtotal + base totals
+items.forEach(item => {
+
+subtotal += item.price;
+
+let sharePrice =
+item.price /
+item.splitPeople.length;
+
+item.splitPeople.forEach(p => {
+
+totals[p] += sharePrice;
+
+});
+
+});
+
+// TAX
+let taxAmount =
+parseFloat(
+document.getElementById("taxAmount").value
+);
+
+let taxPercent =
+parseFloat(
+document.getElementById("taxPercent").value
+);
+
+if (!taxAmount && taxPercent) {
+
+taxAmount =
+subtotal *
+(taxPercent / 100);
+
+}
+
+// TIP
+let tipAmount =
+parseFloat(
+document.getElementById("tipAmount").value
+);
+
+let tipPercent =
+parseFloat(
+document.getElementById("tipPercent").value
+);
+
+if (!tipAmount && tipPercent) {
+
+tipAmount =
+subtotal *
+(tipPercent / 100);
+
+}
+
+// Default zero
+taxAmount = taxAmount || 0;
+tipAmount = tipAmount || 0;
+
+// Distribute tax/tip proportionally
+let grandTotal =
+subtotal +
+taxAmount +
+tipAmount;
+
+people.forEach(p => {
+
+let base =
+totals[p];
+
+if (subtotal > 0) {
+
+let ratio =
+base / subtotal;
+
+totals[p] +=
+taxAmount * ratio +
+tipAmount * ratio;
+
+}
+
+});
+
+// Summary display
+let summary =
+document.getElementById("summary");
+
+summary.innerHTML = `
+
+Subtotal: $${subtotal.toFixed(2)}<br>
+Tax: $${taxAmount.toFixed(2)}<br>
+Tip: $${tipAmount.toFixed(2)}<br>
+<strong>Total: $${grandTotal.toFixed(2)}</strong>
+
+<br><br>
+
+✔ Verify your receipt:<br>
+Does your receipt subtotal match?<br>
+Does your receipt total match?
+
+`;
+
+// Person totals
+let div =
+document.getElementById("totals");
+
+div.innerHTML = "";
+
+people.forEach(person => {
+
+let p =
+document.createElement("div");
+
+p.className = "result";
+
+p.textContent =
+person +
+" owes $" +
+totals[person].toFixed(2);
+
+div.appendChild(p);
+
+});
+
+}
+
+</script>
+
 </body>
 </html>
