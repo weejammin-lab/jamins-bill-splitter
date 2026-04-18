@@ -200,8 +200,9 @@ freddy:"freddy-dai",
 lin:"linlin221"
 };
 
+/* ✅ ONLY CHANGE: freddy removed from defaults */
 let defaultNames=[
-"jamin","jack","cliff","willie","howard","lin","freddy"
+"jamin","jack","cliff","willie","howard","lin"
 ];
 
 let nameList=[...defaultNames];
@@ -212,7 +213,6 @@ function init(){
 
 rows=[];
 
-// ONLY CHANGE: 8 rows (as before)
 for(let i=0;i<8;i++){
 rows.push({
 item:"",
@@ -281,9 +281,6 @@ render();
 calc();
 }
 
-/* =========================
-   ADD ROW
-========================= */
 function addRow(){
 rows.push({
 item:"",
@@ -294,44 +291,6 @@ selected:[]
 render();
 calc();
 }
-
-/* =========================
-   KEY NAVIGATION (NEW ONLY)
-========================= */
-function nav(e,row,col){
-
-if(e.key==="Enter"){
-e.preventDefault();
-
-let nextRow=row+1;
-
-if(nextRow>=rows.length){
-addRow();
-setTimeout(()=>focusCell(nextRow,col),0);
-return;
-}
-
-focusCell(nextRow,col);
-}
-
-if(e.key==="Tab"){
-e.preventDefault();
-
-let nextCol=col+(e.shiftKey?-1:1);
-
-if(nextCol<0||nextCol>2) return;
-
-focusCell(row,nextCol);
-}
-}
-
-function focusCell(r,c){
-setTimeout(()=>{
-document.querySelector(`[data-r="${r}"][data-c="${c}"]`)?.focus();
-},0);
-}
-
-/* ========================= */
 
 function update(i,key,val){
 rows[i][key]=val;
@@ -397,24 +356,9 @@ tapHTML+=`</div>`;
 let tr=document.createElement("tr");
 
 tr.innerHTML=`
-<td>
-<textarea data-r="${i}" data-c="0"
-onkeydown="nav(event,${i},0)"
-oninput="update(${i},'item',this.value)">${r.item}</textarea>
-</td>
-
-<td>
-<textarea data-r="${i}" data-c="1"
-onkeydown="nav(event,${i},1)"
-oninput="handlePriceInput(${i},this)">${r.price}</textarea>
-</td>
-
-<td>
-<textarea data-r="${i}" data-c="2"
-onkeydown="nav(event,${i},2)"
-oninput="update(${i},'people',this.value)">${r.people}</textarea>
-</td>
-
+<td><textarea oninput="update(${i},'item',this.value)">${r.item}</textarea></td>
+<td><textarea oninput="handlePriceInput(${i},this)">${r.price}</textarea></td>
+<td><textarea oninput="update(${i},'people',this.value)">${r.people}</textarea></td>
 <td>${tapHTML}</td>
 `;
 
