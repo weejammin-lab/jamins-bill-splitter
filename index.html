@@ -54,8 +54,6 @@ background:white;
 font-size:12px;
 }
 
-/* TAP */
-
 .name-btn{
 margin:2px;
 padding:2px 6px;
@@ -70,8 +68,6 @@ border-radius:7px;
 background:#7dff8a;
 border-color:#2ecc71;
 }
-
-/* TAX / TIP */
 
 .tax-tip-wrap{
 display:flex;
@@ -162,7 +158,8 @@ let nameList=[
 
 let rows=[];
 
-/* ✅ ALWAYS START SAFE */
+/* INIT */
+
 function init(){
 
 rows=[];
@@ -172,8 +169,7 @@ rows.push({
 item:"",
 price:"",
 people:"",
-selected:[],
-placeholder:""
+selected:[]
 });
 }
 
@@ -181,35 +177,33 @@ render();
 calc();
 }
 
-function ensureRow(){
+/* FORCE NEW ROW */
 
-if(rows.length===0){
-init();
-return;
-}
-
-let last=rows[rows.length-1];
-
-if(last.item || last.price || last.people){
+function addRow(){
 rows.push({
 item:"",
 price:"",
 people:"",
-selected:[],
-placeholder:""
+selected:[]
 });
 }
-}
 
-/* ENTER / TAB */
+/* ENTER FIXED */
 
 function move(e,row,col){
 
-if(e.key!=="Enter" && e.key!=="Tab") return;
+if(e.key!=="Enter") return;
 
 e.preventDefault();
 
-ensureRow();
+/* IF LAST ROW → CREATE NEW FIRST */
+if(row === rows.length - 1){
+addRow();
+render();
+}
+
+/* MOVE AFTER RENDER */
+setTimeout(()=>{
 
 let next=document.querySelector(
 `[data-row='${row+1}'][data-col='${col}']`
@@ -219,6 +213,8 @@ if(next){
 next.focus();
 next.select?.();
 }
+
+},0);
 }
 
 /* INPUT */
@@ -231,13 +227,11 @@ el.value=el.value
 
 rows[row].price=el.value;
 
-ensureRow();
 calc();
 }
 
 function update(i,key,val){
 rows[i][key]=val;
-ensureRow();
 calc();
 }
 
