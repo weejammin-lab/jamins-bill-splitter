@@ -8,7 +8,7 @@
 
 body{
 font-family:Arial;
-max-width:1100px;
+max-width:550px; /* 🔥 was 1100px */
 margin:auto;
 }
 
@@ -175,7 +175,6 @@ let nameList=[
 let rows=[];
 let venmoNames={};
 
-/* INIT */
 function init(){
 
 rows=[];
@@ -193,8 +192,6 @@ renderPeopleBar();
 render();
 calc();
 }
-
-/* PEOPLE BAR */
 
 function renderPeopleBar(){
 
@@ -242,8 +239,6 @@ render();
 calc();
 }
 
-/* ROW HANDLING */
-
 function addRow(){
 rows.push({
 item:"",
@@ -280,8 +275,6 @@ next.select?.();
 
 }
 
-/* INPUT */
-
 function handlePriceInput(row, el){
 
 el.value=el.value
@@ -296,8 +289,6 @@ function update(i,key,val){
 rows[i][key]=val;
 calc();
 }
-
-/* TAP */
 
 function toggleName(row,name){
 
@@ -330,8 +321,6 @@ r.people="everyone";
 render();
 calc();
 }
-
-/* RENDER */
 
 function render(){
 
@@ -386,8 +375,6 @@ body.appendChild(tr);
 });
 
 }
-
-/* CALC */
 
 function calc(){
 
@@ -477,8 +464,6 @@ Venmo
 
 }
 
-/* VENMO */
-
 function openVenmo(p,amt){
 
 let name=venmoNames[p];
@@ -494,8 +479,6 @@ window.open(
 );
 
 }
-
-/* START */
 
 init();
 calc();
