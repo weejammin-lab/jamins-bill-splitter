@@ -12,8 +12,6 @@ max-width:1100px;
 margin:auto;
 }
 
-/* PEOPLE BAR */
-
 .person-tag{
 display:inline-block;
 border:1px solid #ccc;
@@ -35,8 +33,6 @@ width:140px;
 margin-top:4px;
 }
 
-/* TABLE */
-
 table{
 width:100%;
 border-collapse:collapse;
@@ -48,14 +44,10 @@ border:1px solid #ddd;
 padding:3px;
 }
 
-/* COLUMN WIDTHS */
-
 .item-col{width:120px;}
 .price-col{width:70px;}
 .people-col{width:420px;}
 .tap-col{width:360px;}
-
-/* 🔴 REVERT INPUTS BACK TO DEFAULT LOOK */
 
 input{
 width:100%;
@@ -63,10 +55,8 @@ box-sizing:border-box;
 border-radius:0;
 border:1px solid #ccc;
 background:white;
-color:black;
 }
 
-/* placeholder (slightly darker than before but still subtle) */
 input::placeholder{
 color:#a8a8a8;
 }
@@ -89,7 +79,7 @@ color:gray;
 padding-left:10px;
 }
 
-/* TAP BUTTONS (ONLY THING STILL STYLED) */
+/* TAP BUTTONS */
 
 .name-btn{
 margin:2px;
@@ -108,11 +98,7 @@ border-color:#2ecc71;
 color:#000;
 }
 
-.everyone-row{
-margin-bottom:4px;
-}
-
-/* TAX TIP */
+/* TAX */
 
 .taxbox{
 width:80px;
@@ -124,16 +110,6 @@ width:80px;
 border:1px solid #ccc;
 padding:8px;
 margin-top:8px;
-}
-
-.result{
-font-weight:bold;
-margin:4px 0;
-}
-
-.venmo-input{
-width:120px;
-margin-left:6px;
 }
 
 </style>
@@ -238,20 +214,16 @@ render();
 function handleAddPerson(e){
 
 if(e.key==="Enter"){
-
 let box=document.getElementById("addPersonBox");
 let name=box.value.trim();
 if(!name) return;
 
 nameList.push(name);
 box.value="";
-
 renderPeopleBar();
 render();
 calc();
-
 }
-
 }
 
 /* PEOPLE BAR */
@@ -262,16 +234,13 @@ let bar=document.getElementById("personBar");
 bar.innerHTML="";
 
 nameList.forEach((n,i)=>{
-
 bar.innerHTML+=`
 <span class="person-tag">
 ${n}
 <span class="delete-person" onclick="deletePerson(${i})">✖</span>
 </span>
 `;
-
 });
-
 }
 
 /* DELETE */
@@ -288,10 +257,27 @@ r.selected=(r.selected||[]).filter(p=>p!==removed);
 renderPeopleBar();
 render();
 calc();
-
 }
 
-/* PRICE */
+/* ENTER NAVIGATION (NEW) */
+
+function moveDown(e,row,col){
+
+if(e.key==="Enter"){
+e.preventDefault();
+
+let next=document.querySelector(
+`[data-row='${row+1}'][data-col='${col}']`
+);
+
+if(next){
+next.focus();
+next.select?.();
+}
+}
+}
+
+/* PRICE INPUT */
 
 function handlePriceInput(row, el){
 
@@ -300,9 +286,7 @@ el.value=el.value
 .replace(/(\..*?)\..*/g,"$1");
 
 rows[row].price=el.value;
-
 calc();
-
 }
 
 /* COMMIT */
@@ -314,7 +298,6 @@ if(e && e.key!=="Enter") return;
 rows[row].price=el.value;
 checkRowExpansion();
 calc();
-
 }
 
 /* ROW EXPANSION */
@@ -329,7 +312,6 @@ let filled=
 (last.people && last.people.trim());
 
 if(filled){
-
 rows.push({
 item:"",
 price:"",
@@ -339,18 +321,14 @@ placeholder:""
 });
 
 render();
-
 }
-
 }
 
 /* UPDATE */
 
 function update(i,key,val){
-
 rows[i][key]=val;
 calc();
-
 }
 
 /* TAP */
@@ -373,7 +351,6 @@ r.people=r.selected.length ? r.selected.join(", ") : "";
 
 render();
 calc();
-
 }
 
 /* EVERYONE */
@@ -392,7 +369,6 @@ r.people="everyone";
 
 render();
 calc();
-
 }
 
 /* RENDER */
@@ -407,7 +383,7 @@ rows.forEach((r,i)=>{
 let tapHTML="";
 
 tapHTML+=`
-<div class="everyone-row">
+<div>
 <button class="name-btn ${r.selected?.length===nameList.length?'selected':''}"
 onclick="toggleEveryone(${i})">everyone</button>
 </div>`;
@@ -422,7 +398,6 @@ onclick="toggleName(${i},'${n}')">
 ${n}
 </button>
 `;
-
 });
 
 let tr=document.createElement("tr");
@@ -430,23 +405,27 @@ let tr=document.createElement("tr");
 tr.innerHTML=`
 
 <td>
-<input value="${r.item||''}"
-oninput="update(${i},'item',this.value)">
+<input data-row="${i}" data-col="0"
+value="${r.item||''}"
+oninput="update(${i},'item',this.value)"
+onkeydown="moveDown(event,${i},0)">
 </td>
 
 <td class="price-cell">
 <span>$</span>
-<input type="text"
+<input data-row="${i}" data-col="1"
 value="${r.price||''}"
 oninput="handlePriceInput(${i},this)"
-onkeydown="commitPrice(event,${i},this)"
+onkeydown="moveDown(event,${i},1)"
 onblur="commitPrice(null,${i},this)">
 </td>
 
 <td>
-<input value="${r.people||''}"
+<input data-row="${i}" data-col="2"
+value="${r.people||''}"
 placeholder="${r.placeholder||''}"
-oninput="update(${i},'people',this.value)">
+oninput="update(${i},'people',this.value)"
+onkeydown="moveDown(event,${i},2)">
 </td>
 
 <td>
@@ -458,7 +437,6 @@ ${tapHTML}
 body.appendChild(tr);
 
 });
-
 }
 
 /* CALC */
@@ -503,11 +481,9 @@ summary.innerHTML=`Subtotal: $${subtotal.toFixed(2)}`;
 /* CLEAR */
 
 function clearAll(){
-
 rows=[];
 venmoNames={};
 init();
-
 }
 
 /* START */
