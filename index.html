@@ -59,29 +59,12 @@ background:white;
 font-size:12px;
 }
 
-input::placeholder{
-color:#a8a8a8;
-}
-
-/* PRICE */
-
-.price-cell{
-position:relative;
-width:55px;
-}
-
 .price-cell span{
 position:absolute;
 left:4px;
 top:3px;
 color:gray;
 }
-
-.price-cell input{
-padding-left:10px;
-}
-
-/* TAP */
 
 .name-btn{
 margin:2px;
@@ -97,8 +80,6 @@ border-radius:7px;
 background:#7dff8a;
 border-color:#2ecc71;
 }
-
-/* TAX / TIP */
 
 .tax-tip-wrap{
 display:flex;
@@ -217,6 +198,28 @@ render();
 calc();
 }
 
+/* =========================
+   ENTER NAVIGATION (NEW)
+   ========================= */
+
+function handleEnter(e,row,col){
+
+if(e.key!=="Enter") return;
+
+e.preventDefault();
+
+let next=document.querySelector(
+`[data-row='${row+1}'][data-col='${col}']`
+);
+
+if(next){
+next.focus();
+next.select?.();
+}
+}
+
+/* ADD PERSON */
+
 function handleAddPerson(e){
 if(e.key==="Enter"){
 let box=document.getElementById("addPersonBox");
@@ -328,18 +331,29 @@ let tr=document.createElement("tr");
 tr.innerHTML=`
 
 <td>
-<input value="${r.item}">
-</td>
-
-<td>
-<input value="${r.price}"
-oninput="handlePriceInput(${i},this)">
-</td>
-
-<td>
-<input value="${r.people}"
+<input
+data-row="${i}" data-col="0"
+value="${r.item}"
 placeholder="${r.placeholder}"
-oninput="update(${i},'people',this.value)">
+oninput="update(${i},'item',this.value)"
+onkeydown="handleEnter(event,${i},0)">
+</td>
+
+<td>
+<input
+data-row="${i}" data-col="1"
+value="${r.price}"
+oninput="handlePriceInput(${i},this)"
+onkeydown="handleEnter(event,${i},1)">
+</td>
+
+<td>
+<input
+data-row="${i}" data-col="2"
+value="${r.people}"
+placeholder="${r.placeholder}"
+oninput="update(${i},'people',this.value)"
+onkeydown="handleEnter(event,${i},2)">
 </td>
 
 <td>${tapHTML}</td>
