@@ -12,27 +12,6 @@ max-width:1100px;
 margin:auto;
 }
 
-.person-tag{
-display:inline-block;
-border:1px solid #ccc;
-padding:3px 6px;
-margin:2px;
-font-size:12px;
-}
-
-.delete-person{
-color:red;
-cursor:pointer;
-margin-left:4px;
-}
-
-.add-person-input{
-padding:4px;
-font-size:12px;
-width:140px;
-margin-top:4px;
-}
-
 table{
 width:100%;
 border-collapse:collapse;
@@ -75,7 +54,7 @@ padding-left:10px;
 text-align:right;
 }
 
-/* TAP */
+/* BUTTONS */
 
 .name-btn{
 margin:2px;
@@ -92,7 +71,11 @@ background:#7dff8a;
 border-color:#2ecc71;
 }
 
-/* TAX / TIP */
+.summary-box{
+border:1px solid #ccc;
+padding:8px;
+margin-top:8px;
+}
 
 .tax-tip-wrap{
 display:flex;
@@ -111,34 +94,12 @@ width:50px;
 padding:4px;
 }
 
-/* SUMMARY */
-
-.summary-box{
-border:1px solid #ccc;
-padding:8px;
-margin-top:8px;
-}
-
 </style>
 </head>
 
 <body>
 
 <h2>Bill Splitter</h2>
-
-<button onclick="clearAll()">Clear All</button>
-
-<br><br>
-
-<div id="personBar"></div>
-
-<input
-class="add-person-input"
-id="addPersonBox"
-placeholder="type name + Enter"
-onkeydown="handleAddPerson(event)">
-
-<br><br>
 
 <table>
 
@@ -155,63 +116,36 @@ onkeydown="handleAddPerson(event)">
 
 </table>
 
-<br>
-
-<div class="tax-tip-wrap">
-<label>Tax</label>
-<select id="taxMode" onchange="calc()">
-<option value="percent">%</option>
-<option value="amount">$</option>
-</select>
-<input id="taxValue" class="tax-tip-input" oninput="calc()">
-</div>
-
-<div class="tax-tip-wrap">
-<label>Tip</label>
-<select id="tipMode" onchange="calc()">
-<option value="percent">%</option>
-<option value="amount">$</option>
-</select>
-<input id="tipValue" class="tax-tip-input" oninput="calc()">
-</div>
-
 <div class="summary-box" id="summary"></div>
 
-<div id="totals"></div>
-
 <script>
+
+/* ===== DATA ===== */
 
 let nameList=["jamin","jack","cliff","willie","howard","lin","freddy"];
 
 let rows=[];
-let venmoNames={};
 
-let placeholders=[
-"jamin",
-"jack",
-"jamin, cliff, willie, howard",
-"lin, lin, freddy (must type the repeated name for uneven splits)",
-"everyone"
-];
-
-/* INIT */
+/* ===== SAFE INIT (FORCE 5 ROWS ALWAYS) ===== */
 
 function init(){
 
-rows=[{
+rows=[];
+
+for(let i=0;i<5;i++){
+rows.push({
 item:"",
 price:"",
 people:"",
-selected:[],
-placeholder:placeholders[0]
-}];
+selected:[]
+});
+}
 
-renderPeopleBar();
 render();
 calc();
 }
 
-/* ADD ROW SAFE */
+/* ===== SAFE AUTO ROW ===== */
 
 function ensureRow(){
 
@@ -227,15 +161,14 @@ rows.push({
 item:"",
 price:"",
 people:"",
-selected:[],
-placeholder:""
+selected:[]
 });
 
 render();
 }
 }
 
-/* ENTER NAVIGATION */
+/* ===== ENTER NAVIGATION ===== */
 
 function moveDown(e,row,col){
 
@@ -259,9 +192,19 @@ next.select?.();
 },0);
 }
 
-/* INPUT */
+/* ===== INPUT ===== */
 
-function handlePriceInput(row, el){
+function update(i,key,val){
+
+rows[i][key]=val;
+
+ensureRow();
+calc();
+}
+
+/* PRICE CLEAN */
+
+function handlePriceInput(row,el){
 
 el.value=el.value
 .replace(/[^0-9.]/g,"")
@@ -273,17 +216,12 @@ ensureRow();
 calc();
 }
 
-function update(i,key,val){
-rows[i][key]=val;
-ensureRow();
-calc();
-}
-
-/* TAP */
+/* ===== TAP ===== */
 
 function toggleName(row,name){
 
 let r=rows[row];
+
 if(!r.selected) r.selected=[];
 
 let idx=r.selected.indexOf(name);
@@ -291,7 +229,7 @@ let idx=r.selected.indexOf(name);
 if(idx>-1) r.selected.splice(idx,1);
 else r.selected.push(name);
 
-r.people=r.selected.length ? r.selected.join(", ") : "";
+r.people=r.selected.join(", ");
 
 render();
 calc();
@@ -313,7 +251,7 @@ render();
 calc();
 }
 
-/* RENDER */
+/* ===== RENDER ===== */
 
 function render(){
 
@@ -354,7 +292,6 @@ onkeydown="moveDown(event,${i},1)">
 <td>
 <input data-row="${i}" data-col="2"
 value="${r.people}"
-placeholder="${r.placeholder||''}"
 oninput="update(${i},'people',this.value)"
 onkeydown="moveDown(event,${i},2)">
 </td>
@@ -369,7 +306,7 @@ body.appendChild(tr);
 
 }
 
-/* CALC */
+/* ===== CALC ===== */
 
 function calc(){
 
@@ -385,18 +322,9 @@ if(!isNaN(p)) subtotal+=p;
 summary.innerHTML=`Subtotal: $${subtotal.toFixed(2)}`;
 }
 
-/* CLEAR */
-
-function clearAll(){
-rows=[];
-venmoNames={};
-init();
-}
-
-/* START */
+/* ===== START ===== */
 
 init();
-calc();
 
 </script>
 
