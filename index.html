@@ -74,11 +74,6 @@ padding:3px;
 font-family:Arial;
 }
 
-/* People column slightly taller */
-td:nth-child(3) textarea{
-min-height:70px;
-}
-
 /* TAP GRID */
 .tap-grid{
 display:grid;
@@ -134,6 +129,11 @@ font-weight:bold;
 margin:4px 0;
 }
 
+.venmo-btn{
+margin-left:6px;
+font-size:11px;
+}
+
 </style>
 </head>
 
@@ -173,7 +173,7 @@ onkeydown="handleAddPerson(event)">
 <br>
 <button onclick="addRow()">Add Row</button>
 
-<br>
+<br><br>
 
 <div class="tax-tip-wrap">
 <label>Tax</label>
@@ -192,6 +192,11 @@ onkeydown="handleAddPerson(event)">
 </select>
 <input id="tipValue" class="tax-tip-input" oninput="calc()">
 </div>
+
+<br>
+
+<!-- ✅ REQUEST ALL BUTTON -->
+<button onclick="requestAllVenmo()">Request All Venmo</button>
 
 <div class="summary-box" id="summary"></div>
 <div id="totals"></div>
@@ -214,7 +219,7 @@ let defaultNames=[
 
 let nameList=[...defaultNames];
 let rows=[];
-let venmoNames={};
+let venmoNames={...defaultVenmoMap};
 
 function init(){
 
@@ -228,8 +233,6 @@ people:"",
 selected:[]
 });
 }
-
-venmoNames={...defaultVenmoMap};
 
 renderPeopleBar();
 render();
@@ -355,7 +358,6 @@ next.select?.();
 },0);
 }
 
-/* ✅ FIXED: ADD ROW FUNCTION RESTORED */
 function addRow(){
 rows.push({
 item:"",
@@ -467,12 +469,33 @@ let div=document.getElementById("totals");
 div.innerHTML="";
 
 Object.keys(people).forEach(p=>{
+
+let venmo = venmoNames[p];
+
+let btn = venmo
+? `<button class="venmo-btn" onclick="window.open('https://venmo.com/${venmo}?txn=request&amount=${people[p].total.toFixed(2)}','_blank')">
+Request
+</button>`
+: "";
+
 div.innerHTML+=`
 <div class="result">
 ${p} owes $${people[p].total.toFixed(2)}
+${btn}
 </div>`;
 });
 
+}
+
+/* REQUEST ALL VENMO */
+function requestAllVenmo(){
+Object.keys(people = window.people || {}).forEach(()=>{});
+
+let all = document.querySelectorAll(".result");
+
+all.forEach(el=>{
+el.querySelector("button")?.click();
+});
 }
 
 init();
