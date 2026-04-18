@@ -95,6 +95,7 @@ cursor:pointer;
 border:1px solid #ccc;
 background:#e0e0e0;
 border-radius:7px;
+
 white-space:nowrap;
 overflow:hidden;
 text-overflow:ellipsis;
@@ -364,13 +365,14 @@ function calc(){
 let subtotal=0;
 let people={};
 
-// get tax/tip inputs
+// read inputs
 let taxVal=parseFloat(document.getElementById("taxValue").value)||0;
 let tipVal=parseFloat(document.getElementById("tipValue").value)||0;
 
 let taxMode=document.getElementById("taxMode").value;
 let tipMode=document.getElementById("tipMode").value;
 
+// STEP 1: item shares
 rows.forEach(r=>{
 
 if(r.price){
@@ -384,18 +386,32 @@ let list=r.people==="EVERYONE"
 let share=price/list.length||0;
 
 list.forEach(p=>{
-if(!people[p]) people[p]={total:0};
-people[p].total+=share;
+if(!people[p]) people[p]={subtotalShare:0};
+people[p].subtotalShare+=share;
 });
 }
+
 });
 
-// calculate tax + tip
+// STEP 2: tax + tip totals
 let taxAmount = taxMode==="percent" ? subtotal*(taxVal/100) : taxVal;
 let tipAmount = tipMode==="percent" ? subtotal*(tipVal/100) : tipVal;
 
 let total = subtotal + taxAmount + tipAmount;
 
+// STEP 3: distribute tax + tip proportionally
+Object.keys(people).forEach(p=>{
+let share = people[p].subtotalShare || 0;
+
+let ratio = subtotal ? (share / subtotal) : 0;
+
+let taxShare = taxAmount * ratio;
+let tipShare = tipAmount * ratio;
+
+people[p].total = share + taxShare + tipShare;
+});
+
+// OUTPUT
 summary.innerHTML=`
 Subtotal: $${subtotal.toFixed(2)}<br>
 Tax: $${taxAmount.toFixed(2)}<br>
