@@ -302,6 +302,9 @@ rows[row].price=el.value;
 calc();
 }
 
+/* =========================
+   ONLY CHANGE IS HERE
+========================= */
 function toggleName(row,name){
 let r=rows[row];
 if(!r.selected) r.selected=[];
@@ -310,10 +313,17 @@ let idx=r.selected.indexOf(name);
 if(idx>-1) r.selected.splice(idx,1);
 else r.selected.push(name);
 
-r.people=r.selected.length ? r.selected.join(", ") : "";
+/* ✅ NEW: collapse to EVERYONE when all selected */
+if(r.selected.length === nameList.length){
+r.people = "EVERYONE";
+}else{
+r.people = r.selected.length ? r.selected.join(", ") : "";
+}
+
 render();
 calc();
 }
+/* ========================= */
 
 function toggleEveryone(row){
 let r=rows[row];
@@ -398,21 +408,8 @@ people[p].subtotalShare+=share;
 
 });
 
-/* ✅ FIXED: explicit % handling */
-let taxAmount = 0;
-let tipAmount = 0;
-
-if(taxMode === "percent"){
-taxAmount = subtotal * (taxVal / 100);
-}else{
-taxAmount = taxVal;
-}
-
-if(tipMode === "percent"){
-tipAmount = subtotal * (tipVal / 100);
-}else{
-tipAmount = tipVal;
-}
+let taxAmount = taxMode==="percent" ? subtotal*(taxVal/100) : taxVal;
+let tipAmount = tipMode==="percent" ? subtotal*(tipVal/100) : tipVal;
 
 let total = subtotal + taxAmount + tipAmount;
 
