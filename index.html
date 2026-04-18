@@ -13,17 +13,11 @@ body {
     padding: 10px;
 }
 
-h1 {
-    text-align: center;
-    margin-bottom: 10px;
-}
+h1 { text-align: center; }
 
-/* Compact layout */
-.section {
-    margin-bottom: 12px;
-}
+.section { margin-bottom: 10px; }
 
-/* Table */
+/* compact table */
 table {
     width: 100%;
     border-collapse: collapse;
@@ -41,44 +35,32 @@ input {
     font-size: 13px;
 }
 
-/* Make rows compact */
-td {
-    height: 28px;
-}
-
-/* Summary pinned look */
 .summary-box {
     border: 1px solid #ccc;
     padding: 10px;
     position: sticky;
     top: 0;
     background: white;
-    z-index: 10;
 }
 
-/* Totals */
-.result {
-    font-weight: bold;
-    margin: 4px 0;
-}
-
-/* Buttons compact */
-button {
-    padding: 5px 8px;
-    font-size: 12px;
-}
-
-/* Venmo button */
+/* venmo */
 .venmo-btn {
     margin-left: 6px;
     font-size: 11px;
     padding: 3px 6px;
 }
 
-</style>
+.result {
+    font-weight: bold;
+    margin: 4px 0;
+}
 
-<!-- OCR LIB -->
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+.small {
+    font-size: 12px;
+    color: gray;
+}
+
+</style>
 
 </head>
 
@@ -86,10 +68,30 @@ button {
 
 <h1>Bill Splitter</h1>
 
-<!-- OCR UPLOAD -->
+<!-- VENMO USER INPUT -->
 <div class="section">
-<input type="file" id="receiptUpload" accept="image/*">
-<button onclick="processReceipt()">Scan Receipt</button>
+<input id="venmoUser" placeholder="Venmo username (optional)">
+</div>
+
+<!-- TAX / TIP CONTROLS -->
+<div class="section">
+
+<strong>Tax</strong>
+<select id="taxMode" onchange="calc()">
+<option value="percent">%</option>
+<option value="amount">$</option>
+</select>
+
+<input id="taxValue" type="number" oninput="calc()" placeholder="Tax value">
+
+<strong>Tip</strong>
+<select id="tipMode" onchange="calc()">
+<option value="percent">%</option>
+<option value="amount">$</option>
+</select>
+
+<input id="tipValue" type="number" oninput="calc()" placeholder="Tip value">
+
 </div>
 
 <!-- TABLE -->
@@ -98,7 +100,7 @@ button {
 <table>
 <thead>
 <tr>
-<th>Item</th>
+<th>Item (optional)</th>
 <th>Price</th>
 <th>People</th>
 </tr>
@@ -109,16 +111,7 @@ button {
 
 </div>
 
-<!-- ADJUSTMENTS -->
-<div class="section">
-
-Tax % <input id="taxPercent" type="number" style="width:60px">
-Tip % <input id="tipPercent" type="number" style="width:60px">
-Cashback % <input id="cashbackPercent" type="number" style="width:60px">
-
-</div>
-
-<!-- SUMMARY (always visible) -->
+<!-- SUMMARY -->
 <div class="summary-box" id="summary"></div>
 
 <!-- TOTALS -->
@@ -130,13 +123,11 @@ Cashback % <input id="cashbackPercent" type="number" style="width:60px">
 
 let rows = [];
 
-/* INIT SMALL ROWS */
 function init(){
     for(let i=0;i<10;i++) addRow();
     render();
 }
 
-/* ADD ROW */
 function addRow(data={}){
     rows.push({
         item:data.item||"",
@@ -145,7 +136,6 @@ function addRow(data={}){
     });
 }
 
-/* AUTO EXPAND */
 function maybeExpand(){
     if(rows.filter(r=>r.price).length > rows.length - 2){
         for(let i=0;i<5;i++) addRow();
@@ -153,7 +143,6 @@ function maybeExpand(){
     }
 }
 
-/* RENDER */
 function render(){
 
 let body = document.getElementById("tableBody");
@@ -164,7 +153,7 @@ rows.forEach((r,i)=>{
 let tr = document.createElement("tr");
 
 tr.innerHTML = `
-<td><input value="${r.item}" oninput="update(${i},'item',this.value)"></td>
+<td><input placeholder="optional" value="${r.item}" oninput="update(${i},'item',this.value)"></td>
 <td><input type="number" value="${r.price}" oninput="update(${i},'price',this.value)"></td>
 <td><input value="${r.people}" oninput="update(${i},'people',this.value)"></td>
 `;
@@ -175,14 +164,12 @@ body.appendChild(tr);
 
 }
 
-/* UPDATE */
 function update(i,key,val){
     rows[i][key]=val;
     maybeExpand();
     calc();
 }
 
-/* CALC */
 function calc(){
 
 let items = rows.filter(r=>r.price && r.people);
@@ -191,40 +178,55 @@ let people = {};
 let subtotal = 0;
 
 items.forEach(i=>{
-subtotal += parseFloat(i.price);
+let price = parseFloat(i.price);
+subtotal += price;
 
-let share = i.price / i.people.split(",").length;
+let list = i.people.split(",").map(p=>p.trim()).filter(Boolean);
 
-i.people.split(",").forEach(p=>{
-    p=p.trim();
-    if(!p) return;
+let share = price / list.length;
+
+list.forEach(p=>{
     people[p] = people[p] || {total:0};
     people[p].total += share;
 });
 
 });
 
-let tax = subtotal*(taxPercent.value||0)/100;
-let tip = subtotal*(tipPercent.value||0)/100;
-let cashback = (cashbackPercent.value||0)/100;
+/* TAX */
+let tax = 0;
+if(taxMode.value === "percent"){
+tax = subtotal * (taxValue.value||0)/100;
+} else {
+tax = parseFloat(taxValue.value||0);
+}
+
+/* TIP */
+let tip = 0;
+if(tipMode.value === "percent"){
+tip = subtotal * (tipValue.value||0)/100;
+} else {
+tip = parseFloat(tipValue.value||0);
+}
 
 let total = subtotal + tax + tip;
 
-/* adjust */
+/* distribute */
 Object.keys(people).forEach(p=>{
 let ratio = people[p].total/subtotal || 0;
 people[p].total += tax*ratio + tip*ratio;
-people[p].total -= people[p].total*cashback;
 });
 
 /* SUMMARY */
-document.getElementById("summary").innerHTML =
-`Subtotal: $${subtotal.toFixed(2)} |
-Tax: $${tax.toFixed(2)} |
-Tip: $${tip.toFixed(2)} |
-Total: $${total.toFixed(2)}`;
+document.getElementById("summary").innerHTML = `
+Subtotal: $${subtotal.toFixed(2)}<br>
+Tax: $${tax.toFixed(2)} (${taxMode.value})<br>
+Tip: $${tip.toFixed(2)} (${tipMode.value})<br>
+<strong>Total: $${total.toFixed(2)}</strong>
+`;
 
-/* TOTALS + VENMO */
+/* VENMO */
+let venmoUser = venmoUserEl().trim();
+
 let div = document.getElementById("totals");
 div.innerHTML = "";
 
@@ -232,13 +234,14 @@ Object.keys(people).forEach(p=>{
 
 let amt = people[p].total.toFixed(2);
 
-/* VENMO LINK */
-let venmo = `https://venmo.com/?txn=pay&recipients=${encodeURIComponent(p)}&amount=${amt}&note=Split%20bill`;
+let venmoLink = venmoUser
+? `https://venmo.com/${venmoUser}`
+: `https://venmo.com/?txn=pay&recipients=${encodeURIComponent(p)}&amount=${amt}`;
 
 div.innerHTML += `
 <div class="result">
 ${p} owes $${amt}
-<button class="venmo-btn" onclick="window.open('${venmo}','_blank')">Venmo</button>
+<button class="venmo-btn" onclick="window.open('${venmoLink}','_blank')">Venmo</button>
 </div>
 `;
 
@@ -246,35 +249,8 @@ ${p} owes $${amt}
 
 }
 
-/* RECEIPT OCR */
-async function processReceipt(){
-
-let file = document.getElementById("receiptUpload").files[0];
-if(!file) return;
-
-const { data } = await Tesseract.recognize(file, 'eng');
-
-let lines = data.text.split("\n");
-
-lines.forEach(line=>{
-
-let priceMatch = line.match(/\d+\.\d{2}/);
-
-if(priceMatch){
-
-addRow({
-    item: line.replace(priceMatch[0],"").trim(),
-    price: priceMatch[0],
-    people:""
-});
-
-}
-
-});
-
-render();
-calc();
-
+function venmoUserEl(){
+return document.getElementById("venmoUser").value || "";
 }
 
 init();
