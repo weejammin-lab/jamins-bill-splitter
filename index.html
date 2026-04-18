@@ -63,20 +63,8 @@ th:nth-child(2), td:nth-child(2){ width:12%; }
 th:nth-child(3), td:nth-child(3){ width:20%; }
 th:nth-child(4), td:nth-child(4){ width:48%; }
 
-/* ✅ NEW: make row behave like flex container for equal height cells */
-tr{
-display:table-row;
-}
-
-/* ✅ KEY FIX: make textarea fill full cell height */
-td{
-padding:0;
-}
-
 td textarea{
 width:100%;
-height:100%;
-min-height:100%;
 box-sizing:border-box;
 font-size:12px;
 resize:none;
@@ -84,10 +72,9 @@ overflow:hidden;
 border:1px solid #ddd;
 padding:3px;
 font-family:Arial;
-display:block;
 }
 
-/* People column can still grow taller naturally */
+/* People column slightly taller */
 td:nth-child(3) textarea{
 min-height:70px;
 }
@@ -342,6 +329,30 @@ render();
 calc();
 }
 
+/* ✅ FIXED NAVIGATION */
+function nav(e,row,col){
+
+e.preventDefault();
+
+let nextRow = row + 1;
+
+if(nextRow >= rows.length){
+addRow();
+setTimeout(()=>{
+document.querySelector(`[data-r="${nextRow}"][data-c="${col}"]`)?.focus();
+},0);
+return;
+}
+
+setTimeout(()=>{
+let next = document.querySelector(`[data-r="${nextRow}"][data-c="${col}"]`);
+if(next){
+next.focus();
+next.select?.();
+}
+},0);
+}
+
 function render(){
 
 let body=document.getElementById("tableBody");
@@ -367,9 +378,18 @@ tapHTML+=`</div>`;
 let tr=document.createElement("tr");
 
 tr.innerHTML=`
-<td><textarea oninput="update(${i},'item',this.value)">${r.item}</textarea></td>
-<td><textarea oninput="handlePriceInput(${i},this)">${r.price}</textarea></td>
-<td><textarea oninput="update(${i},'people',this.value)">${r.people}</textarea></td>
+<td><textarea data-r="${i}" data-c="0"
+onkeydown="if(event.key==='Enter'){nav(event,${i},0)}"
+oninput="update(${i},'item',this.value)">${r.item}</textarea></td>
+
+<td><textarea data-r="${i}" data-c="1"
+onkeydown="if(event.key==='Enter'){nav(event,${i},1)}"
+oninput="handlePriceInput(${i},this)">${r.price}</textarea></td>
+
+<td><textarea data-r="${i}" data-c="2"
+onkeydown="if(event.key==='Enter'){nav(event,${i},2)}"
+oninput="update(${i},'people',this.value)">${r.people}</textarea></td>
+
 <td>${tapHTML}</td>
 `;
 
