@@ -43,14 +43,11 @@ table-layout:fixed;
 td,th{
 border:1px solid #ddd;
 padding:3px;
-overflow:hidden;
 }
 
 td input{
 width:100%;
 box-sizing:border-box;
-border:1px solid #ccc;
-background:white;
 font-size:12px;
 }
 
@@ -71,7 +68,7 @@ background:#7dff8a;
 border-color:#2ecc71;
 }
 
-/* TAX / TIP */
+/* TAX TIP */
 
 .tax-tip-wrap{
 display:flex;
@@ -90,10 +87,24 @@ width:50px;
 padding:4px;
 }
 
+/* SUMMARY */
+
 .summary-box{
 border:1px solid #ccc;
 padding:8px;
 margin-top:8px;
+}
+
+/* VENMO */
+
+.venmo-input{
+width:120px;
+margin-left:6px;
+}
+
+.result{
+font-weight:bold;
+margin:4px 0;
 }
 
 </style>
@@ -107,7 +118,6 @@ margin-top:8px;
 
 <br><br>
 
-<!-- ✅ RESTORED PEOPLE BAR -->
 <div id="personBar"></div>
 
 <input
@@ -154,6 +164,7 @@ onkeydown="handleAddPerson(event)">
 </div>
 
 <div class="summary-box" id="summary"></div>
+<div id="totals"></div>
 
 <script>
 
@@ -162,6 +173,7 @@ let nameList=[
 ];
 
 let rows=[];
+let venmoNames={};
 
 /* INIT */
 function init(){
@@ -182,9 +194,7 @@ render();
 calc();
 }
 
-/* =========================
-   PEOPLE BAR (RESTORED)
-   ========================= */
+/* PEOPLE BAR */
 
 function renderPeopleBar(){
 
@@ -232,9 +242,7 @@ render();
 calc();
 }
 
-/* =========================
-   ROW LOGIC
-   ========================= */
+/* ROW HANDLING */
 
 function addRow(){
 rows.push({
@@ -245,14 +253,12 @@ selected:[]
 });
 }
 
-/* FIXED ENTER */
 function move(e,row,col){
 
 if(e.key!=="Enter") return;
 
 e.preventDefault();
 
-/* create row if last */
 if(row === rows.length - 1){
 addRow();
 render();
@@ -350,24 +356,21 @@ let tr=document.createElement("tr");
 tr.innerHTML=`
 
 <td>
-<input
-data-row="${i}" data-col="0"
+<input data-row="${i}" data-col="0"
 value="${r.item}"
 oninput="update(${i},'item',this.value)"
 onkeydown="move(event,${i},0)">
 </td>
 
 <td>
-<input
-data-row="${i}" data-col="1"
+<input data-row="${i}" data-col="1"
 value="${r.price}"
 oninput="handlePriceInput(${i},this)"
 onkeydown="move(event,${i},1)">
 </td>
 
 <td>
-<input
-data-row="${i}" data-col="2"
+<input data-row="${i}" data-col="2"
 value="${r.people}"
 oninput="update(${i},'people',this.value)"
 onkeydown="move(event,${i},2)">
@@ -383,26 +386,118 @@ body.appendChild(tr);
 
 }
 
-/* CALC */
+/* CALC (RESTORED FULL VERSION) */
 
 function calc(){
 
 let subtotal=0;
+let people={};
 
+/* split costs */
 rows.forEach(r=>{
+
 if(r.price){
-let p=parseFloat(r.price);
-if(!isNaN(p)) subtotal+=p;
-}
+
+let price=parseFloat(r.price);
+if(isNaN(price)) return;
+
+subtotal+=price;
+
+let list =
+r.people==="everyone"
+? nameList
+: (r.people||"")
+.split(",")
+.map(p=>p.trim())
+.filter(Boolean);
+
+let share=price/list.length||0;
+
+list.forEach(p=>{
+
+if(!people[p]) people[p]={total:0};
+
+people[p].total+=share;
+
 });
 
-summary.innerHTML=`Subtotal: $${subtotal.toFixed(2)}`;
 }
 
-/* CLEAR */
+});
 
-function clearAll(){
-init();
+/* tax */
+let tax =
+taxMode.value==="percent"
+? subtotal*(taxValue.value||0)/100
+: parseFloat(taxValue.value||0);
+
+/* tip */
+let tip =
+tipMode.value==="percent"
+? subtotal*(tipValue.value||0)/100
+: parseFloat(tipValue.value||0);
+
+let total=subtotal+tax+tip;
+
+/* distribute tax/tip */
+Object.keys(people).forEach(p=>{
+
+let ratio=people[p].total/subtotal||0;
+
+people[p].total+=tax*ratio+tip*ratio;
+
+});
+
+/* SUMMARY */
+summary.innerHTML=`
+Subtotal: $${subtotal.toFixed(2)} |
+Tax: $${tax.toFixed(2)} |
+Tip: $${tip.toFixed(2)} |
+<strong>Total: $${total.toFixed(2)}</strong>
+`;
+
+/* VENMO */
+let div=document.getElementById("totals");
+div.innerHTML="";
+
+Object.keys(people).forEach(p=>{
+
+if(!venmoNames[p]) venmoNames[p]="";
+
+div.innerHTML+=`
+<div class="result">
+
+${p} owes $${people[p].total.toFixed(2)}
+
+<input class="venmo-input"
+placeholder="venmo user"
+value="${venmoNames[p]}"
+oninput="venmoNames['${p}']=this.value">
+
+<button onclick="openVenmo('${p}',${people[p].total.toFixed(2)})">
+Venmo
+</button>
+
+</div>
+`;
+});
+
+}
+
+function openVenmo(p,amt){
+
+let name=venmoNames[p];
+
+if(!name){
+alert("Enter Venmo username");
+return;
+}
+
+window.open(
+`https://venmo.com/${name}?txn=pay&amount=${amt}`,
+"_blank"
+);
+
 }
 
 /* START */
