@@ -240,9 +240,6 @@ let nameList=[...defaultNames];
 let rows=[];
 let venmoNames={...defaultVenmoMap};
 
-/* 🔴 FIX: global storage for computed totals */
-window.__peopleData = {};
-
 /* ---------------- FIREBASE LOAD ---------------- */
 
 function loadBill(){
@@ -279,7 +276,7 @@ tipMode:document.getElementById("tipMode").value
 });
 }
 
-/* ---------------- ORIGINAL FUNCTIONS ---------------- */
+/* ---------------- ORIGINAL FUNCTIONS (UNCHANGED LOGIC) ---------------- */
 
 function init(){
 rows=[];
@@ -294,6 +291,7 @@ calc();
 function clearAll(){
 if(!confirm("Clear everything?")) return;
 
+/* FIX: clear tax/tip fields */
 document.getElementById("taxValue").value="";
 document.getElementById("tipValue").value="";
 document.getElementById("taxMode").value="percent";
@@ -405,7 +403,7 @@ calc();
 saveBill();
 }
 
-/* ENTER NAV */
+/* ENTER NAVIGATION (UNCHANGED) */
 function nav(e,row,col){
 
 e.preventDefault();
@@ -468,7 +466,7 @@ oninput="handlePriceInput(${i},this)">${r.price}</textarea></td>
 onkeydown="if(event.key==='Enter'){nav(event,${i},2)}"
 oninput="update(${i},'people',this.value)">${r.people}</textarea></td>
 
-<td></td>
+<td>${tapHTML}</td>
 `;
 
 body.appendChild(tr);
@@ -518,9 +516,6 @@ let ratio=subtotal?share/subtotal:0;
 people[p].total=share+(taxAmount*ratio)+(tipAmount*ratio);
 });
 
-/* 🔴 FIX: expose computed data safely */
-window.__peopleData = people;
-
 summary.innerHTML=`Subtotal: $${subtotal.toFixed(2)}<br>
 Tax: $${taxAmount.toFixed(2)}<br>
 Tip: $${tipAmount.toFixed(2)}<br>
@@ -542,11 +537,7 @@ value="${venmo}"
 oninput="venmoNames['${p}']=this.value;saveBill()">
 
 <button class="venmo-btn"
-onclick="
-let amt = window.__peopleData['${p}']?.total;
-if(!amt) return;
-window.open('https://venmo.com/' + (venmoNames['${p}']||'') + '?txn=request&amount=' + amt.toFixed(2),'_blank')
-">
+onclick="window.open('https://venmo.com/'+(venmoNames[p]||'')+'?txn=request&amount='+people[p].total.toFixed(2),'_blank')">
 Request
 </button>
 
