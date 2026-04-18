@@ -46,7 +46,13 @@ padding:3px;
 vertical-align:top;
 }
 
-/* 🔥 WRAPPING TEXT AREAS */
+/* 🔥 COLUMN WIDTH CONTROL (PRICE NOW NARROWER) */
+th:nth-child(1), td:nth-child(1){ width:38%; }
+th:nth-child(2), td:nth-child(2){ width:12%; }  /* price smaller */
+th:nth-child(3), td:nth-child(3){ width:30%; }
+th:nth-child(4), td:nth-child(4){ width:20%; }
+
+/* WRAPPING TEXTAREAS */
 td textarea{
 width:100%;
 box-sizing:border-box;
@@ -82,11 +88,6 @@ margin-top:8px;
 
 .tax-tip-input{
 width:70px;
-padding:4px;
-}
-
-.tax-tip-select{
-width:50px;
 padding:4px;
 }
 
@@ -274,7 +275,7 @@ next.select?.();
 
 }
 
-/* 🔥 AUTO GROW TEXTAREA */
+/* AUTO RESIZE */
 function autoGrow(el){
 el.style.height="auto";
 el.style.height=el.scrollHeight+"px";
@@ -358,10 +359,9 @@ onkeydown="move(event,${i},0)">${r.item}</textarea>
 </td>
 
 <td>
-<input data-row="${i}" data-col="1"
-value="${r.price}"
-oninput="handlePriceInput(${i},this)"
-onkeydown="move(event,${i},1)">
+<textarea data-row="${i}" data-col="1"
+oninput="handlePriceInput(${i},this); autoGrow(this)"
+onkeydown="move(event,${i},1)">${r.price}</textarea>
 </td>
 
 <td>
