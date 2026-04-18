@@ -197,20 +197,13 @@ render();
 calc();
 }
 
-/* =========================
-   AUTO ROW SYSTEM
-   ========================= */
+/* AUTO ROW */
 
 function ensureRow(){
 
 let last=rows[rows.length-1];
 
-let filled =
-(last.item && last.item.trim()) ||
-(last.price && last.price.trim()) ||
-(last.people && last.people.trim());
-
-if(filled){
+if(last.item || last.price || last.people){
 rows.push({
 item:"",
 price:"",
@@ -221,38 +214,18 @@ placeholder:""
 }
 }
 
-/* =========================
-   ENTER / TAB NAVIGATION
-   ========================= */
+/* ENTER / TAB */
 
 function move(e,row,col){
 
-let key=e.key;
-
-if(key!=="Enter" && key!=="Tab") return;
+if(e.key!=="Enter" && e.key!=="Tab") return;
 
 e.preventDefault();
 
 ensureRow();
 
-let nextRow=row;
+let nextRow=row+1;
 let nextCol=col;
-
-if(key==="Enter"){
-nextRow=row+1;
-}
-
-if(key==="Tab"){
-if(e.shiftKey){
-nextCol--;
-if(nextCol<0){ nextCol=2; nextRow--; }
-}else{
-nextCol++;
-if(nextCol>2){ nextCol=0; nextRow++; }
-}
-}
-
-setTimeout(()=>{
 
 let next=document.querySelector(
 `[data-row='${nextRow}'][data-col='${nextCol}']`
@@ -262,51 +235,12 @@ if(next){
 next.focus();
 next.select?.();
 }
-
-},0);
-}
-
-/* ADD PERSON */
-
-function handleAddPerson(e){
-if(e.key==="Enter"){
-let box=document.getElementById("addPersonBox");
-let name=box.value.trim();
-if(!name) return;
-nameList.push(name);
-box.value="";
-renderPeopleBar();
-render();
-calc();
-}
-}
-
-function renderPeopleBar(){
-let bar=document.getElementById("personBar");
-bar.innerHTML="";
-nameList.forEach((n,i)=>{
-bar.innerHTML+=`
-<span class="person-tag">
-${n}
-<span class="delete-person" onclick="deletePerson(${i})">✖</span>
-</span>`;
-});
-}
-
-function deletePerson(i){
-let removed=nameList[i];
-nameList.splice(i,1);
-rows.forEach(r=>{
-r.selected=(r.selected||[]).filter(p=>p!==removed);
-});
-renderPeopleBar();
-render();
-calc();
 }
 
 /* INPUT */
 
 function handlePriceInput(row, el){
+
 el.value=el.value
 .replace(/[^0-9.]/g,"")
 .replace(/(\..*?)\..*/g,"$1");
@@ -385,7 +319,6 @@ tr.innerHTML=`
 <input
 data-row="${i}" data-col="0"
 value="${r.item}"
-placeholder="${r.placeholder}"
 oninput="update(${i},'item',this.value)"
 onkeydown="move(event,${i},0)">
 </td>
@@ -417,8 +350,6 @@ body.appendChild(tr);
 
 }
 
-/* CALC */
-
 function calc(){
 
 let subtotal=0;
@@ -433,15 +364,11 @@ if(!isNaN(p)) subtotal+=p;
 summary.innerHTML=`Subtotal: $${subtotal.toFixed(2)}`;
 }
 
-/* CLEAR */
-
 function clearAll(){
 rows=[];
 venmoNames={};
 init();
 }
-
-/* START */
 
 init();
 calc();
