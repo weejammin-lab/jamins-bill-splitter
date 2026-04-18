@@ -12,7 +12,7 @@ body {
     margin: auto;
 }
 
-/* People bar */
+/* People Bar */
 
 .person-tag {
 
@@ -28,6 +28,17 @@ body {
     color:red;
     cursor:pointer;
     margin-left:4px;
+}
+
+/* Add Person Input */
+
+.add-person-input {
+
+    padding:4px;
+    font-size:12px;
+    width:140px;
+    margin-top:4px;
+
 }
 
 /* Table */
@@ -47,11 +58,18 @@ td, th {
 
 .item-col { width:90px; }
 
-.price-col { width:45px; }
+.price-col { width:25px; }  /* HALVED */
 
-.people-col { width:320px; }
+.people-col { width:340px; }
 
 .tap-col { width:340px; }
+
+/* Inputs full width */
+
+input {
+    width:100%;
+    box-sizing:border-box;
+}
 
 /* Price */
 
@@ -127,9 +145,11 @@ Clear All
 
 <div id="personBar"></div>
 
-<button onclick="addPerson()">
-+ add person
-</button>
+<input
+class="add-person-input"
+id="addPersonBox"
+placeholder="type name + Enter"
+onkeydown="handleAddPerson(event)">
 
 <br><br>
 
@@ -193,15 +213,15 @@ oninput="calc()">
 
 <script>
 
-/* PEOPLE */
+/* PEOPLE ORDER FIXED */
 
 let nameList=[
 "jamin",
+"jack",
+"cliff",
 "willie",
 "howard",
-"cliff",
 "lin",
-"jack",
 "freddy"
 ];
 
@@ -211,7 +231,7 @@ let placeholders=[
 "jamin",
 "jack",
 "jamin, cliff, willie, howard",
-"lin, freddy, lin, cliff",
+"lin, lin, freddy (type the extra name for uneven splits)",
 "everyone"
 ];
 
@@ -237,6 +257,30 @@ placeholder:placeholders[i]
 
 renderPeopleBar();
 render();
+
+}
+
+/* ADD PERSON INLINE */
+
+function handleAddPerson(e){
+
+if(e.key==="Enter"){
+
+let box=document.getElementById("addPersonBox");
+
+let name=box.value.trim();
+
+if(!name) return;
+
+nameList.push(name);
+
+box.value="";
+
+renderPeopleBar();
+render();
+calc();
+
+}
 
 }
 
@@ -267,24 +311,6 @@ onclick="deletePerson(${i})">
 `;
 
 });
-
-}
-
-/* ADD PERSON */
-
-function addPerson(){
-
-let name=prompt("Enter name");
-
-if(!name) return;
-
-name=name.trim();
-
-nameList.push(name);
-
-renderPeopleBar();
-render();
-calc();
 
 }
 
@@ -330,23 +356,39 @@ placeholder:"everyone"
 
 }
 
-/* AUTO ADD 1 ROW */
+/* EXPAND */
 
 function maybeExpand(){
 
-rows.forEach((r,i)=>{
+let last=rows[rows.length-1];
 
-if(
-(i===rows.length-1) &&
-(r.price || r.people)
-){
+if(last.price || last.people){
 
 addRow();
 render();
 
 }
 
-});
+}
+
+/* ENTER NAVIGATION */
+
+function moveNextRow(e,row,col){
+
+if(e.key==="Enter"){
+
+e.preventDefault();
+
+let next=row+1;
+
+let inputs=document.querySelectorAll(
+`[data-col='${col}']`
+);
+
+if(inputs[next])
+inputs[next].focus();
+
+}
 
 }
 
@@ -369,7 +411,7 @@ tapHTML+=
 
 <button
 class="name-btn"
-onclick="setEveryone(${i})">
+onclick="toggleEveryone(${i})">
 everyone
 </button>
 
@@ -395,7 +437,9 @@ tr.innerHTML=`
 <td>
 
 <input
+data-col="0"
 value="${r.item}"
+onkeydown="moveNextRow(event,${i},0)"
 oninput="update(${i},'item',this.value)">
 
 </td>
@@ -405,9 +449,11 @@ oninput="update(${i},'item',this.value)">
 <span>$</span>
 
 <input
+data-col="1"
 type="number"
 step="0.01"
 value="${r.price}"
+onkeydown="moveNextRow(event,${i},1)"
 oninput="update(${i},'price',this.value)">
 
 </td>
@@ -415,8 +461,10 @@ oninput="update(${i},'price',this.value)">
 <td>
 
 <input
+data-col="2"
 value="${r.people}"
 placeholder="${r.placeholder}"
+onkeydown="moveNextRow(event,${i},2)"
 oninput="update(${i},'people',this.value)">
 
 </td>
@@ -475,11 +523,23 @@ calc();
 
 }
 
-/* EVERYONE */
+/* EVERYONE TOGGLE */
 
-function setEveryone(row){
+function toggleEveryone(row){
 
-rows[row].people="everyone";
+let r=rows[row];
+
+if(r.people==="everyone"){
+
+r.people="";
+
+}
+
+else{
+
+r.people="everyone";
+
+}
 
 render();
 calc();
@@ -509,7 +569,7 @@ calc();
 
 }
 
-/* CALC */
+/* CALCULATION */
 
 function calc(){
 
@@ -585,7 +645,7 @@ Tax: $${tax.toFixed(2)} |
 Tip: $${tip.toFixed(2)} |
 <strong>Total: $${total.toFixed(2)}</strong>`;
 
-/* TOTALS + VENMO */
+/* VENMO */
 
 let div=document.getElementById("totals");
 
@@ -596,8 +656,7 @@ Object.keys(people).forEach(p=>{
 if(!venmoNames[p])
 venmoNames[p]="";
 
-let amt=
-people[p].total.toFixed(2);
+let amt=people[p].total.toFixed(2);
 
 div.innerHTML+=`
 
@@ -623,7 +682,7 @@ Venmo
 
 }
 
-/* VENMO */
+/* VENMO LINK */
 
 function openVenmo(p,amt){
 
