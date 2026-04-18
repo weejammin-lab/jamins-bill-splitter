@@ -145,27 +145,12 @@ onkeydown="handleAddPerson(event)">
 <table>
 
 <thead>
-
 <tr>
-
-<th class="item-col">
-Item (optional)
-</th>
-
-<th class="price-col">
-Price ($)
-</th>
-
-<th class="people-col">
-People involved
-</th>
-
-<th class="tap-col">
-Tap Names
-</th>
-
+<th class="item-col">Item (optional)</th>
+<th class="price-col">Price ($)</th>
+<th class="people-col">People involved</th>
+<th class="tap-col">Tap Names</th>
 </tr>
-
 </thead>
 
 <tbody id="tableBody"></tbody>
@@ -175,7 +160,6 @@ Tap Names
 <br>
 
 Tax
-
 <select id="taxMode" onchange="calc()">
 <option value="percent">%</option>
 <option value="amount">$</option>
@@ -184,7 +168,6 @@ Tax
 <input id="taxValue" class="taxbox" oninput="calc()">
 
 Tip
-
 <select id="tipMode" onchange="calc()">
 <option value="percent">%</option>
 <option value="amount">$</option>
@@ -210,7 +193,8 @@ let nameList=[
 "freddy"
 ];
 
-/* PLACEHOLDERS */
+let rows=[];
+let venmoNames={};
 
 let placeholders=[
 "jamin",
@@ -220,9 +204,6 @@ let placeholders=[
 "everyone"
 ];
 
-let rows=[];
-let venmoNames={};
-
 /* INIT */
 
 function init(){
@@ -230,7 +211,6 @@ function init(){
 rows=[];
 
 for(let i=0;i<5;i++){
-
 rows.push({
 item:"",
 price:"",
@@ -238,12 +218,10 @@ people:"",
 selected:[],
 placeholder:placeholders[i]
 });
-
 }
 
 renderPeopleBar();
 render();
-
 }
 
 /* ADD PERSON */
@@ -253,13 +231,10 @@ function handleAddPerson(e){
 if(e.key==="Enter"){
 
 let box=document.getElementById("addPersonBox");
-
 let name=box.value.trim();
-
 if(!name) return;
 
 nameList.push(name);
-
 box.value="";
 
 renderPeopleBar();
@@ -275,25 +250,15 @@ calc();
 function renderPeopleBar(){
 
 let bar=document.getElementById("personBar");
-
 bar.innerHTML="";
 
 nameList.forEach((n,i)=>{
 
 bar.innerHTML+=`
-
 <span class="person-tag">
-
 ${n}
-
-<span
-class="delete-person"
-onclick="deletePerson(${i})">
-✖
+<span class="delete-person" onclick="deletePerson(${i})">✖</span>
 </span>
-
-</span>
-
 `;
 
 });
@@ -305,13 +270,10 @@ onclick="deletePerson(${i})">
 function deletePerson(i){
 
 let removed=nameList[i];
-
 nameList.splice(i,1);
 
 rows.forEach(r=>{
-
 r.selected=(r.selected||[]).filter(p=>p!==removed);
-
 });
 
 renderPeopleBar();
@@ -320,7 +282,7 @@ calc();
 
 }
 
-/* HANDLE PRICE */
+/* PRICE INPUT (NO ROW EXPANSION HERE) */
 
 function handlePriceInput(row, el){
 
@@ -330,41 +292,36 @@ el.value=el.value
 
 rows[row].price=el.value;
 
+calc();
+
+}
+
+/* COMMIT PRICE → ROW EXPANSION ONLY HERE */
+
+function commitPrice(e,row,el){
+
+if(e && e.key!=="Enter") return;
+
+rows[row].price=el.value;
+
 checkRowExpansion();
 
 calc();
 
 }
 
-/* ENTER MOVE */
-
-function moveNextRow(e,row,col){
-
-if(e.key==="Enter"){
-
-e.preventDefault();
-
-let next=row+1;
-
-let inputs=document.querySelectorAll(
-`[data-col='${col}']`
-);
-
-if(inputs[next])
-inputs[next].focus();
-
-}
-
-}
-
-/* ROW EXPANSION */
+/* ROW EXPANSION (ONLY ON COMMIT) */
 
 function checkRowExpansion(){
 
-let lastIndex=rows.length-1;
-let last=rows[lastIndex];
+let last=rows[rows.length-1];
 
-if(last.price || last.people || last.item){
+let filled=
+(last.item && last.item.trim()) ||
+(last.price && last.price.trim()) ||
+(last.people && last.people.trim());
+
+if(filled){
 
 rows.push({
 item:"",
@@ -375,104 +332,21 @@ placeholder:""
 });
 
 render();
-return;
 
 }
 
 }
 
-/* RENDER */
+/* UPDATE */
 
-function render(){
+function update(i,key,val){
 
-let body=document.getElementById("tableBody");
-
-body.innerHTML="";
-
-rows.forEach((r,i)=>{
-
-let tapHTML="";
-
-/* Everyone */
-
-tapHTML+=`
-<div class="everyone-row">
-
-<button
-class="name-btn ${r.selected?.length===nameList.length ? 'selected':''}"
-onclick="toggleEveryone(${i})">
-everyone
-</button>
-
-</div>`;
-
-/* Names */
-
-nameList.forEach(n=>{
-
-let selected = r.selected?.includes(n);
-
-tapHTML+=`
-<button
-class="name-btn ${selected ? 'selected' : ''}"
-onclick="toggleName(${i},'${n}')">
-${n}
-</button>
-`;
-
-});
-
-let tr=document.createElement("tr");
-
-tr.innerHTML=`
-
-<td>
-
-<input
-data-col="0"
-value="${r.item}"
-oninput="update(${i},'item',this.value)">
-
-</td>
-
-<td class="price-cell">
-
-<span>$</span>
-
-<input
-data-col="1"
-type="text"
-inputmode="decimal"
-value="${r.price}"
-oninput="handlePriceInput(${i},this)">
-
-</td>
-
-<td>
-
-<input
-data-col="2"
-value="${r.people}"
-placeholder="${r.placeholder}"
-oninput="update(${i},'people',this.value)">
-
-</td>
-
-<td>
-
-${tapHTML}
-
-</td>
-
-`;
-
-body.appendChild(tr);
-
-});
+rows[i][key]=val;
+calc();
 
 }
 
-/* TOGGLE NAME (FIXED ISOLATION + STATE) */
+/* TAP NAME */
 
 function toggleName(row,name){
 
@@ -488,7 +362,7 @@ r.selected.splice(idx,1);
 r.selected.push(name);
 }
 
-r.people = r.selected.length ? r.selected.join(", ") : "";
+r.people=r.selected.length ? r.selected.join(", ") : "";
 
 render();
 calc();
@@ -501,7 +375,7 @@ function toggleEveryone(row){
 
 let r=rows[row];
 
-if(r.selected && r.selected.length===nameList.length){
+if(r.selected?.length===nameList.length){
 r.selected=[];
 r.people="";
 }else{
@@ -514,26 +388,71 @@ calc();
 
 }
 
-/* UPDATE */
+/* RENDER */
 
-function update(i,key,val){
+function render(){
 
-rows[i][key]=val;
+let body=document.getElementById("tableBody");
+body.innerHTML="";
 
-checkRowExpansion();
+rows.forEach((r,i)=>{
 
-calc();
+let tapHTML="";
 
-}
+tapHTML+=`
+<div class="everyone-row">
+<button class="name-btn ${r.selected?.length===nameList.length?'selected':''}"
+onclick="toggleEveryone(${i})">everyone</button>
+</div>`;
 
-/* CLEAR */
+nameList.forEach(n=>{
 
-function clearAll(){
+let selected=r.selected?.includes(n);
 
-venmoNames={};
+tapHTML+=`
+<button class="name-btn ${selected?'selected':''}"
+onclick="toggleName(${i},'${n}')">
+${n}
+</button>
+`;
 
-init();
-calc();
+});
+
+let tr=document.createElement("tr");
+
+tr.innerHTML=`
+
+<td>
+<input value="${r.item}"
+placeholder="${r.placeholder||''}"
+oninput="update(${i},'item',this.value)">
+</td>
+
+<td class="price-cell">
+<span>$</span>
+<input type="text"
+inputmode="decimal"
+value="${r.price}"
+oninput="handlePriceInput(${i},this)"
+onkeydown="commitPrice(event,${i},this)"
+onblur="commitPrice(null,${i},this)">
+</td>
+
+<td>
+<input value="${r.people}"
+placeholder="${r.placeholder||''}"
+oninput="update(${i},'people',this.value)">
+</td>
+
+<td>
+${tapHTML}
+</td>
+
+`;
+
+body.appendChild(tr);
+
+});
 
 }
 
@@ -549,8 +468,7 @@ rows.forEach(r=>{
 if(r.price){
 
 let price=parseFloat(r.price);
-
-subtotal+=price;
+if(!isNaN(price)) subtotal+=price;
 
 let list=
 r.selected?.length
@@ -565,86 +483,25 @@ r.selected?.length
 let share=price/list.length||0;
 
 list.forEach(p=>{
-
-if(!people[p])
-people[p]={total:0};
-
+if(!people[p]) people[p]={total:0};
 people[p].total+=share;
-
 });
 
 }
 
 });
 
-/* TAX */
+summary.innerHTML=`Subtotal: $${subtotal.toFixed(2)}`;
 
-let tax=
-taxMode.value==="percent"
-? subtotal*(taxValue.value||0)/100
-: parseFloat(taxValue.value||0);
+}
 
-/* TIP */
+/* CLEAR */
 
-let tip=
-tipMode.value==="percent"
-? subtotal*(tipValue.value||0)/100
-: parseFloat(tipValue.value||0);
+function clearAll(){
 
-let total=subtotal+tax+tip;
-
-/* DISTRIBUTE */
-
-Object.keys(people).forEach(p=>{
-
-let ratio=
-people[p].total/subtotal||0;
-
-people[p].total+=
-tax*ratio+
-tip*ratio;
-
-});
-
-/* SUMMARY */
-
-summary.innerHTML=
-
-`Subtotal: $${subtotal.toFixed(2)} |
-Tax: $${tax.toFixed(2)} |
-Tip: $${tip.toFixed(2)} |
-<strong>Total: $${total.toFixed(2)}</strong>`;
-
-/* VENMO */
-
-let div=document.getElementById("totals");
-
-div.innerHTML="";
-
-Object.keys(people).forEach(p=>{
-
-if(!venmoNames[p])
-venmoNames[p]="";
-
-let amt=people[p].total.toFixed(2);
-
-div.innerHTML+=`
-
-<div class="result">
-
-${p} owes $${amt}
-
-<input
-class="venmo-input"
-placeholder="venmo user"
-value="${venmoNames[p]}"
-oninput="venmoNames['${p}']=this.value">
-
-</div>
-
-`;
-
-});
+rows=[];
+venmoNames={};
+init();
 
 }
 
