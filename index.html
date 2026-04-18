@@ -46,11 +46,11 @@ border:1px solid #ddd;
 padding:3px;
 }
 
-/* ✅ FIXED COLUMN WIDTHS */
+/* ✅ COLUMN WIDTH FIX */
 
-.item-col{width:160px;}      /* slightly wider */
-.price-col{width:60px;}      /* FIXED: tight */
-.people-col{width:520px;}    /* FIXED: much wider */
+.item-col{width:80px;}        /* HALF WIDTH (requested) */
+.price-col{width:60px;}
+.people-col{width:520px;}
 .tap-col{width:360px;}
 
 input{
@@ -60,7 +60,7 @@ border:1px solid #ccc;
 background:white;
 }
 
-/* ITEM INPUT — NO PLACEHOLDER */
+/* ITEM */
 
 .item-input{
 width:100%;
@@ -337,14 +337,14 @@ let tr=document.createElement("tr");
 
 tr.innerHTML=`
 
-<!-- ITEM (FIXED: NO PLACEHOLDER NOW) -->
+<!-- ITEM -->
 <td>
 <input class="item-input"
 value="${r.item}"
 oninput="update(${i},'item',this.value)">
 </td>
 
-<!-- PRICE (FIXED WIDTH) -->
+<!-- PRICE -->
 <td class="price-cell">
 <span>$</span>
 <input
@@ -352,10 +352,11 @@ value="${r.price}"
 oninput="handlePriceInput(${i},this)">
 </td>
 
-<!-- PEOPLE (WIDER NOW) -->
+<!-- PEOPLE (✔ RESTORED PLACEHOLDER) -->
 <td>
 <input
 value="${r.people}"
+placeholder="${r.placeholder}"
 oninput="update(${i},'people',this.value)">
 </td>
 
