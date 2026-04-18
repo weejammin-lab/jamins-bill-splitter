@@ -276,7 +276,7 @@ tipMode:document.getElementById("tipMode").value
 });
 }
 
-/* ---------------- ORIGINAL FUNCTIONS (UNCHANGED LOGIC) ---------------- */
+/* ---------------- ORIGINAL FUNCTIONS ---------------- */
 
 function init(){
 rows=[];
@@ -291,7 +291,6 @@ calc();
 function clearAll(){
 if(!confirm("Clear everything?")) return;
 
-/* FIX: clear tax/tip fields */
 document.getElementById("taxValue").value="";
 document.getElementById("tipValue").value="";
 document.getElementById("taxMode").value="percent";
@@ -403,7 +402,7 @@ calc();
 saveBill();
 }
 
-/* ENTER NAVIGATION (UNCHANGED) */
+/* ENTER NAV */
 function nav(e,row,col){
 
 e.preventDefault();
@@ -466,7 +465,21 @@ oninput="handlePriceInput(${i},this)">${r.price}</textarea></td>
 onkeydown="if(event.key==='Enter'){nav(event,${i},2)}"
 oninput="update(${i},'people',this.value)">${r.people}</textarea></td>
 
-<td>${tapHTML}</td>
+<td>
+<div class="result">
+${(() => {
+const amt = people?.[p]?.total;
+if(!amt) return "";
+return `
+<button class="venmo-btn"
+onclick="
+window.open('https://venmo.com/' + (venmoNames[p]||'') + '?txn=request&amount=' + amt.toFixed(2),'_blank')
+">
+Request
+</button>`;
+})()}
+</div>
+</td>
 `;
 
 body.appendChild(tr);
@@ -537,7 +550,11 @@ value="${venmo}"
 oninput="venmoNames['${p}']=this.value;saveBill()">
 
 <button class="venmo-btn"
-onclick="window.open('https://venmo.com/'+(venmoNames[p]||'')+'?txn=request&amount='+people[p].total.toFixed(2),'_blank')">
+onclick="
+const amt = people['${p}']?.total;
+if(!amt) return;
+window.open('https://venmo.com/' + (venmoNames['${p}']||'') + '?txn=request&amount=' + amt.toFixed(2),'_blank')
+">
 Request
 </button>
 
