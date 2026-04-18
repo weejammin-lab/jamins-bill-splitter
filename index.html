@@ -12,6 +12,8 @@ max-width:1100px;
 margin:auto;
 }
 
+/* PEOPLE BAR */
+
 .person-tag{
 display:inline-block;
 border:1px solid #ccc;
@@ -32,6 +34,8 @@ font-size:12px;
 width:140px;
 margin-top:4px;
 }
+
+/* TABLE */
 
 table{
 width:100%;
@@ -54,6 +58,8 @@ width:100%;
 box-sizing:border-box;
 }
 
+/* PRICE */
+
 .price-cell{
 position:relative;
 }
@@ -65,33 +71,45 @@ top:3px;
 color:gray;
 }
 
-/* buttons */
+.price-cell input{
+padding-left:10px;
+}
+
+/* TAP BUTTONS */
 
 .name-btn{
 margin:2px;
-padding:3px 7px;
+padding:2px 6px;
 font-size:11px;
 cursor:pointer;
-border:1px solid #ccc;
-border-radius:4px;
-background:#e0e0e0;
-}
-
-.name-btn.selected{
-background:#b8f5b8;
-border-color:#7ad67a;
 }
 
 .everyone-row{
 margin-bottom:4px;
 }
 
-/* summary */
+/* TAX TIP */
+
+.taxbox{
+width:80px;
+}
+
+/* SUMMARY */
 
 .summary-box{
 border:1px solid #ccc;
 padding:8px;
 margin-top:8px;
+}
+
+.result{
+font-weight:bold;
+margin:4px 0;
+}
+
+.venmo-input{
+width:120px;
+margin-left:6px;
 }
 
 </style>
@@ -118,12 +136,27 @@ onkeydown="handleAddPerson(event)">
 <table>
 
 <thead>
+
 <tr>
-<th>Item</th>
-<th>Price ($)</th>
-<th>People involved</th>
-<th>Tap Names</th>
+
+<th class="item-col">
+Item (optional)
+</th>
+
+<th class="price-col">
+Price ($)
+</th>
+
+<th class="people-col">
+People involved
+</th>
+
+<th class="tap-col">
+Tap Names
+</th>
+
 </tr>
+
 </thead>
 
 <tbody id="tableBody"></tbody>
@@ -132,28 +165,54 @@ onkeydown="handleAddPerson(event)">
 
 <br>
 
+Tax
+
+<select id="taxMode" onchange="calc()">
+<option value="percent">%</option>
+<option value="amount">$</option>
+</select>
+
+<input id="taxValue" class="taxbox" oninput="calc()">
+
+Tip
+
+<select id="tipMode" onchange="calc()">
+<option value="percent">%</option>
+<option value="amount">$</option>
+</select>
+
+<input id="tipValue" class="taxbox" oninput="calc()">
+
 <div class="summary-box" id="summary"></div>
+
+<div id="totals"></div>
 
 <script>
 
-/* PEOPLE */
+/* PEOPLE ORDER */
 
 let nameList=[
-"jamin","jack","cliff","willie","howard","lin","freddy"
+"jamin",
+"jack",
+"cliff",
+"willie",
+"howard",
+"lin",
+"freddy"
 ];
 
-let rows=[];
-let venmoNames={};
-
-/* 5 FIXED GREY EXAMPLES */
+/* PLACEHOLDERS */
 
 let placeholders=[
 "jamin",
 "jack",
 "jamin, cliff, willie, howard",
-"lin, lin, freddy",
+"lin, lin, freddy (type extra name for uneven splits)",
 "everyone"
 ];
+
+let rows=[];
+let venmoNames={};
 
 /* INIT */
 
@@ -162,32 +221,35 @@ function init(){
 rows=[];
 
 for(let i=0;i<5;i++){
+
 rows.push({
 item:"",
 price:"",
 people:"",
-selected:[],
 placeholder:placeholders[i]
 });
+
 }
 
 renderPeopleBar();
 render();
-calc();
 
 }
 
-/* PEOPLE */
+/* ADD PERSON */
 
 function handleAddPerson(e){
 
 if(e.key==="Enter"){
 
 let box=document.getElementById("addPersonBox");
+
 let name=box.value.trim();
+
 if(!name) return;
 
 nameList.push(name);
+
 box.value="";
 
 renderPeopleBar();
@@ -198,31 +260,57 @@ calc();
 
 }
 
+/* PEOPLE BAR */
+
 function renderPeopleBar(){
 
 let bar=document.getElementById("personBar");
+
 bar.innerHTML="";
 
 nameList.forEach((n,i)=>{
 
 bar.innerHTML+=`
+
 <span class="person-tag">
+
 ${n}
-<span class="delete-person" onclick="deletePerson(${i})">✖</span>
+
+<span
+class="delete-person"
+onclick="deletePerson(${i})">
+✖
 </span>
+
+</span>
+
 `;
 
 });
 
 }
 
+/* DELETE PERSON */
+
 function deletePerson(i){
 
 let removed=nameList[i];
+
 nameList.splice(i,1);
 
 rows.forEach(r=>{
-r.selected=(r.selected||[]).filter(p=>p!==removed);
+
+if(r.people){
+
+let list=r.people
+.split(",")
+.map(p=>p.trim())
+.filter(p=>p!==removed);
+
+r.people=list.join(", ");
+
+}
+
 });
 
 renderPeopleBar();
@@ -231,93 +319,79 @@ calc();
 
 }
 
-/* ========================= */
-/* AUTO ROW (SIMPLE + FIXED) */
-/* ========================= */
+/* HANDLE PRICE */
 
-function ensureRow(){
-
-let last = rows[rows.length - 1];
-
-let filled =
-(last.item && last.item.trim()) ||
-(last.price && last.price.trim()) ||
-(last.people && last.people.trim()) ||
-(last.selected && last.selected.length);
-
-if(filled){
-rows.push({
-item:"",
-price:"",
-people:"",
-selected:[],
-placeholder:""
-});
-}
-
-}
-
-/* INPUTS */
-
-function update(i,key,val){
-
-rows[i][key]=val;
-
-ensureRow();
-calc();
-
-}
-
-function handlePriceInput(i,el){
+function handlePriceInput(row, el){
 
 el.value=el.value
 .replace(/[^0-9.]/g,"")
 .replace(/(\..*?)\..*/g,"$1");
 
-rows[i].price=el.value;
+rows[row].price=el.value;
 
-ensureRow();
+checkRowExpansion();
+
 calc();
 
 }
 
-/* ========================= */
-/* TAP (FIXED ISOLATION)    */
-/* ========================= */
+/* ENTER MOVE */
 
-function toggleName(row,name){
+function moveNextRow(e,row,col){
 
-let r=rows[row];
+if(e.key==="Enter"){
 
-if(!r.selected) r.selected=[];
+e.preventDefault();
 
-if(r.selected.includes(name)){
-r.selected=r.selected.filter(p=>p!==name);
-}else{
-r.selected.push(name);
+let next=row+1;
+
+let inputs=document.querySelectorAll(
+`[data-col='${col}']`
+);
+
+if(inputs[next])
+inputs[next].focus();
+
 }
 
-r.people=r.selected.join(", ");
+}
+
+/* ROW EXPANSION */
+
+function checkRowExpansion(){
+
+let lastIndex=rows.length-1;
+let last=rows[lastIndex];
+
+/* ADD */
+
+if(last.price || last.people){
+
+rows.push({
+item:"",
+price:"",
+people:"",
+placeholder:"everyone"
+});
 
 render();
-calc();
+return;
 
 }
 
-function toggleEveryone(row){
+/* REMOVE */
 
-let r=rows[row];
+if(
+rows.length>5 &&
+!last.price &&
+!last.people &&
+!last.item
+){
 
-if(r.selected && r.selected.length===nameList.length){
-r.selected=[];
-r.people="";
-}else{
-r.selected=[...nameList];
-r.people="everyone";
-}
-
+rows.pop();
 render();
-calc();
+
+}
 
 }
 
@@ -326,28 +400,36 @@ calc();
 function render(){
 
 let body=document.getElementById("tableBody");
+
 body.innerHTML="";
 
 rows.forEach((r,i)=>{
 
 let tapHTML="";
 
-tapHTML+=`
-<div class="everyone-row">
-<button class="name-btn ${r.selected?.length===nameList.length?'selected':''}"
-onclick="toggleEveryone(${i})">everyone</button>
+/* Everyone */
+
+tapHTML+=
+`<div class="everyone-row">
+
+<button
+class="name-btn"
+onclick="toggleEveryone(${i})">
+everyone
+</button>
+
 </div>`;
 
-/* names */
+/* Names */
 
 nameList.forEach(n=>{
 
-let selected=r.selected?.includes(n);
-
-tapHTML+=`
-<button class="name-btn ${selected?'selected':''}"
-onclick="toggleName(${i},'${n}')">${n}</button>
-`;
+tapHTML+=
+`<button
+class="name-btn"
+onclick="toggleName(${i},'${n}')">
+${n}
+</button>`;
 
 });
 
@@ -356,24 +438,45 @@ let tr=document.createElement("tr");
 tr.innerHTML=`
 
 <td>
-<input placeholder="${r.placeholder||''}"
+
+<input
+data-col="0"
 value="${r.item}"
+onkeydown="moveNextRow(event,${i},0)"
 oninput="update(${i},'item',this.value)">
+
 </td>
 
-<td>
-<input type="text" inputmode="decimal"
+<td class="price-cell">
+
+<span>$</span>
+
+<input
+data-col="1"
+type="text"
+inputmode="decimal"
 value="${r.price}"
+onkeydown="moveNextRow(event,${i},1)"
 oninput="handlePriceInput(${i},this)">
+
 </td>
 
 <td>
-<input placeholder="${r.placeholder||''}"
+
+<input
+data-col="2"
 value="${r.people}"
+placeholder="${r.placeholder}"
+onkeydown="moveNextRow(event,${i},2)"
 oninput="update(${i},'people',this.value)">
+
 </td>
 
-<td>${tapHTML}</td>
+<td>
+
+${tapHTML}
+
+</td>
 
 `;
 
@@ -383,22 +486,84 @@ body.appendChild(tr);
 
 }
 
-/* CALC */
+/* TOGGLE NAME */
 
-function calc(){
+function toggleName(row,name){
 
-let subtotal=0;
+let r=rows[row];
 
-rows.forEach(r=>{
+if(r.people==="everyone"){
 
-if(r.price){
-let p=parseFloat(r.price);
-if(!isNaN(p)) subtotal+=p;
+r.people=name;
+
 }
 
-});
+else{
 
-summary.innerHTML=`Subtotal: $${subtotal.toFixed(2)}`;
+let list=r.people
+.split(",")
+.map(p=>p.trim())
+.filter(Boolean);
+
+if(list.includes(name)){
+
+list=list.filter(p=>p!==name);
+
+}
+
+else{
+
+list.push(name);
+
+}
+
+r.people=list.join(", ");
+
+}
+
+render();
+
+checkRowExpansion();
+
+calc();
+
+}
+
+/* EVERYONE */
+
+function toggleEveryone(row){
+
+let r=rows[row];
+
+if(r.people==="everyone"){
+
+r.people="";
+
+}
+
+else{
+
+r.people="everyone";
+
+}
+
+render();
+
+checkRowExpansion();
+
+calc();
+
+}
+
+/* UPDATE */
+
+function update(i,key,val){
+
+rows[i][key]=val;
+
+checkRowExpansion();
+
+calc();
 
 }
 
@@ -406,14 +571,149 @@ summary.innerHTML=`Subtotal: $${subtotal.toFixed(2)}`;
 
 function clearAll(){
 
-rows=[];
+venmoNames={};
+
 init();
+calc();
+
+}
+
+/* CALC */
+
+function calc(){
+
+let subtotal=0;
+let people={};
+
+rows.forEach(r=>{
+
+if(r.price){
+
+let price=parseFloat(r.price);
+
+subtotal+=price;
+
+let list=
+r.people==="everyone"
+? nameList
+: r.people
+.split(",")
+.map(p=>p.trim())
+.filter(Boolean);
+
+let share=price/list.length||0;
+
+list.forEach(p=>{
+
+if(!people[p])
+people[p]={total:0};
+
+people[p].total+=share;
+
+});
+
+}
+
+});
+
+/* TAX */
+
+let tax=
+taxMode.value==="percent"
+? subtotal*(taxValue.value||0)/100
+: parseFloat(taxValue.value||0);
+
+/* TIP */
+
+let tip=
+tipMode.value==="percent"
+? subtotal*(tipValue.value||0)/100
+: parseFloat(tipValue.value||0);
+
+let total=subtotal+tax+tip;
+
+/* DISTRIBUTE */
+
+Object.keys(people).forEach(p=>{
+
+let ratio=
+people[p].total/subtotal||0;
+
+people[p].total+=
+tax*ratio+
+tip*ratio;
+
+});
+
+/* SUMMARY */
+
+summary.innerHTML=
+
+`Subtotal: $${subtotal.toFixed(2)} |
+Tax: $${tax.toFixed(2)} |
+Tip: $${tip.toFixed(2)} |
+<strong>Total: $${total.toFixed(2)}</strong>`;
+
+/* VENMO */
+
+let div=document.getElementById("totals");
+
+div.innerHTML="";
+
+Object.keys(people).forEach(p=>{
+
+if(!venmoNames[p])
+venmoNames[p]="";
+
+let amt=people[p].total.toFixed(2);
+
+div.innerHTML+=`
+
+<div class="result">
+
+${p} owes $${amt}
+
+<input
+class="venmo-input"
+placeholder="venmo user"
+value="${venmoNames[p]}"
+oninput="venmoNames['${p}']=this.value">
+
+<button
+onclick="openVenmo('${p}',${amt})">
+Venmo
+</button>
+
+</div>
+
+`;
+
+});
+
+}
+
+/* VENMO */
+
+function openVenmo(p,amt){
+
+let name=venmoNames[p];
+
+if(!name){
+alert("Enter Venmo name");
+return;
+}
+
+window.open(
+`https://venmo.com/${name}?txn=pay&amount=${amt}`,
+"_blank"
+);
 
 }
 
 /* START */
 
 init();
+calc();
 
 </script>
 
