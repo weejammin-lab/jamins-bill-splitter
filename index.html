@@ -12,7 +12,6 @@ max-width:550px;
 margin:auto;
 }
 
-/* TOP NAME GRID */
 #personBar{
 display:grid;
 grid-template-columns:repeat(3,1fr);
@@ -61,7 +60,6 @@ th:nth-child(2), td:nth-child(2){ width:12%; }
 th:nth-child(3), td:nth-child(3){ width:30%; }
 th:nth-child(4), td:nth-child(4){ width:20%; }
 
-/* textareas */
 td textarea{
 width:100%;
 box-sizing:border-box;
@@ -197,6 +195,9 @@ let nameList=[...defaultNames];
 let rows=[];
 let venmoNames={};
 
+/* 🔒 duplicate row protection lock */
+let rowLock = false;
+
 function init(){
 
 rows=[];
@@ -215,6 +216,7 @@ venmoNames={...defaultVenmoMap};
 renderPeopleBar();
 render();
 calc();
+rowLock = false;
 }
 
 function clearAll(){
@@ -275,12 +277,36 @@ calc();
 }
 
 function addRow(){
+
+if(rowLock) return; // 🔒 prevent duplicates
+rowLock = true;
+
 rows.push({
 item:"",
 price:"",
 people:"",
 selected:[]
 });
+
+render();
+calc();
+
+setTimeout(()=>rowLock=false, 50);
+}
+
+function checkAddRow(row){
+
+if(row !== rows.length - 1) return;
+
+let r = rows[row];
+
+if(
+r.item.trim() !== "" ||
+r.price.trim() !== "" ||
+r.people.trim() !== ""
+){
+addRow();
+}
 }
 
 function move(e,row,col){
@@ -291,8 +317,6 @@ e.preventDefault();
 
 if(row === rows.length - 1){
 addRow();
-render();
-calc();
 }
 
 requestAnimationFrame(()=>{
@@ -394,7 +418,9 @@ tr.innerHTML=`
 placeholder="optional"
 data-row="${i}" data-col="0"
 oninput="update(${i},'item',this.value); autoGrow(this)"
-onkeydown="move(event,${i},0)">${r.item}</textarea>
+onkeydown="move(event,${i},0)"
+onblur="checkAddRow(${i})"
+>${r.item}</textarea>
 </td>
 
 <td>
@@ -402,7 +428,9 @@ onkeydown="move(event,${i},0)">${r.item}</textarea>
 placeholder="0.00"
 data-row="${i}" data-col="1"
 oninput="handlePriceInput(${i},this); autoGrow(this)"
-onkeydown="move(event,${i},1)">${r.price}</textarea>
+onkeydown="move(event,${i},1)"
+onblur="checkAddRow(${i})"
+>${r.price}</textarea>
 </td>
 
 <td>
@@ -410,7 +438,9 @@ onkeydown="move(event,${i},1)">${r.price}</textarea>
 placeholder="type or tap name"
 data-row="${i}" data-col="2"
 oninput="update(${i},'people',this.value); autoGrow(this)"
-onkeydown="move(event,${i},2)">${r.people}</textarea>
+onkeydown="move(event,${i},2)"
+onblur="checkAddRow(${i})"
+>${r.people}</textarea>
 </td>
 
 <td>${tapHTML}</td>
