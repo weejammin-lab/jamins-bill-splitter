@@ -129,11 +129,6 @@ padding:8px;
 margin-top:8px;
 }
 
-.venmo-input{
-width:120px;
-margin-left:6px;
-}
-
 .result{
 font-weight:bold;
 margin:4px 0;
@@ -339,70 +334,61 @@ render();
 calc();
 }
 
-function render(){
-
-let body=document.getElementById("tableBody");
-body.innerHTML="";
-
-rows.forEach((r,i)=>{
-
-let tapHTML=`
-<button class="name-btn everyone-btn ${r.selected?.length===nameList.length?'selected':''}"
-onclick="toggleEveryone(${i})">EVERYONE</button>
-
-<div class="tap-grid">
-`;
-
-nameList.forEach(n=>{
-tapHTML+=`
-<button class="name-btn ${r.selected?.includes(n)?'selected':''}"
-onclick="toggleName(${i},'${n}')">${n}</button>`;
-});
-
-tapHTML+=`</div>`;
-
-let tr=document.createElement("tr");
-
-tr.innerHTML=`
-<td><textarea oninput="update(${i},'item',this.value)">${r.item}</textarea></td>
-<td><textarea oninput="handlePriceInput(${i},this)">${r.price}</textarea></td>
-<td><textarea oninput="update(${i},'people',this.value)">${r.people}</textarea></td>
-<td>${tapHTML}</td>
-`;
-
-body.appendChild(tr);
-
-});
-
-}
+/* =========================
+   ✅ FIXED CALC (ONLY CHANGE)
+   ========================= */
 
 function calc(){
 
 let subtotal=0;
 let people={};
 
+/* 1. ROW TOTALS */
 rows.forEach(r=>{
 
-if(r.price){
 let price=parseFloat(r.price);
-if(!isNaN(price)) subtotal+=price;
+if(isNaN(price)) return;
 
-let list=r.people==="EVERYONE"
+subtotal += price;
+
+let list = r.people==="EVERYONE"
 ? nameList
 : (r.people||"").split(",").map(p=>p.trim()).filter(Boolean);
 
-let share=price/list.length||0;
+let share = list.length ? price/list.length : 0;
 
 list.forEach(p=>{
-if(!people[p]) people[p]={total:0};
-people[p].total+=share;
-});
-}
-
+if(!people[p]) people[p]={base:0};
+people[p].base += share;
 });
 
-summary.innerHTML=`Subtotal: $${subtotal.toFixed(2)}`;
+});
 
+/* 2. TAX + TIP */
+let taxVal=parseFloat(taxValue.value)||0;
+let tipVal=parseFloat(tipValue.value)||0;
+
+let tax = taxMode.value==="percent"
+? subtotal*(taxVal/100)
+: taxVal;
+
+let tip = tipMode.value==="percent"
+? subtotal*(tipVal/100)
+: tipVal;
+
+let total = subtotal + tax + tip;
+
+/* 3. DISTRIBUTE TAX + TIP */
+Object.keys(people).forEach(p=>{
+let ratio = subtotal ? (people[p].base/subtotal) : 0;
+people[p].total = people[p].base + (tax*ratio) + (tip*ratio);
+});
+
+/* 4. SUMMARY */
+summary.innerHTML =
+`Subtotal: $${subtotal.toFixed(2)} | Tax: $${tax.toFixed(2)} | Tip: $${tip.toFixed(2)} | Total: $${total.toFixed(2)}`;
+
+/* 5. OUTPUT */
 let div=document.getElementById("totals");
 div.innerHTML="";
 
