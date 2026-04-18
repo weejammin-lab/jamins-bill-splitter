@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Bill Splitter Pro</title>
+<title>Bill Splitter</title>
 
 <style>
 
@@ -13,11 +13,15 @@ body {
     padding: 10px;
 }
 
-h1 { text-align: center; }
+h1 {
+    text-align: center;
+}
 
-.section { margin-bottom: 10px; }
+.section {
+    margin-bottom: 10px;
+}
 
-/* compact table */
+/* Compact table */
 table {
     width: 100%;
     border-collapse: collapse;
@@ -35,24 +39,29 @@ input {
     font-size: 13px;
 }
 
+/* Sticky summary */
 .summary-box {
     border: 1px solid #ccc;
     padding: 10px;
-    position: sticky;
-    top: 0;
     background: white;
 }
 
-/* venmo */
-.venmo-btn {
-    margin-left: 6px;
-    font-size: 11px;
-    padding: 3px 6px;
-}
-
+/* Totals */
 .result {
     font-weight: bold;
-    margin: 4px 0;
+    margin: 6px 0;
+}
+
+/* Venmo input */
+.venmo-input {
+    width: 120px;
+    margin-left: 8px;
+}
+
+.venmo-btn {
+    padding: 3px 6px;
+    font-size: 11px;
+    margin-left: 4px;
 }
 
 .small {
@@ -68,80 +77,112 @@ input {
 
 <h1>Bill Splitter</h1>
 
-<!-- VENMO USER INPUT -->
+<!-- ITEMS TABLE -->
+
 <div class="section">
-<input id="venmoUser" placeholder="Venmo username (optional)">
+
+<table>
+
+<thead>
+<tr>
+<th>Item (optional)</th>
+<th>Price</th>
+<th>People involved</th>
+</tr>
+</thead>
+
+<tbody id="tableBody"></tbody>
+
+</table>
+
 </div>
 
-<!-- TAX / TIP CONTROLS -->
+<!-- TAX / TIP BELOW ITEMS -->
+
 <div class="section">
 
 <strong>Tax</strong>
+
 <select id="taxMode" onchange="calc()">
 <option value="percent">%</option>
 <option value="amount">$</option>
 </select>
 
-<input id="taxValue" type="number" oninput="calc()" placeholder="Tax value">
+<input id="taxValue"
+type="number"
+placeholder="Tax"
+oninput="calc()">
 
 <strong>Tip</strong>
+
 <select id="tipMode" onchange="calc()">
 <option value="percent">%</option>
 <option value="amount">$</option>
 </select>
 
-<input id="tipValue" type="number" oninput="calc()" placeholder="Tip value">
-
-</div>
-
-<!-- TABLE -->
-<div class="section">
-
-<table>
-<thead>
-<tr>
-<th>Item (optional)</th>
-<th>Price</th>
-<th>People</th>
-</tr>
-</thead>
-
-<tbody id="tableBody"></tbody>
-</table>
+<input id="tipValue"
+type="number"
+placeholder="Tip"
+oninput="calc()">
 
 </div>
 
 <!-- SUMMARY -->
+
 <div class="summary-box" id="summary"></div>
 
-<!-- TOTALS -->
+<!-- TOTALS + VENMO -->
+
 <div class="section">
+
 <div id="totals"></div>
+
 </div>
 
 <script>
 
 let rows = [];
+let venmoNames = {};
 
 function init(){
-    for(let i=0;i<10;i++) addRow();
-    render();
+
+for(let i=0;i<10;i++){
+addRow();
 }
+
+render();
+
+}
+
+/* ADD ROW */
 
 function addRow(data={}){
-    rows.push({
-        item:data.item||"",
-        price:data.price||"",
-        people:data.people||""
-    });
+
+rows.push({
+item:data.item||"",
+price:data.price||"",
+people:data.people||""
+});
+
 }
 
+/* AUTO EXPAND */
+
 function maybeExpand(){
-    if(rows.filter(r=>r.price).length > rows.length - 2){
-        for(let i=0;i<5;i++) addRow();
-        render();
-    }
+
+if(rows.filter(r=>r.price).length > rows.length - 2){
+
+for(let i=0;i<5;i++){
+addRow();
 }
+
+render();
+
+}
+
+}
+
+/* RENDER TABLE */
 
 function render(){
 
@@ -153,9 +194,23 @@ rows.forEach((r,i)=>{
 let tr = document.createElement("tr");
 
 tr.innerHTML = `
-<td><input placeholder="optional" value="${r.item}" oninput="update(${i},'item',this.value)"></td>
-<td><input type="number" value="${r.price}" oninput="update(${i},'price',this.value)"></td>
-<td><input value="${r.people}" oninput="update(${i},'people',this.value)"></td>
+<td>
+<input placeholder="optional"
+value="${r.item}"
+oninput="update(${i},'item',this.value)">
+</td>
+
+<td>
+<input type="number"
+value="${r.price}"
+oninput="update(${i},'price',this.value)">
+</td>
+
+<td>
+<input placeholder="maria, willie"
+value="${r.people}"
+oninput="update(${i},'people',this.value)">
+</td>
 `;
 
 body.appendChild(tr);
@@ -164,84 +219,156 @@ body.appendChild(tr);
 
 }
 
+/* UPDATE ROW */
+
 function update(i,key,val){
-    rows[i][key]=val;
-    maybeExpand();
-    calc();
+
+rows[i][key] = val;
+
+maybeExpand();
+
+calc();
+
 }
+
+/* CALC */
 
 function calc(){
 
-let items = rows.filter(r=>r.price && r.people);
+let items =
+rows.filter(r=>r.price && r.people);
 
 let people = {};
 let subtotal = 0;
 
+/* SPLIT ITEMS */
+
 items.forEach(i=>{
+
 let price = parseFloat(i.price);
+
 subtotal += price;
 
-let list = i.people.split(",").map(p=>p.trim()).filter(Boolean);
+let list =
+i.people
+.split(",")
+.map(p=>p.trim())
+.filter(Boolean);
 
 let share = price / list.length;
 
 list.forEach(p=>{
-    people[p] = people[p] || {total:0};
-    people[p].total += share;
+
+people[p] =
+people[p] || { total:0 };
+
+people[p].total += share;
+
 });
 
 });
 
 /* TAX */
+
 let tax = 0;
+
 if(taxMode.value === "percent"){
-tax = subtotal * (taxValue.value||0)/100;
-} else {
-tax = parseFloat(taxValue.value||0);
+
+tax =
+subtotal *
+(taxValue.value||0)/100;
+
+}
+
+else{
+
+tax =
+parseFloat(taxValue.value||0);
+
 }
 
 /* TIP */
+
 let tip = 0;
+
 if(tipMode.value === "percent"){
-tip = subtotal * (tipValue.value||0)/100;
-} else {
-tip = parseFloat(tipValue.value||0);
+
+tip =
+subtotal *
+(tipValue.value||0)/100;
+
 }
 
-let total = subtotal + tax + tip;
+else{
 
-/* distribute */
+tip =
+parseFloat(tipValue.value||0);
+
+}
+
+let total =
+subtotal + tax + tip;
+
+/* DISTRIBUTE TAX/TIP */
+
 Object.keys(people).forEach(p=>{
-let ratio = people[p].total/subtotal || 0;
-people[p].total += tax*ratio + tip*ratio;
+
+let ratio =
+people[p].total /
+subtotal || 0;
+
+people[p].total +=
+tax*ratio +
+tip*ratio;
+
 });
 
 /* SUMMARY */
+
 document.getElementById("summary").innerHTML = `
-Subtotal: $${subtotal.toFixed(2)}<br>
-Tax: $${tax.toFixed(2)} (${taxMode.value})<br>
-Tip: $${tip.toFixed(2)} (${tipMode.value})<br>
+Subtotal: $${subtotal.toFixed(2)} |
+Tax: $${tax.toFixed(2)} |
+Tip: $${tip.toFixed(2)} |
 <strong>Total: $${total.toFixed(2)}</strong>
 `;
 
-/* VENMO */
-let venmoUser = venmoUserEl().trim();
+/* TOTALS + VENMO */
 
-let div = document.getElementById("totals");
+let div =
+document.getElementById("totals");
+
 div.innerHTML = "";
 
 Object.keys(people).forEach(p=>{
 
-let amt = people[p].total.toFixed(2);
+let amt =
+people[p].total.toFixed(2);
 
-let venmoLink = venmoUser
-? `https://venmo.com/${venmoUser}`
-: `https://venmo.com/?txn=pay&recipients=${encodeURIComponent(p)}&amount=${amt}`;
+let venmoName =
+venmoNames[p] || "";
+
+let venmoLink =
+venmoName
+? `https://venmo.com/${venmoName}`
+: "#";
 
 div.innerHTML += `
 <div class="result">
+
 ${p} owes $${amt}
-<button class="venmo-btn" onclick="window.open('${venmoLink}','_blank')">Venmo</button>
+
+<input
+class="venmo-input"
+placeholder="venmo name"
+value="${venmoName}"
+oninput="updateVenmo('${p}',this.value)">
+
+<button
+class="venmo-btn"
+onclick="window.open('${venmoLink}','_blank')">
+Venmo
+</button>
+
 </div>
 `;
 
@@ -249,9 +376,17 @@ ${p} owes $${amt}
 
 }
 
-function venmoUserEl(){
-return document.getElementById("venmoUser").value || "";
+/* STORE VENMO NAMES */
+
+function updateVenmo(person,name){
+
+venmoNames[person]=name;
+
+calc();
+
 }
+
+/* START */
 
 init();
 calc();
