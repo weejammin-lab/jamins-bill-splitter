@@ -1,207 +1,3 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Bill Splitter</title>
-
-<style>
-
-body{
-font-family:Arial;
-max-width:550px;
-margin:auto;
-padding:10px;
-}
-
-#personBar{
-display:grid;
-grid-template-columns:repeat(3,1fr);
-gap:4px;
-max-width:50%;
-margin-bottom:4px;
-}
-
-.person-tag{
-border:1px solid #ccc;
-padding:3px 6px;
-font-size:12px;
-text-align:center;
-}
-
-.delete-person{
-color:red;
-cursor:pointer;
-margin-left:4px;
-}
-
-.add-person-input{
-padding:4px;
-font-size:12px;
-width:140px;
-margin-top:6px;
-display:block;
-}
-
-table{
-width:100%;
-border-collapse:collapse;
-font-size:12px;
-table-layout:fixed;
-}
-
-td,th{
-border:1px solid #ddd;
-padding:3px;
-vertical-align:top;
-}
-
-/* COLUMN WIDTHS */
-th:nth-child(1), td:nth-child(1){ width:20%; }
-th:nth-child(2), td:nth-child(2){ width:12%; }
-th:nth-child(3), td:nth-child(3){ width:20%; }
-th:nth-child(4), td:nth-child(4){ width:48%; }
-
-td textarea{
-width:100%;
-box-sizing:border-box;
-font-size:12px;
-resize:none;
-overflow:hidden;
-border:1px solid #ddd;
-padding:3px;
-font-family:Arial;
-}
-
-td:nth-child(3) textarea{
-min-height:70px;
-}
-
-/* TAP GRID */
-.tap-grid{
-display:grid;
-grid-template-columns:repeat(3,1fr);
-gap:2px;
-margin-top:3px;
-word-break:break-word;
-}
-
-.name-btn{
-margin:1px;
-padding:2px 5px;
-font-size:11px;
-cursor:pointer;
-border:1px solid #ccc;
-background:#e0e0e0;
-border-radius:7px;
-
-white-space:nowrap;
-overflow:hidden;
-text-overflow:ellipsis;
-}
-
-.name-btn.selected{
-background:#7dff8a;
-border-color:#2ecc71;
-}
-
-.everyone-btn{
-width:100%;
-margin-bottom:4px;
-}
-
-.tax-tip-wrap{
-display:flex;
-gap:6px;
-align-items:center;
-margin-top:8px;
-}
-
-.tax-tip-input{
-width:70px;
-padding:4px;
-}
-
-.summary-box{
-border:1px solid #ccc;
-padding:8px;
-margin-top:8px;
-}
-
-.result{
-font-weight:bold;
-margin:4px 0;
-}
-
-.add-row-btn{
-margin-top:8px;
-padding:6px 10px;
-font-size:12px;
-cursor:pointer;
-}
-
-</style>
-</head>
-
-<body>
-
-<h2>Bill Splitter</h2>
-
-<button onclick="clearAll()">Clear All</button>
-
-<br><br>
-
-<div id="personBar"></div>
-
-<input
-class="add-person-input"
-id="addPersonBox"
-placeholder="type name + Enter"
-onkeydown="handleAddPerson(event)">
-
-<br><br>
-
-<table>
-
-<thead>
-<tr>
-<th>Item</th>
-<th>Price ($)</th>
-<th>People involved</th>
-<th>Tap Names</th>
-</tr>
-</thead>
-
-<tbody id="tableBody"></tbody>
-
-</table>
-
-<button class="add-row-btn" onclick="addRow()">+ Add Item</button>
-
-<br>
-
-<div class="tax-tip-wrap">
-<label>Tax</label>
-<select id="taxMode" onchange="calc()">
-<option value="percent">%</option>
-<option value="amount">$</option>
-</select>
-<input id="taxValue" class="tax-tip-input" oninput="calc()">
-</div>
-
-<div class="tax-tip-wrap">
-<label>Tip</label>
-<select id="tipMode" onchange="calc()">
-<option value="percent">%</option>
-<option value="amount">$</option>
-</select>
-<input id="tipValue" class="tax-tip-input" oninput="calc()">
-</div>
-
-<div class="summary-box" id="summary"></div>
-<div id="totals"></div>
-
 <script>
 
 const defaultVenmoMap = {
@@ -226,7 +22,6 @@ function init(){
 
 rows=[];
 
-// ✅ CHANGED: now 8 rows
 for(let i=0;i<8;i++){
 rows.push({
 item:"",
@@ -317,6 +112,64 @@ rows[row].price=el.value;
 calc();
 }
 
+/* =========================
+   KEYBOARD NAVIGATION
+========================= */
+
+function handleKeyNav(e, row, col){
+
+const maxRow = rows.length - 1;
+const maxCol = 2; // item, price, people (3 columns = 0-2)
+
+let nextRow = row;
+let nextCol = col;
+
+if(e.key === "Enter"){
+e.preventDefault();
+
+nextRow = row + 1;
+
+// if at last row, create new row
+if(nextRow > maxRow){
+addRow();
+setTimeout(()=>focusCell(nextRow, col),0);
+return;
+}
+
+focusCell(nextRow, col);
+return;
+}
+
+if(e.key === "Tab"){
+// let default tab work but keep inside grid bounds
+if(e.shiftKey){
+if(col > 0){
+e.preventDefault();
+nextCol = col - 1;
+focusCell(row, nextCol);
+}
+}else{
+if(col < maxCol){
+e.preventDefault();
+nextCol = col + 1;
+focusCell(row, nextCol);
+}
+}
+}
+
+}
+
+function focusCell(row,col){
+setTimeout(()=>{
+let el = document.querySelector(
+`textarea[data-row="${row}"][data-col="${col}"]`
+);
+if(el) el.focus();
+},0);
+}
+
+/* ========================= */
+
 function toggleName(row,name){
 let r=rows[row];
 if(!r.selected) r.selected=[];
@@ -369,9 +222,27 @@ tapHTML+=`</div>`;
 let tr=document.createElement("tr");
 
 tr.innerHTML=`
-<td><textarea oninput="update(${i},'item',this.value)">${r.item}</textarea></td>
-<td><textarea oninput="handlePriceInput(${i},this)">${r.price}</textarea></td>
-<td><textarea oninput="update(${i},'people',this.value)">${r.people}</textarea></td>
+<td>
+<textarea
+data-row="${i}" data-col="0"
+onkeydown="handleKeyNav(event,${i},0)"
+oninput="update(${i},'item',this.value)">${r.item}</textarea>
+</td>
+
+<td>
+<textarea
+data-row="${i}" data-col="1"
+onkeydown="handleKeyNav(event,${i},1)"
+oninput="handlePriceInput(${i},this)">${r.price}</textarea>
+</td>
+
+<td>
+<textarea
+data-row="${i}" data-col="2"
+onkeydown="handleKeyNav(event,${i},2)"
+oninput="update(${i},'people',this.value)">${r.people}</textarea>
+</td>
+
 <td>${tapHTML}</td>
 `;
 
@@ -447,6 +318,3 @@ init();
 calc();
 
 </script>
-
-</body>
-</html>
