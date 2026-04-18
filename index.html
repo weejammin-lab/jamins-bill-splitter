@@ -8,41 +8,40 @@
 
 body{
 font-family:Arial;
-max-width:750px;
+max-width:550px;
 margin:auto;
 }
 
-/* 🔥 NAME WRAP (3 PER LINE) */
+/* TOP NAME GRID */
 #personBar{
-display:flex;
-flex-wrap:wrap;
+display:grid;
+grid-template-columns:repeat(3,1fr);
 gap:4px;
+max-width:50%;
+margin-bottom:4px;
 }
 
 .person-tag{
-width:30%; /* ~3 per row */
-box-sizing:border-box;
 border:1px solid #ccc;
 padding:3px 6px;
 font-size:12px;
-display:flex;
-justify-content:space-between;
+text-align:center;
 }
 
 .delete-person{
 color:red;
 cursor:pointer;
+margin-left:4px;
 }
 
-/* add person always full line */
 .add-person-input{
-width:100%;
 padding:4px;
 font-size:12px;
+width:140px;
 margin-top:6px;
+display:block;
 }
 
-/* TABLE */
 table{
 width:100%;
 border-collapse:collapse;
@@ -56,12 +55,11 @@ padding:3px;
 vertical-align:top;
 }
 
-/* column widths (includes summary column) */
-th:nth-child(1), td:nth-child(1){ width:30%; }
-th:nth-child(2), td:nth-child(2){ width:10%; }
-th:nth-child(3), td:nth-child(3){ width:25%; }
+/* column widths */
+th:nth-child(1), td:nth-child(1){ width:38%; }
+th:nth-child(2), td:nth-child(2){ width:12%; }
+th:nth-child(3), td:nth-child(3){ width:30%; }
 th:nth-child(4), td:nth-child(4){ width:20%; }
-th:nth-child(5), td:nth-child(5){ width:15%; }
 
 /* textareas */
 td textarea{
@@ -75,7 +73,6 @@ padding:3px;
 font-family:Arial;
 }
 
-/* TAP BUTTONS */
 .name-btn{
 margin:2px;
 padding:2px 6px;
@@ -91,20 +88,32 @@ background:#7dff8a;
 border-color:#2ecc71;
 }
 
-/* SUMMARY BOX (now inside table too) */
+.tax-tip-wrap{
+display:flex;
+gap:6px;
+align-items:center;
+margin-top:8px;
+}
+
+.tax-tip-input{
+width:70px;
+padding:4px;
+}
+
 .summary-box{
-font-size:12px;
-line-height:1.4;
+border:1px solid #ccc;
+padding:8px;
+margin-top:8px;
 }
 
 .venmo-input{
-width:100px;
+width:120px;
 margin-left:6px;
 }
 
 .result{
-margin:4px 0;
 font-weight:bold;
+margin:4px 0;
 }
 
 </style>
@@ -118,10 +127,8 @@ font-weight:bold;
 
 <br><br>
 
-<!-- NAME BAR -->
 <div id="personBar"></div>
 
-<!-- ADD PERSON (separate line) -->
 <input
 class="add-person-input"
 id="addPersonBox"
@@ -135,16 +142,38 @@ onkeydown="handleAddPerson(event)">
 <thead>
 <tr>
 <th>Item</th>
-<th>Price</th>
-<th>People</th>
+<th>Price ($)</th>
+<th>People involved</th>
 <th>Tap Names</th>
-<th>Summary</th>
 </tr>
 </thead>
 
 <tbody id="tableBody"></tbody>
 
 </table>
+
+<br>
+
+<div class="tax-tip-wrap">
+<label>Tax</label>
+<select id="taxMode" onchange="calc()">
+<option value="percent">%</option>
+<option value="amount">$</option>
+</select>
+<input id="taxValue" class="tax-tip-input" oninput="calc()">
+</div>
+
+<div class="tax-tip-wrap">
+<label>Tip</label>
+<select id="tipMode" onchange="calc()">
+<option value="percent">%</option>
+<option value="amount">$</option>
+</select>
+<input id="tipValue" class="tax-tip-input" oninput="calc()">
+</div>
+
+<div class="summary-box" id="summary"></div>
+<div id="totals"></div>
 
 <script>
 
@@ -175,7 +204,7 @@ render();
 calc();
 }
 
-/* CLEAR */
+/* CLEAR ALL */
 function clearAll(){
 
 if(!confirm("Clear everything?")) return;
@@ -187,7 +216,6 @@ venmoNames={};
 init();
 }
 
-/* NAME BAR */
 function renderPeopleBar(){
 
 let bar=document.getElementById("personBar");
@@ -234,7 +262,6 @@ render();
 calc();
 }
 
-/* ROWS */
 function addRow(){
 rows.push({
 item:"",
@@ -271,13 +298,11 @@ next.select?.();
 
 }
 
-/* TEXTAREA AUTO GROW */
 function autoGrow(el){
 el.style.height="auto";
 el.style.height=el.scrollHeight+"px";
 }
 
-/* PRICE */
 function handlePriceInput(row, el){
 
 el.value=el.value
@@ -293,7 +318,6 @@ rows[i][key]=val;
 calc();
 }
 
-/* TOGGLES */
 function toggleName(row,name){
 
 let r=rows[row];
@@ -326,7 +350,6 @@ render();
 calc();
 }
 
-/* RENDER */
 function render(){
 
 let body=document.getElementById("tableBody");
@@ -334,10 +357,12 @@ body.innerHTML="";
 
 rows.forEach((r,i)=>{
 
-let tapHTML=`<div>
+let tapHTML=`<div>`;
+
+tapHTML+=`
 <button class="name-btn ${r.selected?.length===nameList.length?'selected':''}"
 onclick="toggleEveryone(${i})">everyone</button>
-</div>`;
+`;
 
 nameList.forEach(n=>{
 tapHTML+=`
@@ -346,8 +371,7 @@ onclick="toggleName(${i},'${n}')">${n}</button>
 `;
 });
 
-/* SUMMARY COLUMN PER ROW */
-let summaryHTML = calcRowSummary(i);
+tapHTML+=`</div>`;
 
 let tr=document.createElement("tr");
 
@@ -373,10 +397,6 @@ onkeydown="move(event,${i},2)">${r.people}</textarea>
 
 <td>${tapHTML}</td>
 
-<td>
-<div class="summary-box">${summaryHTML}</div>
-</td>
-
 `;
 
 body.appendChild(tr);
@@ -385,16 +405,6 @@ body.appendChild(tr);
 
 }
 
-/* ROW SUMMARY (simple per-row view) */
-function calcRowSummary(i){
-
-let r = rows[i];
-if(!r.price) return "";
-
-return `Item total: $${parseFloat(r.price||0).toFixed(2)}`;
-}
-
-/* FULL CALC */
 function calc(){
 
 let subtotal=0;
@@ -449,44 +459,53 @@ people[p].total+=tax*ratio+tip*ratio;
 
 });
 
-/* STORE GLOBAL SUMMARY */
-window._summaryHTML = `
-Subtotal: $${subtotal.toFixed(2)}<br>
-Tax: $${tax.toFixed(2)}<br>
-Tip: $${tip.toFixed(2)}<br>
+summary.innerHTML=`
+Subtotal: $${subtotal.toFixed(2)} |
+Tax: $${tax.toFixed(2)} |
+Tip: $${tip.toFixed(2)} |
 <strong>Total: $${total.toFixed(2)}</strong>
 `;
 
-updateSummaryColumn(people);
-
-}
-
-/* PUSH SUMMARY INTO LAST COLUMN */
-function updateSummaryColumn(people){
-
-let rowsDOM = document.querySelectorAll("#tableBody tr");
-
-rowsDOM.forEach((tr,i)=>{
-
-if(tr.children[4]){
-
-let html = window._summaryHTML || "";
-let personLines = "";
+let div=document.getElementById("totals");
+div.innerHTML="";
 
 Object.keys(people).forEach(p=>{
+
 if(!venmoNames[p]) venmoNames[p]="";
 
-personLines += `
+div.innerHTML+=`
 <div class="result">
-${p}: $${people[p].total.toFixed(2)}
+
+${p} owes $${people[p].total.toFixed(2)}
+
+<input class="venmo-input"
+placeholder="venmo user"
+value="${venmoNames[p]}"
+oninput="venmoNames['${p}']=this.value">
+
+<button onclick="openVenmo('${p}',${people[p].total.toFixed(2)})">
+Venmo
+</button>
+
 </div>
 `;
 });
 
-tr.children[4].innerHTML = html + "<br><br>" + personLines;
 }
 
-});
+function openVenmo(p,amt){
+
+let name=venmoNames[p];
+
+if(!name){
+alert("Enter Venmo username");
+return;
+}
+
+window.open(
+`https://venmo.com/${name}?txn=request&amount=${amt}`,
+"_blank"
+);
 
 }
 
