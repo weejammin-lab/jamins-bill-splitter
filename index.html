@@ -78,25 +78,24 @@ td:nth-child(3) textarea{
 min-height:70px;
 }
 
-/* 🔥 TAP GRID (tighter spacing) */
+/* TAP GRID */
 .tap-grid{
 display:grid;
 grid-template-columns:repeat(3,1fr);
-gap:2px;              /* reduced spacing */
+gap:2px;
 margin-top:3px;
 word-break:break-word;
 }
 
 .name-btn{
-margin:1px;           /* tighter */
-padding:2px 5px;      /* more room for text */
+margin:1px;
+padding:2px 5px;
 font-size:11px;
 cursor:pointer;
 border:1px solid #ccc;
 background:#e0e0e0;
 border-radius:7px;
 
-/* 🔥 prevents wrapping like "howard" */
 white-space:nowrap;
 overflow:hidden;
 text-overflow:ellipsis;
@@ -340,42 +339,9 @@ render();
 calc();
 }
 
-function render(){
-
-let body=document.getElementById("tableBody");
-body.innerHTML="";
-
-rows.forEach((r,i)=>{
-
-let tapHTML=`
-<button class="name-btn everyone-btn ${r.selected?.length===nameList.length?'selected':''}"
-onclick="toggleEveryone(${i})">EVERYONE</button>
-
-<div class="tap-grid">
-`;
-
-nameList.forEach(n=>{
-tapHTML+=`
-<button class="name-btn ${r.selected?.includes(n)?'selected':''}"
-onclick="toggleName(${i},'${n}')">${n}</button>`;
-});
-
-tapHTML+=`</div>`;
-
-let tr=document.createElement("tr");
-
-tr.innerHTML=`
-<td><textarea oninput="update(${i},'item',this.value)">${r.item}</textarea></td>
-<td><textarea oninput="handlePriceInput(${i},this)">${r.price}</textarea></td>
-<td><textarea oninput="update(${i},'people',this.value)">${r.people}</textarea></td>
-<td>${tapHTML}</td>
-`;
-
-body.appendChild(tr);
-
-});
-
-}
+/* =========================
+   🔥 FIXED TAX / TIP ONLY
+   ========================= */
 
 function calc(){
 
@@ -402,7 +368,26 @@ people[p].total+=share;
 
 });
 
-summary.innerHTML=`Subtotal: $${subtotal.toFixed(2)}`;
+/* TAX */
+let taxVal=parseFloat(taxValue.value)||0;
+let tax = taxMode.value==="percent"
+? subtotal*(taxVal/100)
+: taxVal;
+
+/* TIP */
+let tipVal=parseFloat(tipValue.value)||0;
+let tip = tipMode.value==="percent"
+? subtotal*(tipVal/100)
+: tipVal;
+
+/* SUMMARY */
+summary.innerHTML=`Subtotal: $${subtotal.toFixed(2)} | Tax: $${tax.toFixed(2)} | Tip: $${tip.toFixed(2)}`;
+
+/* DISTRIBUTE TAX + TIP */
+Object.keys(people).forEach(p=>{
+let ratio=people[p].total/subtotal||0;
+people[p].total+=tax*ratio+tip*ratio;
+});
 
 let div=document.getElementById("totals");
 div.innerHTML="";
@@ -417,7 +402,6 @@ ${p} owes $${people[p].total.toFixed(2)}
 }
 
 init();
-calc();
 
 </script>
 
