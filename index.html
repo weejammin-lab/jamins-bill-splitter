@@ -272,7 +272,23 @@ next.select?.();
 }
 
 });
+}
 
+/* 🔥 IOS CHECKMARK FIX ENTRY POINT */
+function goNext(row){
+
+requestAnimationFrame(()=>{
+
+let next=document.querySelector(
+`[data-row='${row+1}'][data-col='1']`
+);
+
+if(next){
+next.focus();
+next.select?.();
+}
+
+});
 }
 
 /* PRICE INPUT */
@@ -362,6 +378,8 @@ type="text"
 inputmode="decimal"
 pattern="[0-9]*"
 oninput="handlePriceInput(${i},this)"
+onchange="goNext(${i})"
+onblur="goNext(${i})"
 onkeydown="move(event,${i},1)">
 </td>
 
