@@ -170,7 +170,6 @@ onkeydown="handleAddPerson(event)">
 
 </table>
 
-<!-- ✅ ONLY ADDITION: ADD ROW BUTTON -->
 <br>
 <button onclick="addRow()">Add Row</button>
 
@@ -354,6 +353,18 @@ next.focus();
 next.select?.();
 }
 },0);
+}
+
+/* ✅ FIXED: ADD ROW FUNCTION RESTORED */
+function addRow(){
+rows.push({
+item:"",
+price:"",
+people:"",
+selected:[]
+});
+render();
+calc();
 }
 
 function render(){
