@@ -20,8 +20,9 @@ border:1px solid #ccc;
 padding:3px 6px;
 margin:2px;
 font-size:12px;
-border-radius:6px;
 }
+
+/* delete person */
 
 .delete-person{
 color:red;
@@ -29,13 +30,13 @@ cursor:pointer;
 margin-left:4px;
 }
 
+/* add person */
+
 .add-person-input{
 padding:4px;
 font-size:12px;
 width:140px;
 margin-top:4px;
-border-radius:6px;
-border:1px solid #ccc;
 }
 
 /* TABLE */
@@ -51,23 +52,30 @@ border:1px solid #ddd;
 padding:3px;
 }
 
+/* COLUMN WIDTH FIXES */
+.item-col{width:120px;}
+.price-col{width:70px;}
+.people-col{width:420px;}
+.tap-col{width:360px;}
+
 input{
 width:100%;
 box-sizing:border-box;
-border-radius:6px;
-border:1px solid #ccc;
+border-radius:0px; /* keep rectangular */
 }
 
-/* PLACEHOLDER */
-
+/* ONLY placeholders in people column */
 input::placeholder{
-color:#c4c4c4;
+color:#c7c7c7;
 }
 
-/* PRICE */
+/* PRICE CELL (STRICT WIDTH) */
 
 .price-cell{
 position:relative;
+width:70px;
+min-width:70px;
+max-width:70px;
 }
 
 .price-cell span{
@@ -79,9 +87,10 @@ color:gray;
 
 .price-cell input{
 padding-left:10px;
+width:100%;
 }
 
-/* TAP BUTTONS */
+/* TAP BUTTONS (ONLY ROUND THING YOU WANTED) */
 
 .name-btn{
 margin:2px;
@@ -91,7 +100,7 @@ cursor:pointer;
 border:1px solid #ccc;
 background:#e0e0e0;
 color:#333;
-border-radius:6px;
+border-radius:7px;
 }
 
 .name-btn.selected{
@@ -99,6 +108,8 @@ background:#7dff8a;
 border-color:#2ecc71;
 color:#000;
 }
+
+/* EVERYONE ROW */
 
 .everyone-row{
 margin-bottom:4px;
@@ -108,8 +119,6 @@ margin-bottom:4px;
 
 .taxbox{
 width:80px;
-border-radius:6px;
-border:1px solid #ccc;
 }
 
 /* SUMMARY */
@@ -118,7 +127,6 @@ border:1px solid #ccc;
 border:1px solid #ccc;
 padding:8px;
 margin-top:8px;
-border-radius:8px;
 }
 
 .result{
@@ -129,12 +137,6 @@ margin:4px 0;
 .venmo-input{
 width:120px;
 margin-left:6px;
-border-radius:6px;
-border:1px solid #ccc;
-}
-
-button{
-border-radius:6px;
 }
 
 </style>
@@ -162,7 +164,7 @@ onkeydown="handleAddPerson(event)">
 
 <thead>
 <tr>
-<th class="item-col">Item (optional)</th>
+<th class="item-col">Item</th>
 <th class="price-col">Price ($)</th>
 <th class="people-col">People involved</th>
 <th class="tap-col">Tap Names</th>
@@ -197,7 +199,7 @@ Tip
 
 <script>
 
-/* PEOPLE ORDER */
+/* PEOPLE */
 
 let nameList=[
 "jamin","jack","cliff","willie","howard","lin","freddy"
@@ -275,7 +277,7 @@ ${n}
 
 }
 
-/* DELETE PERSON */
+/* DELETE */
 
 function deletePerson(i){
 
@@ -292,7 +294,7 @@ calc();
 
 }
 
-/* PRICE INPUT */
+/* PRICE */
 
 function handlePriceInput(row, el){
 
@@ -306,16 +308,14 @@ calc();
 
 }
 
-/* COMMIT PRICE */
+/* COMMIT */
 
 function commitPrice(e,row,el){
 
 if(e && e.key!=="Enter") return;
 
 rows[row].price=el.value;
-
 checkRowExpansion();
-
 calc();
 
 }
@@ -356,7 +356,7 @@ calc();
 
 }
 
-/* TAP NAME */
+/* TAP */
 
 function toggleName(row,name){
 
@@ -433,23 +433,21 @@ let tr=document.createElement("tr");
 tr.innerHTML=`
 
 <td>
-<input value="${r.item}"
-placeholder="${r.placeholder||''}"
+<input value="${r.item||''}"
 oninput="update(${i},'item',this.value)">
 </td>
 
 <td class="price-cell">
 <span>$</span>
 <input type="text"
-inputmode="decimal"
-value="${r.price}"
+value="${r.price||''}"
 oninput="handlePriceInput(${i},this)"
 onkeydown="commitPrice(event,${i},this)"
 onblur="commitPrice(null,${i},this)">
 </td>
 
 <td>
-<input value="${r.people}"
+<input value="${r.people||''}"
 placeholder="${r.placeholder||''}"
 oninput="update(${i},'people',this.value)">
 </td>
