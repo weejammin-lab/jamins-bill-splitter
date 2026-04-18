@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Bill Splitter</title>
+<title>Bill Splitter Pro</title>
 
 <style>
 
@@ -10,69 +10,100 @@ body {
     font-family: Arial;
     max-width: 900px;
     margin: auto;
-    padding: 15px;
+    padding: 10px;
 }
 
 h1 {
     text-align: center;
+    margin-bottom: 10px;
 }
 
+/* Compact layout */
 .section {
-    margin-bottom: 20px;
+    margin-bottom: 12px;
 }
 
-/* Table input */
+/* Table */
 table {
     width: 100%;
     border-collapse: collapse;
+    font-size: 13px;
 }
 
 td, th {
     border: 1px solid #ddd;
-    padding: 8px;
+    padding: 4px;
 }
 
 input {
     width: 100%;
-    padding: 6px;
-    box-sizing: border-box;
+    padding: 4px;
+    font-size: 13px;
 }
 
-/* Summary */
+/* Make rows compact */
+td {
+    height: 28px;
+}
+
+/* Summary pinned look */
 .summary-box {
     border: 1px solid #ccc;
-    padding: 15px;
+    padding: 10px;
+    position: sticky;
+    top: 0;
+    background: white;
+    z-index: 10;
 }
 
+/* Totals */
 .result {
     font-weight: bold;
+    margin: 4px 0;
 }
 
+/* Buttons compact */
 button {
-    padding: 8px;
-    margin-top: 10px;
+    padding: 5px 8px;
+    font-size: 12px;
+}
+
+/* Venmo button */
+.venmo-btn {
+    margin-left: 6px;
+    font-size: 11px;
+    padding: 3px 6px;
 }
 
 </style>
+
+<!-- OCR LIB -->
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
 </head>
 
 <body>
 
 <h1>Bill Splitter</h1>
 
-<!-- INPUT TABLE -->
+<!-- OCR UPLOAD -->
+<div class="section">
+<input type="file" id="receiptUpload" accept="image/*">
+<button onclick="processReceipt()">Scan Receipt</button>
+</div>
+
+<!-- TABLE -->
 <div class="section">
 
-<h2>Items</h2>
-
-<table id="itemsTable">
+<table>
 <thead>
 <tr>
-<th>Item (optional)</th>
+<th>Item</th>
 <th>Price</th>
-<th>People (comma separated)</th>
+<th>People</th>
 </tr>
 </thead>
+
 <tbody id="tableBody"></tbody>
 </table>
 
@@ -81,79 +112,61 @@ button {
 <!-- ADJUSTMENTS -->
 <div class="section">
 
-<h2>Adjustments</h2>
-
-<label>Tax %:</label>
-<input id="taxPercent" type="number">
-
-<label>Tip %:</label>
-<input id="tipPercent" type="number">
-
-<label>Cashback %:</label>
-<input id="cashbackPercent" type="number">
+Tax % <input id="taxPercent" type="number" style="width:60px">
+Tip % <input id="tipPercent" type="number" style="width:60px">
+Cashback % <input id="cashbackPercent" type="number" style="width:60px">
 
 </div>
 
-<!-- SUMMARY -->
+<!-- SUMMARY (always visible) -->
+<div class="summary-box" id="summary"></div>
+
+<!-- TOTALS -->
 <div class="section">
-
-<h2>Summary</h2>
-<div id="summary" class="summary-box"></div>
-
-</div>
-
-<!-- RESULTS -->
-<div class="section">
-
-<h2>Totals</h2>
 <div id="totals"></div>
-
 </div>
 
 <script>
 
 let rows = [];
 
-/* INIT 10 ROWS */
-function initRows(){
-    for(let i=0;i<10;i++){
-        addRow();
-    }
-    renderRows();
+/* INIT SMALL ROWS */
+function init(){
+    for(let i=0;i<10;i++) addRow();
+    render();
 }
 
 /* ADD ROW */
-function addRow(){
+function addRow(data={}){
     rows.push({
-        name:"",
-        price:"",
-        people:""
+        item:data.item||"",
+        price:data.price||"",
+        people:data.people||""
     });
 }
 
 /* AUTO EXPAND */
 function maybeExpand(){
-    let filled = rows.filter(r => r.price || r.people).length;
-    if(filled >= rows.length - 2){
+    if(rows.filter(r=>r.price).length > rows.length - 2){
         for(let i=0;i<5;i++) addRow();
-        renderRows();
+        render();
     }
 }
 
-/* RENDER TABLE */
-function renderRows(){
+/* RENDER */
+function render(){
 
 let body = document.getElementById("tableBody");
 body.innerHTML = "";
 
-rows.forEach((row,i)=>{
+rows.forEach((r,i)=>{
 
 let tr = document.createElement("tr");
 
 tr.innerHTML = `
-<td><input value="${row.name}" oninput="updateRow(${i},'name',this.value)"></td>
-<td><input type="number" value="${row.price}" oninput="updateRow(${i},'price',this.value)"></td>
-<td><input value="${row.people}" oninput="updateRow(${i},'people',this.value)"></td>
+<td><input value="${r.item}" oninput="update(${i},'item',this.value)"></td>
+<td><input type="number" value="${r.price}" oninput="update(${i},'price',this.value)"></td>
+<td><input value="${r.people}" oninput="update(${i},'people',this.value)"></td>
 `;
 
 body.appendChild(tr);
@@ -162,79 +175,110 @@ body.appendChild(tr);
 
 }
 
-/* UPDATE ROW */
-function updateRow(i,key,value){
-    rows[i][key] = value;
+/* UPDATE */
+function update(i,key,val){
+    rows[i][key]=val;
     maybeExpand();
-    updateTotals();
+    calc();
 }
 
-/* CALCULATE */
-function updateTotals(){
+/* CALC */
+function calc(){
 
-let items = rows
-.filter(r => r.price && r.people)
-.map(r => ({
-    price: parseFloat(r.price),
-    people: r.people.split(",").map(p=>p.trim()).filter(Boolean)
-}));
+let items = rows.filter(r=>r.price && r.people);
 
-let peopleMap = {};
+let people = {};
 let subtotal = 0;
 
-items.forEach(item=>{
-subtotal += item.price;
+items.forEach(i=>{
+subtotal += parseFloat(i.price);
 
-let share = item.price / item.people.length;
+let share = i.price / i.people.split(",").length;
 
-item.people.forEach(p=>{
-    let key = p.toLowerCase();
-    peopleMap[key] = peopleMap[key] || {name:p,total:0};
-    peopleMap[key].total += share;
+i.people.split(",").forEach(p=>{
+    p=p.trim();
+    if(!p) return;
+    people[p] = people[p] || {total:0};
+    people[p].total += share;
 });
 
 });
 
-let tax = subtotal * ((parseFloat(taxPercent.value)||0)/100);
-let tip = subtotal * ((parseFloat(tipPercent.value)||0)/100);
-let cashback = (parseFloat(cashbackPercent.value)||0)/100;
+let tax = subtotal*(taxPercent.value||0)/100;
+let tip = subtotal*(tipPercent.value||0)/100;
+let cashback = (cashbackPercent.value||0)/100;
 
 let total = subtotal + tax + tip;
 
-Object.keys(peopleMap).forEach(k=>{
-let p = peopleMap[k];
-
-let ratio = p.total / subtotal || 0;
-
-p.total += tax*ratio + tip*ratio;
-p.total -= p.total*cashback;
+/* adjust */
+Object.keys(people).forEach(p=>{
+let ratio = people[p].total/subtotal || 0;
+people[p].total += tax*ratio + tip*ratio;
+people[p].total -= people[p].total*cashback;
 });
 
 /* SUMMARY */
-document.getElementById("summary").innerHTML = `
-Subtotal: $${subtotal.toFixed(2)}<br>
-Tax: $${tax.toFixed(2)}<br>
-Tip: $${tip.toFixed(2)}<br>
-Cashback: ${(cashback*100).toFixed(2)}%<br><br>
-<strong>Total: $${total.toFixed(2)}</strong>
-`;
+document.getElementById("summary").innerHTML =
+`Subtotal: $${subtotal.toFixed(2)} |
+Tax: $${tax.toFixed(2)} |
+Tip: $${tip.toFixed(2)} |
+Total: $${total.toFixed(2)}`;
 
-/* OUTPUT */
+/* TOTALS + VENMO */
 let div = document.getElementById("totals");
 div.innerHTML = "";
 
-Object.values(peopleMap).forEach(p=>{
-let el = document.createElement("div");
-el.className = "result";
-el.textContent = `${p.name} owes $${p.total.toFixed(2)}`;
-div.appendChild(el);
+Object.keys(people).forEach(p=>{
+
+let amt = people[p].total.toFixed(2);
+
+/* VENMO LINK */
+let venmo = `https://venmo.com/?txn=pay&recipients=${encodeURIComponent(p)}&amount=${amt}&note=Split%20bill`;
+
+div.innerHTML += `
+<div class="result">
+${p} owes $${amt}
+<button class="venmo-btn" onclick="window.open('${venmo}','_blank')">Venmo</button>
+</div>
+`;
+
 });
 
 }
 
-/* START */
-initRows();
-updateTotals();
+/* RECEIPT OCR */
+async function processReceipt(){
+
+let file = document.getElementById("receiptUpload").files[0];
+if(!file) return;
+
+const { data } = await Tesseract.recognize(file, 'eng');
+
+let lines = data.text.split("\n");
+
+lines.forEach(line=>{
+
+let priceMatch = line.match(/\d+\.\d{2}/);
+
+if(priceMatch){
+
+addRow({
+    item: line.replace(priceMatch[0],"").trim(),
+    price: priceMatch[0],
+    people:""
+});
+
+}
+
+});
+
+render();
+calc();
+
+}
+
+init();
+calc();
 
 </script>
 
