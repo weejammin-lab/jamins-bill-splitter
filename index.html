@@ -134,6 +134,17 @@ margin-left:6px;
 font-size:11px;
 }
 
+.venmo-input{
+width:120px;
+margin-left:6px;
+font-size:11px;
+padding:2px;
+}
+
+.venmo-input.default{
+color:#999;
+}
+
 </style>
 </head>
 
@@ -193,11 +204,6 @@ onkeydown="handleAddPerson(event)">
 <input id="tipValue" class="tax-tip-input" oninput="calc()">
 </div>
 
-<br>
-
-<!-- ✅ REQUEST ALL BUTTON -->
-<button onclick="requestAllVenmo()">Request All Venmo</button>
-
 <div class="summary-box" id="summary"></div>
 <div id="totals"></div>
 
@@ -209,7 +215,6 @@ jack:"jack-bao",
 cliff:"clifford-chao",
 howard:"braveclaw",
 willie:"willie-zeng",
-freddy:"freddy-dai",
 lin:"linlin221"
 };
 
@@ -335,29 +340,6 @@ render();
 calc();
 }
 
-function nav(e,row,col){
-
-e.preventDefault();
-
-let nextRow = row + 1;
-
-if(nextRow >= rows.length){
-addRow();
-setTimeout(()=>{
-document.querySelector(`[data-r="${nextRow}"][data-c="${col}"]`)?.focus();
-},0);
-return;
-}
-
-setTimeout(()=>{
-let next = document.querySelector(`[data-r="${nextRow}"][data-c="${col}"]`);
-if(next){
-next.focus();
-next.select?.();
-}
-},0);
-}
-
 function addRow(){
 rows.push({
 item:"",
@@ -394,18 +376,9 @@ tapHTML+=`</div>`;
 let tr=document.createElement("tr");
 
 tr.innerHTML=`
-<td><textarea data-r="${i}" data-c="0"
-onkeydown="if(event.key==='Enter'){nav(event,${i},0)}"
-oninput="update(${i},'item',this.value)">${r.item}</textarea></td>
-
-<td><textarea data-r="${i}" data-c="1"
-onkeydown="if(event.key==='Enter'){nav(event,${i},1)}"
-oninput="handlePriceInput(${i},this)">${r.price}</textarea></td>
-
-<td><textarea data-r="${i}" data-c="2"
-onkeydown="if(event.key==='Enter'){nav(event,${i},2)}"
-oninput="update(${i},'people',this.value)">${r.people}</textarea></td>
-
+<td><textarea oninput="update(${i},'item',this.value)">${r.item}</textarea></td>
+<td><textarea oninput="handlePriceInput(${i},this)">${r.price}</textarea></td>
+<td><textarea oninput="update(${i},'people',this.value)">${r.people}</textarea></td>
 <td>${tapHTML}</td>
 `;
 
@@ -470,32 +443,22 @@ div.innerHTML="";
 
 Object.keys(people).forEach(p=>{
 
-let venmo = venmoNames[p];
-
-let btn = venmo
-? `<button class="venmo-btn" onclick="window.open('https://venmo.com/${venmo}?txn=request&amount=${people[p].total.toFixed(2)}','_blank')">
-Request
-</button>`
-: "";
+let venmo = venmoNames[p] || "";
 
 div.innerHTML+=`
 <div class="result">
 ${p} owes $${people[p].total.toFixed(2)}
-${btn}
+<input class="venmo-input ${defaultVenmoMap[p] ? 'default':''}"
+value="${venmo}"
+oninput="venmoNames['${p}']=this.value"
+placeholder="venmo id">
+<button class="venmo-btn"
+onclick="window.open('https://venmo.com/'+(venmoNames['${p}']||'' )+'?txn=request&amount=${people[p].total.toFixed(2)}','_blank')">
+Request
+</button>
 </div>`;
 });
 
-}
-
-/* REQUEST ALL VENMO */
-function requestAllVenmo(){
-Object.keys(people = window.people || {}).forEach(()=>{});
-
-let all = document.querySelectorAll(".result");
-
-all.forEach(el=>{
-el.querySelector("button")?.click();
-});
 }
 
 init();
