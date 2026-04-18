@@ -54,13 +54,12 @@ padding:3px;
 vertical-align:top;
 }
 
-/* widen tap column */
-th:nth-child(4), td:nth-child(4){ width:30%; }
-th:nth-child(1), td:nth-child(1){ width:38%; }
+/* COLUMN WIDTHS (FIXED) */
+th:nth-child(1), td:nth-child(1){ width:30%; }
 th:nth-child(2), td:nth-child(2){ width:12%; }
 th:nth-child(3), td:nth-child(3){ width:20%; }
+th:nth-child(4), td:nth-child(4){ width:38%; } /* 👈 WIDER TAP COLUMN */
 
-/* TEXTAREAS */
 td textarea{
 width:100%;
 box-sizing:border-box;
@@ -72,19 +71,15 @@ padding:3px;
 font-family:Arial;
 }
 
-/* 👇 make PEOPLE column taller */
 td:nth-child(3) textarea{
 min-height:70px;
 }
 
-/* TAP BUTTONS WRAP FIX */
 .tap-grid{
 display:grid;
 grid-template-columns:repeat(3,1fr);
 gap:4px;
 margin-top:4px;
-
-/* important: prevent overflow */
 word-break:break-word;
 }
 
@@ -96,8 +91,6 @@ cursor:pointer;
 border:1px solid #ccc;
 background:#e0e0e0;
 border-radius:7px;
-
-/* fix long names */
 white-space:normal;
 word-break:break-word;
 }
@@ -107,7 +100,6 @@ background:#7dff8a;
 border-color:#2ecc71;
 }
 
-/* EVERYONE button full width */
 .everyone-btn{
 width:100%;
 margin-bottom:4px;
@@ -202,7 +194,6 @@ onkeydown="handleAddPerson(event)">
 
 <script>
 
-/* VENMO PREFILLS */
 const defaultVenmoMap = {
 jamin:"jamin-chen",
 jack:"jack-bao",
@@ -312,34 +303,9 @@ render();
 calc();
 }
 
-function move(e,row,col){
-
-if(e.key!=="Enter") return;
-
-e.preventDefault();
-
-if(row === rows.length - 1){
-addRow();
-}
-
-requestAnimationFrame(()=>{
-
-let next=document.querySelector(
-`[data-row='${row+1}'][data-col='${col}']`
-);
-
-if(next){
-next.focus();
-next.select?.();
-}
-
-});
-
-}
-
-function autoGrow(el){
-el.style.height="auto";
-el.style.height=el.scrollHeight+"px";
+function update(i,key,val){
+rows[i][key]=val;
+calc();
 }
 
 function handlePriceInput(row, el){
@@ -349,28 +315,6 @@ el.value=el.value
 .replace(/(\..*?)\..*/g,"$1");
 
 rows[row].price=el.value;
-calc();
-}
-
-function update(i,key,val){
-rows[i][key]=val;
-calc();
-}
-
-/* FIXED EVERYONE LABEL */
-function toggleEveryone(row){
-
-let r=rows[row];
-
-if(r.selected?.length===nameList.length){
-r.selected=[];
-r.people="";
-}else{
-r.selected=[...nameList];
-r.people="EVERYONE";   // ✅ FIXED
-}
-
-render();
 calc();
 }
 
@@ -385,6 +329,22 @@ if(idx>-1) r.selected.splice(idx,1);
 else r.selected.push(name);
 
 r.people=r.selected.length ? r.selected.join(", ") : "";
+
+render();
+calc();
+}
+
+function toggleEveryone(row){
+
+let r=rows[row];
+
+if(r.selected?.length===nameList.length){
+r.selected=[];
+r.people="";
+}else{
+r.selected=[...nameList];
+r.people="EVERYONE";
+}
 
 render();
 calc();
@@ -419,32 +379,11 @@ let tr=document.createElement("tr");
 
 tr.innerHTML=`
 
-<td>
-<textarea
-placeholder="optional"
-data-row="${i}" data-col="0"
-oninput="update(${i},'item',this.value); autoGrow(this)"
-onkeydown="move(event,${i},0)"
->${r.item}</textarea>
-</td>
+<td><textarea oninput="update(${i},'item',this.value)">${r.item}</textarea></td>
 
-<td>
-<textarea
-placeholder="0.00"
-data-row="${i}" data-col="1"
-oninput="handlePriceInput(${i},this); autoGrow(this)"
-onkeydown="move(event,${i},1)"
->${r.price}</textarea>
-</td>
+<td><textarea oninput="handlePriceInput(${i},this)">${r.price}</textarea></td>
 
-<td>
-<textarea
-placeholder="type or tap name"
-data-row="${i}" data-col="2"
-oninput="update(${i},'people',this.value); autoGrow(this)"
-onkeydown="move(event,${i},2)"
->${r.people}</textarea>
-</td>
+<td><textarea oninput="update(${i},'people',this.value)">${r.people}</textarea></td>
 
 <td>${tapHTML}</td>
 
@@ -490,7 +429,77 @@ people[p].total+=share;
 
 });
 
-summary.innerHTML=`Subtotal: $${subtotal.toFixed(2)}`;
+let tax =
+taxMode.value==="percent"
+? subtotal*(taxValue.value||0)/100
+: parseFloat(taxValue.value||0);
+
+let tip =
+tipMode.value==="percent"
+? subtotal*(tipValue.value||0)/100
+: parseFloat(tipValue.value||0);
+
+let total=subtotal+tax+tip;
+
+/* add tax/tip per person */
+Object.keys(people).forEach(p=>{
+
+let ratio=people[p].total/subtotal||0;
+
+people[p].total+=tax*ratio+tip*ratio;
+
+});
+
+/* SUMMARY */
+summary.innerHTML=`
+Subtotal: $${subtotal.toFixed(2)} |
+Tax: $${tax.toFixed(2)} |
+Tip: $${tip.toFixed(2)} |
+<strong>Total: $${total.toFixed(2)}</strong>
+`;
+
+/* VENMO */
+let div=document.getElementById("totals");
+div.innerHTML="";
+
+Object.keys(people).forEach(p=>{
+
+if(!venmoNames[p]){
+venmoNames[p]=defaultVenmoMap[p] || "";
+}
+
+div.innerHTML+=`
+<div class="result">
+
+${p} owes $${people[p].total.toFixed(2)}
+
+<input class="venmo-input"
+value="${venmoNames[p]}"
+oninput="venmoNames['${p}']=this.value">
+
+<button onclick="openVenmo('${p}',${people[p].total.toFixed(2)})">
+Venmo
+</button>
+
+</div>
+`;
+});
+
+}
+
+function openVenmo(p,amt){
+
+let name=venmoNames[p];
+
+if(!name){
+alert("Enter Venmo username");
+return;
+}
+
+window.open(
+`https://venmo.com/${name}?txn=request&amount=${amt}`,
+"_blank"
+);
 
 }
 
