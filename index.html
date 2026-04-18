@@ -6,6 +6,9 @@
 
 <title>Bill Splitter</title>
 
+<!-- PNG SCREENSHOT LIB -->
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
 <style>
 
 body{
@@ -211,11 +214,11 @@ onkeydown="handleAddPerson(event)">
 
 <br>
 
-<!-- EMAIL INPUT -->
+<!-- EMAIL + PNG -->
 <div class="tax-tip-wrap">
 <label>Email</label>
 <input id="emailTo" class="tax-tip-input" style="width:200px;" placeholder="recipient@email.com">
-<button onclick="emailSnapshot()">Send</button>
+<button onclick="sendPNG()">Send PNG</button>
 </div>
 
 <script>
@@ -362,6 +365,30 @@ render();
 calc();
 }
 
+/* ENTER FIX */
+function nav(e,row,col){
+
+e.preventDefault();
+
+let nextRow = row + 1;
+
+if(nextRow >= rows.length){
+addRow();
+setTimeout(()=>{
+document.querySelector(`[data-r="${nextRow}"][data-c="${col}"]`)?.focus();
+},0);
+return;
+}
+
+setTimeout(()=>{
+let next = document.querySelector(`[data-r="${nextRow}"][data-c="${col}"]`);
+if(next){
+next.focus();
+next.select?.();
+}
+},0);
+}
+
 function render(){
 
 let body=document.getElementById("tableBody");
@@ -387,9 +414,18 @@ tapHTML+=`</div>`;
 let tr=document.createElement("tr");
 
 tr.innerHTML=`
-<td><textarea oninput="update(${i},'item',this.value)">${r.item}</textarea></td>
-<td><textarea oninput="handlePriceInput(${i},this)">${r.price}</textarea></td>
-<td><textarea oninput="update(${i},'people',this.value)">${r.people}</textarea></td>
+<td><textarea data-r="${i}" data-c="0"
+onkeydown="if(event.key==='Enter'){nav(event,${i},0)}"
+oninput="update(${i},'item',this.value)">${r.item}</textarea></td>
+
+<td><textarea data-r="${i}" data-c="1"
+onkeydown="if(event.key==='Enter'){nav(event,${i},1)}"
+oninput="handlePriceInput(${i},this)">${r.price}</textarea></td>
+
+<td><textarea data-r="${i}" data-c="2"
+onkeydown="if(event.key==='Enter'){nav(event,${i},2)}"
+oninput="update(${i},'people',this.value)">${r.people}</textarea></td>
+
 <td>${tapHTML}</td>
 `;
 
@@ -472,8 +508,8 @@ Request
 
 }
 
-/* EMAIL SNAPSHOT */
-function emailSnapshot(){
+/* PNG EMAIL */
+async function sendPNG(){
 
 let email = document.getElementById("emailTo").value.trim();
 if(!email){
@@ -481,38 +517,30 @@ alert("Enter email");
 return;
 }
 
-let text = "=== BILL SPLITTER SNAPSHOT ===\n\n";
-
-text += "People:\n" + nameList.join(", ") + "\n\n";
-
-rows.forEach((r,i)=>{
-text += `Row ${i+1}\n`;
-text += `Item: ${r.item}\n`;
-text += `Price: ${r.price}\n`;
-text += `People: ${r.people}\n`;
-text += `Selected: ${(r.selected||[]).join(", ")}\n\n`;
+const canvas = await html2canvas(document.body, {
+scale: 2,
+useCORS: true
 });
 
-text += "--- SUMMARY ---\n";
-text += document.getElementById("summary").innerText + "\n\n";
+let img = canvas.toDataURL("image/png");
 
-text += "--- TOTALS ---\n";
-document.querySelectorAll(".result").forEach(r=>{
-text += r.innerText + "\n";
-});
+/* download image */
+let a = document.createElement("a");
+a.href = img;
+a.download = "bill-split.png";
+a.click();
 
-text += "\n--- VENMO LINKS ---\n";
-Object.keys(venmoNames).forEach(p=>{
-if(venmoNames[p]){
-text += `${p}: https://venmo.com/${venmoNames[p]}\n`;
-}
-});
+/* email with venmo links */
+let body =
+"Bill Split Screenshot attached.\n\nVenmo Links:\n" +
+Object.keys(venmoNames)
+.map(p => `${p}: https://venmo.com/${venmoNames[p] || ""}`)
+.join("\n");
 
-let subject = encodeURIComponent("Bill Splitter Snapshot");
-let body = encodeURIComponent(text);
+let subject = encodeURIComponent("Bill Split Screenshot");
 
 window.location.href =
-`mailto:${email}?subject=${subject}&body=${body}`;
+`mailto:${email}?subject=${subject}&body=${encodeURIComponent(body)}`;
 }
 
 init();
