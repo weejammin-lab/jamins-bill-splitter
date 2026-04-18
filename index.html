@@ -1,3 +1,7 @@
+its nto  roking lets try something new
+
+take this original code, remove tax and tip section
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -111,6 +115,18 @@ width:100%;
 margin-bottom:4px;
 }
 
+.tax-tip-wrap{
+display:flex;
+gap:6px;
+align-items:center;
+margin-top:8px;
+}
+
+.tax-tip-input{
+width:70px;
+padding:4px;
+}
+
 .summary-box{
 border:1px solid #ccc;
 padding:8px;
@@ -162,6 +178,26 @@ onkeydown="handleAddPerson(event)">
 <tbody id="tableBody"></tbody>
 
 </table>
+
+<br>
+
+<div class="tax-tip-wrap">
+<label>Tax</label>
+<select id="taxMode" onchange="calc()">
+<option value="percent">%</option>
+<option value="amount">$</option>
+</select>
+<input id="taxValue" class="tax-tip-input" oninput="calc()">
+</div>
+
+<div class="tax-tip-wrap">
+<label>Tip</label>
+<select id="tipMode" onchange="calc()">
+<option value="percent">%</option>
+<option value="amount">$</option>
+</select>
+<input id="tipValue" class="tax-tip-input" oninput="calc()">
+</div>
 
 <div class="summary-box" id="summary"></div>
 <div id="totals"></div>
@@ -307,9 +343,42 @@ render();
 calc();
 }
 
-/* =========================
-   CLEAN CALC (NO TAX/TIP)
-   ========================= */
+function render(){
+
+let body=document.getElementById("tableBody");
+body.innerHTML="";
+
+rows.forEach((r,i)=>{
+
+let tapHTML=`
+<button class="name-btn everyone-btn ${r.selected?.length===nameList.length?'selected':''}"
+onclick="toggleEveryone(${i})">EVERYONE</button>
+
+<div class="tap-grid">
+`;
+
+nameList.forEach(n=>{
+tapHTML+=`
+<button class="name-btn ${r.selected?.includes(n)?'selected':''}"
+onclick="toggleName(${i},'${n}')">${n}</button>`;
+});
+
+tapHTML+=`</div>`;
+
+let tr=document.createElement("tr");
+
+tr.innerHTML=`
+<td><textarea oninput="update(${i},'item',this.value)">${r.item}</textarea></td>
+<td><textarea oninput="handlePriceInput(${i},this)">${r.price}</textarea></td>
+<td><textarea oninput="update(${i},'people',this.value)">${r.people}</textarea></td>
+<td>${tapHTML}</td>
+`;
+
+body.appendChild(tr);
+
+});
+
+}
 
 function calc(){
 
