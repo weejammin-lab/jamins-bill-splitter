@@ -291,6 +291,12 @@ calc();
 function clearAll(){
 if(!confirm("Clear everything?")) return;
 
+/* FIX: clear tax/tip fields */
+document.getElementById("taxValue").value="";
+document.getElementById("tipValue").value="";
+document.getElementById("taxMode").value="percent";
+document.getElementById("tipMode").value="percent";
+
 rows=[];
 nameList=[...defaultNames];
 venmoNames={...defaultVenmoMap};
