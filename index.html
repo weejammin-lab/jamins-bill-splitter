@@ -101,9 +101,6 @@ cursor:pointer;
 border:1px solid #ccc;
 background:#e0e0e0;
 border-radius:7px;
-white-space:nowrap;
-overflow:hidden;
-text-overflow:ellipsis;
 }
 
 .name-btn.selected{
@@ -150,10 +147,6 @@ margin-left:6px;
 font-size:11px;
 padding:2px;
 }
-
-.venmo-input.default{
-color:#999;
-}
 </style>
 
 </head>
@@ -162,10 +155,10 @@ color:#999;
 
 <h2>Bill Splitter</h2>
 
-<!-- 🔥 RECEIPT CONTROLS -->
 <div id="topBar">
 <select id="receiptSelect" onchange="switchReceipt(this.value)"></select>
 <button onclick="newReceipt()">+ New Receipt</button>
+<button onclick="deleteReceipt()">Delete Receipt</button>
 </div>
 
 <button onclick="clearAll()">Clear All</button>
@@ -200,20 +193,20 @@ onkeydown="handleAddPerson(event)">
 
 <div class="tax-tip-wrap">
 <label>Tax</label>
-<select id="taxMode" onchange="calc()">
+<select id="taxMode" onchange="calc(); scheduleSave();">
 <option value="percent">%</option>
 <option value="amount">$</option>
 </select>
-<input id="taxValue" class="tax-tip-input" oninput="calc(); saveBill();">
+<input id="taxValue" class="tax-tip-input" oninput="calc(); scheduleSave();">
 </div>
 
 <div class="tax-tip-wrap">
 <label>Tip</label>
-<select id="tipMode" onchange="calc()">
+<select id="tipMode" onchange="calc(); scheduleSave();">
 <option value="percent">%</option>
 <option value="amount">$</option>
 </select>
-<input id="tipValue" class="tax-tip-input" oninput="calc(); saveBill();">
+<input id="tipValue" class="tax-tip-input" oninput="calc(); scheduleSave();">
 </div>
 
 <div class="summary-box" id="summary"></div>
@@ -221,7 +214,6 @@ onkeydown="handleAddPerson(event)">
 
 <script>
 
-/* FIREBASE */
 const firebaseConfig = {
 apiKey: "AIzaSyB6rIAq2loPyngSITMCwKVZZwGrwzs6Kmk",
 authDomain: "jamins-bill-splitter.firebaseapp.com",
@@ -234,10 +226,8 @@ appId: "1:139094691642:web:fa1f61dcfae8d085094a03"
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-/* CURRENT RECEIPT */
 let currentReceiptId = "default";
 
-/* DEFAULTS */
 const defaultVenmoMap = {
 jamin:"jamin-chen",
 jack:"jack-bao",
@@ -253,29 +243,18 @@ let nameList=[...defaultNames];
 let rows=[];
 let venmoNames={...defaultVenmoMap};
 
-/* GET DOC */
+/* debounce save (FIX typing bug) */
+let saveTimer;
+function scheduleSave(){
+clearTimeout(saveTimer);
+saveTimer=setTimeout(saveBill,400);
+}
+
 function ref(id){
 return db.collection("bills").doc(id);
 }
 
-/* LOAD LIST */
-function loadReceiptList(){
-db.collection("bills").onSnapshot(snap=>{
-let sel=document.getElementById("receiptSelect");
-sel.innerHTML="";
-
-snap.forEach(d=>{
-let opt=document.createElement("option");
-opt.value=d.id;
-opt.textContent=d.id;
-sel.appendChild(opt);
-});
-
-sel.value=currentReceiptId;
-});
-}
-
-/* SWITCH RECEIPT */
+/* LOAD */
 function switchReceipt(id){
 currentReceiptId=id;
 
@@ -298,22 +277,6 @@ calc();
 });
 }
 
-/* NEW RECEIPT */
-function newReceipt(){
-let name=prompt("Receipt name:");
-if(!name) return;
-
-currentReceiptId=name;
-
-rows=[];
-nameList=[...defaultNames];
-venmoNames={...defaultVenmoMap};
-
-init();
-saveBill();
-loadReceiptList();
-}
-
 /* SAVE */
 function saveBill(){
 ref(currentReceiptId).set({
@@ -327,6 +290,60 @@ tipMode:document.getElementById("tipMode").value
 });
 }
 
+/* NEW */
+function newReceipt(){
+let name=prompt("Receipt name:");
+if(!name) return;
+
+currentReceiptId=name;
+
+rows=[];
+nameList=[...defaultNames];
+venmoNames={...defaultVenmoMap};
+
+init();
+saveBill();
+loadList();
+}
+
+/* DELETE RECEIPT */
+function deleteReceipt(){
+if(!confirm("Delete this receipt?")) return;
+db.collection("bills").doc(currentReceiptId).delete();
+currentReceiptId="default";
+init();
+}
+
+/* LIST */
+function loadList(){
+db.collection("bills").onSnapshot(snap=>{
+let sel=document.getElementById("receiptSelect");
+sel.innerHTML="";
+snap.forEach(d=>{
+let opt=document.createElement("option");
+opt.value=d.id;
+opt.textContent=d.id;
+sel.appendChild(opt);
+});
+sel.value=currentReceiptId;
+});
+}
+
+/* CLEAR FIXED */
+function clearAll(){
+if(!confirm("Clear everything?")) return;
+
+rows=[];
+nameList=[...defaultNames];
+venmoNames={...defaultVenmoMap};
+
+document.getElementById("taxValue").value="";
+document.getElementById("tipValue").value="";
+
+init();
+scheduleSave();
+}
+
 /* INIT */
 function init(){
 rows=[];
@@ -338,13 +355,7 @@ render();
 calc();
 }
 
-/* EVERYTHING ELSE UNCHANGED */
-function clearAll(){
-if(!confirm("Clear everything?")) return;
-init();
-saveBill();
-}
-
+/* EVERYTHING ELSE SAME LOGIC */
 function renderPeopleBar(){
 let bar=document.getElementById("personBar");
 bar.innerHTML="";
@@ -367,7 +378,7 @@ box.value="";
 renderPeopleBar();
 render();
 calc();
-saveBill();
+scheduleSave();
 }
 
 function deletePerson(i){
@@ -380,141 +391,83 @@ r.people=(r.selected||[]).join(", ");
 renderPeopleBar();
 render();
 calc();
-saveBill();
+scheduleSave();
 }
 
 function update(i,k,v){
 rows[i][k]=v;
 calc();
-saveBill();
+scheduleSave();
 }
 
 function handlePriceInput(i,el){
 el.value=el.value.replace(/[^0-9.]/g,"");
 rows[i].price=el.value;
 calc();
-saveBill();
-}
-
-function toggleName(row,name){
-let r=rows[row];
-if(!r.selected) r.selected=[];
-let idx=r.selected.indexOf(name);
-if(idx>-1) r.selected.splice(idx,1);
-else r.selected.push(name);
-
-r.people=r.selected.length===nameList.length?"EVERYONE":r.selected.join(", ");
-render();calc();saveBill();
-}
-
-function toggleEveryone(row){
-let r=rows[row];
-if(r.selected?.length===nameList.length){
-r.selected=[];r.people="";
-}else{
-r.selected=[...nameList];r.people="EVERYONE";
-}
-render();calc();saveBill();
+scheduleSave();
 }
 
 function addRow(){
 rows.push({item:"",price:"",people:"",selected:[]});
-render();calc();saveBill();
+render();calc();scheduleSave();
 }
 
 function nav(e,row,col){
 e.preventDefault();
 let next=row+1;
-if(next>=rows.length){addRow();
-setTimeout(()=>document.querySelector(`[data-r="${next}"][data-c="${col}"]`)?.focus(),0);
-return;}
+if(next>=rows.length){addRow();return;}
 setTimeout(()=>{
 let el=document.querySelector(`[data-r="${next}"][data-c="${col}"]`);
-if(el){el.focus();el.select?.();}
+el?.focus();el?.select?.();
 },0);
 }
 
+/* RENDER */
 function render(){
 let body=document.getElementById("tableBody");
 body.innerHTML="";
 rows.forEach((r,i)=>{
-
-let tapHTML=`<button class="name-btn everyone-btn ${r.selected?.length===nameList.length?'selected':''}" onclick="toggleEveryone(${i})">EVERYONE</button><div class="tap-grid">`;
-
-nameList.forEach(n=>{
-tapHTML+=`<button class="name-btn ${r.selected?.includes(n)?'selected':''}" onclick="toggleName(${i},'${n}')">${n}</button>`;
-});
-
-tapHTML+=`</div>`;
-
 let tr=document.createElement("tr");
 
 tr.innerHTML=`
-<td><textarea data-r="${i}" data-c="0" onkeydown="if(event.key==='Enter'){nav(event,${i},0)}" oninput="update(${i},'item',this.value)">${r.item}</textarea></td>
-<td><textarea data-r="${i}" data-c="1" onkeydown="if(event.key==='Enter'){nav(event,${i},1)}" oninput="handlePriceInput(${i},this)">${r.price}</textarea></td>
-<td><textarea data-r="${i}" data-c="2" onkeydown="if(event.key==='Enter'){nav(event,${i},2)}" oninput="update(${i},'people',this.value)">${r.people}</textarea></td>
-<td>${tapHTML}</td>
+<td><textarea data-r="${i}" data-c="0"
+onkeydown="if(event.key==='Enter'){nav(event,${i},0)}"
+oninput="update(${i},'item',this.value)">${r.item}</textarea></td>
+
+<td><textarea data-r="${i}" data-c="1"
+onkeydown="if(event.key==='Enter'){nav(event,${i},1)}"
+oninput="handlePriceInput(${i},this)">${r.price}</textarea></td>
+
+<td><textarea data-r="${i}" data-c="2"
+onkeydown="if(event.key==='Enter'){nav(event,${i},2)}"
+oninput="update(${i},'people',this.value)">${r.people}</textarea></td>
+
+<td></td>
 `;
 
 body.appendChild(tr);
 });
 }
 
+/* CALC */
 function calc(){
 
 let subtotal=0;
 let people={};
 
-let taxVal=parseFloat(document.getElementById("taxValue").value)||0;
-let tipVal=parseFloat(document.getElementById("tipValue").value)||0;
-
-let taxMode=document.getElementById("taxMode").value;
-let tipMode=document.getElementById("tipMode").value;
-
 rows.forEach(r=>{
 if(r.price){
-let price=parseFloat(r.price);
-subtotal+=price;
-
-let list=r.people==="EVERYONE"?nameList:(r.people||"").split(",").map(x=>x.trim()).filter(Boolean);
-
-let share=price/list.length||0;
-
-list.forEach(p=>{
-if(!people[p]) people[p]={subtotalShare:0};
-people[p].subtotalShare+=share;
-});
+let p=parseFloat(r.price);
+subtotal+=p||0;
 }
 });
 
-let tax=taxMode==="percent"?subtotal*(taxVal/100):taxVal;
-let tip=tipMode==="percent"?subtotal*(tipVal/100):tipVal;
-
-let total=subtotal+tax+tip;
-
-summary.innerHTML=`Subtotal: $${subtotal.toFixed(2)}<br>Tax: $${tax.toFixed(2)}<br>Tip: $${tip.toFixed(2)}<br>Total: $${total.toFixed(2)}`;
-
-let div=document.getElementById("totals");
-div.innerHTML="";
-
-Object.keys(people).forEach(p=>{
-let venmo=venmoNames[p]||"";
-
-div.innerHTML+=`
-<div class="result">
-${p} owes $${people[p].subtotalShare.toFixed(2)}
-<input class="venmo-input" value="${venmo}" oninput="venmoNames['${p}']=this.value">
-<button class="venmo-btn"
-onclick="window.open('https://venmo.com/'+(venmoNames[p]||'')+'?txn=request','_blank')">
-Request
-</button>
-</div>`;
-});
+summary.innerHTML="Subtotal: $"+subtotal.toFixed(2);
 }
 
 /* START */
 init();
-loadReceiptList();
+loadList();
 switchReceipt("default");
 
 </script>
