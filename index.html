@@ -390,19 +390,25 @@ let tr=document.createElement("tr");
 tr.innerHTML=`
 
 <td>
-<textarea data-row="${i}" data-col="0"
+<textarea
+placeholder="optional"
+data-row="${i}" data-col="0"
 oninput="update(${i},'item',this.value); autoGrow(this)"
 onkeydown="move(event,${i},0)">${r.item}</textarea>
 </td>
 
 <td>
-<textarea data-row="${i}" data-col="1"
+<textarea
+placeholder="0.00"
+data-row="${i}" data-col="1"
 oninput="handlePriceInput(${i},this); autoGrow(this)"
 onkeydown="move(event,${i},1)">${r.price}</textarea>
 </td>
 
 <td>
-<textarea data-row="${i}" data-col="2"
+<textarea
+placeholder="type or tap name"
+data-row="${i}" data-col="2"
 oninput="update(${i},'people',this.value); autoGrow(this)"
 onkeydown="move(event,${i},2)">${r.people}</textarea>
 </td>
