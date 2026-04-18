@@ -46,11 +46,6 @@ padding:3px;
 overflow:hidden;
 }
 
-.item-col{width:120px;}
-.price-col{width:55px;}
-.people-col{width:520px;}
-.tap-col{width:360px;}
-
 td input{
 width:100%;
 box-sizing:border-box;
@@ -141,7 +136,7 @@ onkeydown="handleAddPerson(event)">
 
 <div class="tax-tip-wrap">
 <label>Tax</label>
-<select id="taxMode" class="tax-tip-select" onchange="calc()">
+<select id="taxMode" onchange="calc()">
 <option value="percent">%</option>
 <option value="amount">$</option>
 </select>
@@ -150,7 +145,7 @@ onkeydown="handleAddPerson(event)">
 
 <div class="tax-tip-wrap">
 <label>Tip</label>
-<select id="tipMode" class="tax-tip-select" onchange="calc()">
+<select id="tipMode" onchange="calc()">
 <option value="percent">%</option>
 <option value="amount">$</option>
 </select>
@@ -166,18 +161,8 @@ let nameList=[
 ];
 
 let rows=[];
-let venmoNames={};
 
-let placeholders=[
-"jamin",
-"jack",
-"jamin, cliff, willie, howard",
-"lin, lin, freddy (must type the repeated name for uneven splits)",
-"everyone"
-];
-
-/* INIT */
-
+/* ✅ ALWAYS START SAFE */
 function init(){
 
 rows=[];
@@ -188,18 +173,20 @@ item:"",
 price:"",
 people:"",
 selected:[],
-placeholder:placeholders[i]
+placeholder:""
 });
 }
 
-renderPeopleBar();
 render();
 calc();
 }
 
-/* AUTO ROW */
-
 function ensureRow(){
+
+if(rows.length===0){
+init();
+return;
+}
 
 let last=rows[rows.length-1];
 
@@ -224,11 +211,8 @@ e.preventDefault();
 
 ensureRow();
 
-let nextRow=row+1;
-let nextCol=col;
-
 let next=document.querySelector(
-`[data-row='${nextRow}'][data-col='${nextCol}']`
+`[data-row='${row+1}'][data-col='${col}']`
 );
 
 if(next){
@@ -335,7 +319,6 @@ onkeydown="move(event,${i},1)">
 <input
 data-row="${i}" data-col="2"
 value="${r.people}"
-placeholder="${r.placeholder}"
 oninput="update(${i},'people',this.value)"
 onkeydown="move(event,${i},2)">
 </td>
@@ -349,6 +332,8 @@ body.appendChild(tr);
 });
 
 }
+
+/* CALC */
 
 function calc(){
 
@@ -364,11 +349,13 @@ if(!isNaN(p)) subtotal+=p;
 summary.innerHTML=`Subtotal: $${subtotal.toFixed(2)}`;
 }
 
+/* CLEAR */
+
 function clearAll(){
-rows=[];
-venmoNames={};
 init();
 }
+
+/* START */
 
 init();
 calc();
