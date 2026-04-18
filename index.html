@@ -74,6 +74,11 @@ padding:3px;
 font-family:Arial;
 }
 
+/* ✅ CHANGE 1: taller people column */
+td:nth-child(3) textarea{
+min-height:70px;
+}
+
 /* TAP GRID */
 .tap-grid{
 display:grid;
@@ -302,9 +307,6 @@ rows[row].price=el.value;
 calc();
 }
 
-/* =========================
-   ONLY CHANGE IS HERE
-========================= */
 function toggleName(row,name){
 let r=rows[row];
 if(!r.selected) r.selected=[];
@@ -313,7 +315,6 @@ let idx=r.selected.indexOf(name);
 if(idx>-1) r.selected.splice(idx,1);
 else r.selected.push(name);
 
-/* ✅ NEW: collapse to EVERYONE when all selected */
 if(r.selected.length === nameList.length){
 r.people = "EVERYONE";
 }else{
@@ -323,7 +324,6 @@ r.people = r.selected.length ? r.selected.join(", ") : "";
 render();
 calc();
 }
-/* ========================= */
 
 function toggleEveryone(row){
 let r=rows[row];
@@ -365,9 +365,21 @@ tapHTML+=`</div>`;
 let tr=document.createElement("tr");
 
 tr.innerHTML=`
-<td><textarea oninput="update(${i},'item',this.value)">${r.item}</textarea></td>
-<td><textarea oninput="handlePriceInput(${i},this)">${r.price}</textarea></td>
-<td><textarea oninput="update(${i},'people',this.value)">${r.people}</textarea></td>
+<td>
+<textarea onkeydown="if(event.key==='Enter'){event.preventDefault();nav(event,${i},0)}"
+oninput="update(${i},'item',this.value)">${r.item}</textarea>
+</td>
+
+<td>
+<textarea onkeydown="if(event.key==='Enter'){event.preventDefault();nav(event,${i},1)}"
+oninput="handlePriceInput(${i},this)">${r.price}</textarea>
+</td>
+
+<td>
+<textarea onkeydown="if(event.key==='Enter'){event.preventDefault();nav(event,${i},2)}"
+oninput="update(${i},'people',this.value)">${r.people}</textarea>
+</td>
+
 <td>${tapHTML}</td>
 `;
 
@@ -437,6 +449,13 @@ ${p} owes $${people[p].total.toFixed(2)}
 </div>`;
 });
 
+}
+
+/* navigation helper still assumed existing in your earlier version */
+function nav(e,row,col){
+let next=row+1;
+let el=document.querySelector(`[data-r="${next}"][data-c="${col}"]`);
+if(el) el.focus();
 }
 
 init();
