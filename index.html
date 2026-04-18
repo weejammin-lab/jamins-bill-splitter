@@ -175,6 +175,7 @@ let nameList=[
 let rows=[];
 let venmoNames={};
 
+/* INIT */
 function init(){
 
 rows=[];
@@ -192,6 +193,8 @@ renderPeopleBar();
 render();
 calc();
 }
+
+/* PEOPLE BAR */
 
 function renderPeopleBar(){
 
@@ -239,6 +242,8 @@ render();
 calc();
 }
 
+/* ROW HANDLING */
+
 function addRow(){
 rows.push({
 item:"",
@@ -272,26 +277,11 @@ next.select?.();
 }
 
 });
+
 }
 
-/* 🔥 IOS CHECKMARK FIX ENTRY POINT */
-function goNext(row){
+/* INPUT */
 
-requestAnimationFrame(()=>{
-
-let next=document.querySelector(
-`[data-row='${row+1}'][data-col='1']`
-);
-
-if(next){
-next.focus();
-next.select?.();
-}
-
-});
-}
-
-/* PRICE INPUT */
 function handlePriceInput(row, el){
 
 el.value=el.value
@@ -306,6 +296,8 @@ function update(i,key,val){
 rows[i][key]=val;
 calc();
 }
+
+/* TAP */
 
 function toggleName(row,name){
 
@@ -339,6 +331,8 @@ render();
 calc();
 }
 
+/* RENDER */
+
 function render(){
 
 let body=document.getElementById("tableBody");
@@ -370,16 +364,9 @@ onkeydown="move(event,${i},0)">
 </td>
 
 <td>
-<input 
-data-row="${i}" 
-data-col="1"
+<input data-row="${i}" data-col="1"
 value="${r.price}"
-type="text"
-inputmode="decimal"
-pattern="[0-9]*"
 oninput="handlePriceInput(${i},this)"
-onchange="goNext(${i})"
-onblur="goNext(${i})"
 onkeydown="move(event,${i},1)">
 </td>
 
@@ -399,6 +386,8 @@ body.appendChild(tr);
 });
 
 }
+
+/* CALC */
 
 function calc(){
 
@@ -488,6 +477,8 @@ Venmo
 
 }
 
+/* VENMO */
+
 function openVenmo(p,amt){
 
 let name=venmoNames[p];
@@ -503,6 +494,8 @@ window.open(
 );
 
 }
+
+/* START */
 
 init();
 calc();
