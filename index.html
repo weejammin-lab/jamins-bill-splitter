@@ -107,6 +107,7 @@ margin-top:8px;
 
 <br><br>
 
+<!-- ✅ RESTORED PEOPLE BAR -->
 <div id="personBar"></div>
 
 <input
@@ -176,11 +177,65 @@ selected:[]
 });
 }
 
+renderPeopleBar();
 render();
 calc();
 }
 
-/* ADD ROW SAFELY */
+/* =========================
+   PEOPLE BAR (RESTORED)
+   ========================= */
+
+function renderPeopleBar(){
+
+let bar=document.getElementById("personBar");
+bar.innerHTML="";
+
+nameList.forEach((n,i)=>{
+bar.innerHTML+=`
+<span class="person-tag">
+${n}
+<span class="delete-person" onclick="deletePerson(${i})">✖</span>
+</span>
+`;
+});
+}
+
+function handleAddPerson(e){
+
+if(e.key!=="Enter") return;
+
+let box=document.getElementById("addPersonBox");
+let name=box.value.trim();
+if(!name) return;
+
+nameList.push(name);
+box.value="";
+
+renderPeopleBar();
+render();
+calc();
+}
+
+function deletePerson(i){
+
+let removed=nameList[i];
+nameList.splice(i,1);
+
+rows.forEach(r=>{
+r.selected = (r.selected||[]).filter(p=>p!==removed);
+r.people = (r.selected||[]).join(", ");
+});
+
+renderPeopleBar();
+render();
+calc();
+}
+
+/* =========================
+   ROW LOGIC
+   ========================= */
+
 function addRow(){
 rows.push({
 item:"",
@@ -190,22 +245,21 @@ selected:[]
 });
 }
 
-/* ENTER FIX (IMPORTANT FIX) */
+/* FIXED ENTER */
 function move(e,row,col){
 
 if(e.key!=="Enter") return;
 
 e.preventDefault();
 
-/* If last row → create new row BEFORE moving */
+/* create row if last */
 if(row === rows.length - 1){
 addRow();
 render();
 calc();
 }
 
-/* wait for DOM to update */
-requestAnimationFrame(() => {
+requestAnimationFrame(()=>{
 
 let next=document.querySelector(
 `[data-row='${row+1}'][data-col='${col}']`
