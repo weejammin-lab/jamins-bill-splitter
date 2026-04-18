@@ -33,8 +33,6 @@ width:140px;
 margin-top:4px;
 }
 
-/* TABLE */
-
 table{
 width:100%;
 border-collapse:collapse;
@@ -46,9 +44,7 @@ border:1px solid #ddd;
 padding:3px;
 }
 
-/* ✅ COLUMN WIDTH FIX */
-
-.item-col{width:80px;}        /* HALF WIDTH (requested) */
+.item-col{width:80px;}
 .price-col{width:60px;}
 .people-col{width:520px;}
 .tap-col{width:360px;}
@@ -58,12 +54,6 @@ width:100%;
 box-sizing:border-box;
 border:1px solid #ccc;
 background:white;
-}
-
-/* ITEM */
-
-.item-input{
-width:100%;
 }
 
 /* PRICE */
@@ -85,7 +75,7 @@ padding-left:10px;
 text-align:right;
 }
 
-/* TAP BUTTONS */
+/* TAP */
 
 .name-btn{
 margin:2px;
@@ -167,20 +157,18 @@ onkeydown="handleAddPerson(event)">
 
 <br>
 
-<!-- TAX -->
 <div class="tax-tip-wrap">
 <label>Tax</label>
-<select id="taxMode" class="tax-tip-select" onchange="calc()">
+<select id="taxMode" onchange="calc()">
 <option value="percent">%</option>
 <option value="amount">$</option>
 </select>
 <input id="taxValue" class="tax-tip-input" oninput="calc()">
 </div>
 
-<!-- TIP -->
 <div class="tax-tip-wrap">
 <label>Tip</label>
-<select id="tipMode" class="tax-tip-select" onchange="calc()">
+<select id="tipMode" onchange="calc()">
 <option value="percent">%</option>
 <option value="amount">$</option>
 </select>
@@ -193,9 +181,7 @@ onkeydown="handleAddPerson(event)">
 
 <script>
 
-let nameList=[
-"jamin","jack","cliff","willie","howard","lin","freddy"
-];
+let nameList=["jamin","jack","cliff","willie","howard","lin","freddy"];
 
 let rows=[];
 let venmoNames={};
@@ -208,74 +194,88 @@ let placeholders=[
 "everyone"
 ];
 
+/* INIT */
+
 function init(){
 
-rows=[];
+rows=[{
+item:"",
+price:"",
+people:"",
+selected:[],
+placeholder:placeholders[0]
+}];
 
-for(let i=0;i<5;i++){
+renderPeopleBar();
+render();
+calc();
+}
+
+/* ADD ROW SAFE */
+
+function ensureRow(){
+
+let last=rows[rows.length-1];
+
+let filled =
+(last.item && last.item.trim()) ||
+(last.price && last.price.trim()) ||
+(last.people && last.people.trim());
+
+if(filled){
 rows.push({
 item:"",
 price:"",
 people:"",
 selected:[],
-placeholder:placeholders[i]
+placeholder:""
 });
-}
 
-renderPeopleBar();
 render();
-calc();
-}
-
-function handleAddPerson(e){
-if(e.key==="Enter"){
-let box=document.getElementById("addPersonBox");
-let name=box.value.trim();
-if(!name) return;
-nameList.push(name);
-box.value="";
-renderPeopleBar();
-render();
-calc();
 }
 }
 
-function renderPeopleBar(){
-let bar=document.getElementById("personBar");
-bar.innerHTML="";
-nameList.forEach((n,i)=>{
-bar.innerHTML+=`
-<span class="person-tag">
-${n}
-<span class="delete-person" onclick="deletePerson(${i})">✖</span>
-</span>`;
-});
+/* ENTER NAVIGATION */
+
+function moveDown(e,row,col){
+
+if(e.key!=="Enter") return;
+
+e.preventDefault();
+
+ensureRow();
+
+setTimeout(()=>{
+
+let next=document.querySelector(
+`[data-row='${row+1}'][data-col='${col}']`
+);
+
+if(next){
+next.focus();
+next.select?.();
 }
 
-function deletePerson(i){
-let removed=nameList[i];
-nameList.splice(i,1);
-rows.forEach(r=>{
-r.selected=(r.selected||[]).filter(p=>p!==removed);
-});
-renderPeopleBar();
-render();
-calc();
+},0);
 }
 
 /* INPUT */
 
 function handlePriceInput(row, el){
+
 el.value=el.value
 .replace(/[^0-9.]/g,"")
 .replace(/(\..*?)\..*/g,"$1");
 
 rows[row].price=el.value;
+
+ensureRow();
 calc();
 }
 
 function update(i,key,val){
 rows[i][key]=val;
+ensureRow();
 calc();
 }
 
@@ -337,27 +337,26 @@ let tr=document.createElement("tr");
 
 tr.innerHTML=`
 
-<!-- ITEM -->
 <td>
-<input class="item-input"
+<input data-row="${i}" data-col="0"
 value="${r.item}"
-oninput="update(${i},'item',this.value)">
+oninput="update(${i},'item',this.value)"
+onkeydown="moveDown(event,${i},0)">
 </td>
 
-<!-- PRICE -->
-<td class="price-cell">
-<span>$</span>
-<input
-value="${r.price}"
-oninput="handlePriceInput(${i},this)">
-</td>
-
-<!-- PEOPLE (✔ RESTORED PLACEHOLDER) -->
 <td>
-<input
+<input data-row="${i}" data-col="1"
+value="${r.price}"
+oninput="handlePriceInput(${i},this)"
+onkeydown="moveDown(event,${i},1)">
+</td>
+
+<td>
+<input data-row="${i}" data-col="2"
 value="${r.people}"
-placeholder="${r.placeholder}"
-oninput="update(${i},'people',this.value)">
+placeholder="${r.placeholder||''}"
+oninput="update(${i},'people',this.value)"
+onkeydown="moveDown(event,${i},2)">
 </td>
 
 <td>${tapHTML}</td>
@@ -369,6 +368,8 @@ body.appendChild(tr);
 });
 
 }
+
+/* CALC */
 
 function calc(){
 
@@ -384,11 +385,15 @@ if(!isNaN(p)) subtotal+=p;
 summary.innerHTML=`Subtotal: $${subtotal.toFixed(2)}`;
 }
 
+/* CLEAR */
+
 function clearAll(){
 rows=[];
 venmoNames={};
 init();
 }
+
+/* START */
 
 init();
 calc();
