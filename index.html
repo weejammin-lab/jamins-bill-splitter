@@ -74,10 +74,6 @@ padding:3px;
 font-family:Arial;
 }
 
-td:nth-child(3) textarea{
-min-height:70px;
-}
-
 /* TAP GRID */
 .tap-grid{
 display:grid;
@@ -340,7 +336,7 @@ calc();
 }
 
 /* =========================
-   🔥 FIXED TAX / TIP ONLY
+   🔥 FIXED SAFE CALC (ONLY CHANGE)
    ========================= */
 
 function calc(){
@@ -350,21 +346,27 @@ let people={};
 
 rows.forEach(r=>{
 
-if(r.price){
 let price=parseFloat(r.price);
-if(!isNaN(price)) subtotal+=price;
 
-let list=r.people==="EVERYONE"
-? nameList
-: (r.people||"").split(",").map(p=>p.trim()).filter(Boolean);
+/* skip invalid rows safely */
+if(isNaN(price)) return;
 
-let share=price/list.length||0;
+subtotal += price;
+
+let list=[];
+
+if(r.people==="EVERYONE"){
+list=[...nameList];
+}else if(r.people){
+list=r.people.split(",").map(p=>p.trim()).filter(Boolean);
+}
+
+let share = list.length ? price/list.length : 0;
 
 list.forEach(p=>{
 if(!people[p]) people[p]={total:0};
-people[p].total+=share;
+people[p].total += share;
 });
-}
 
 });
 
@@ -381,14 +383,16 @@ let tip = tipMode.value==="percent"
 : tipVal;
 
 /* SUMMARY */
-summary.innerHTML=`Subtotal: $${subtotal.toFixed(2)} | Tax: $${tax.toFixed(2)} | Tip: $${tip.toFixed(2)}`;
+summary.innerHTML=
+`Subtotal: $${subtotal.toFixed(2)} | Tax: $${tax.toFixed(2)} | Tip: $${tip.toFixed(2)}`;
 
-/* DISTRIBUTE TAX + TIP */
+/* DISTRIBUTE TAX + TIP SAFELY */
 Object.keys(people).forEach(p=>{
-let ratio=people[p].total/subtotal||0;
-people[p].total+=tax*ratio+tip*ratio;
+let ratio = subtotal ? (people[p].total/subtotal) : 0;
+people[p].total += tax*ratio + tip*ratio;
 });
 
+/* OUTPUT */
 let div=document.getElementById("totals");
 div.innerHTML="";
 
@@ -402,6 +406,7 @@ ${p} owes $${people[p].total.toFixed(2)}
 }
 
 init();
+calc();
 
 </script>
 
