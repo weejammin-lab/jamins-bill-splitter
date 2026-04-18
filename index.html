@@ -57,7 +57,6 @@ padding:3px;
 vertical-align:stretch;
 }
 
-/* COLUMN WIDTHS */
 th:nth-child(1), td:nth-child(1){ width:20%; }
 th:nth-child(2), td:nth-child(2){ width:12%; }
 th:nth-child(3), td:nth-child(3){ width:20%; }
@@ -72,11 +71,12 @@ overflow:hidden;
 border:1px solid #ddd;
 padding:3px;
 font-family:Arial;
-height:100%;
+
+display:block;
 min-height:100%;
+height:100%;
 }
 
-/* TAP GRID */
 .tap-grid{
 display:grid;
 grid-template-columns:repeat(3,1fr);
@@ -208,6 +208,15 @@ onkeydown="handleAddPerson(event)">
 
 <div class="summary-box" id="summary"></div>
 <div id="totals"></div>
+
+<br>
+
+<!-- EMAIL INPUT -->
+<div class="tax-tip-wrap">
+<label>Email</label>
+<input id="emailTo" class="tax-tip-input" style="width:200px;" placeholder="recipient@email.com">
+<button onclick="emailSnapshot()">Send</button>
+</div>
 
 <script>
 
@@ -342,30 +351,6 @@ render();
 calc();
 }
 
-/* ENTER NAV FIX WORKS NOW BECAUSE data-r / data-c ARE PRESENT */
-function nav(e,row,col){
-
-e.preventDefault();
-
-let nextRow = row + 1;
-
-if(nextRow >= rows.length){
-addRow();
-setTimeout(()=>{
-document.querySelector(`[data-r="${nextRow}"][data-c="${col}"]`)?.focus();
-},0);
-return;
-}
-
-setTimeout(()=>{
-let next = document.querySelector(`[data-r="${nextRow}"][data-c="${col}"]`);
-if(next){
-next.focus();
-next.select?.();
-}
-},0);
-}
-
 function addRow(){
 rows.push({
 item:"",
@@ -402,18 +387,9 @@ tapHTML+=`</div>`;
 let tr=document.createElement("tr");
 
 tr.innerHTML=`
-<td><textarea data-r="${i}" data-c="0"
-onkeydown="if(event.key==='Enter'){nav(event,${i},0)}"
-oninput="update(${i},'item',this.value)">${r.item}</textarea></td>
-
-<td><textarea data-r="${i}" data-c="1"
-onkeydown="if(event.key==='Enter'){nav(event,${i},1)}"
-oninput="handlePriceInput(${i},this)">${r.price}</textarea></td>
-
-<td><textarea data-r="${i}" data-c="2"
-onkeydown="if(event.key==='Enter'){nav(event,${i},2)}"
-oninput="update(${i},'people',this.value)">${r.people}</textarea></td>
-
+<td><textarea oninput="update(${i},'item',this.value)">${r.item}</textarea></td>
+<td><textarea oninput="handlePriceInput(${i},this)">${r.price}</textarea></td>
+<td><textarea oninput="update(${i},'people',this.value)">${r.people}</textarea></td>
 <td>${tapHTML}</td>
 `;
 
@@ -494,6 +470,49 @@ Request
 </div>`;
 });
 
+}
+
+/* EMAIL SNAPSHOT */
+function emailSnapshot(){
+
+let email = document.getElementById("emailTo").value.trim();
+if(!email){
+alert("Enter email");
+return;
+}
+
+let text = "=== BILL SPLITTER SNAPSHOT ===\n\n";
+
+text += "People:\n" + nameList.join(", ") + "\n\n";
+
+rows.forEach((r,i)=>{
+text += `Row ${i+1}\n`;
+text += `Item: ${r.item}\n`;
+text += `Price: ${r.price}\n`;
+text += `People: ${r.people}\n`;
+text += `Selected: ${(r.selected||[]).join(", ")}\n\n`;
+});
+
+text += "--- SUMMARY ---\n";
+text += document.getElementById("summary").innerText + "\n\n";
+
+text += "--- TOTALS ---\n";
+document.querySelectorAll(".result").forEach(r=>{
+text += r.innerText + "\n";
+});
+
+text += "\n--- VENMO LINKS ---\n";
+Object.keys(venmoNames).forEach(p=>{
+if(venmoNames[p]){
+text += `${p}: https://venmo.com/${venmoNames[p]}\n`;
+}
+});
+
+let subject = encodeURIComponent("Bill Splitter Snapshot");
+let body = encodeURIComponent(text);
+
+window.location.href =
+`mailto:${email}?subject=${subject}&body=${body}`;
 }
 
 init();
