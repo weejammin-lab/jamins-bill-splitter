@@ -17,38 +17,25 @@ h1 {
     text-align: center;
 }
 
-/* Mobile */
-@media (max-width: 600px) {
-    input, button {
-        width: 100%;
-        margin-bottom: 8px;
-    }
-}
-
 .section {
     margin-bottom: 20px;
 }
 
-input, button {
-    padding: 10px;
-    margin: 5px;
+/* Table input */
+table {
+    width: 100%;
+    border-collapse: collapse;
 }
 
-/* Items list */
-#itemsList {
-    list-style: none;
-    max-height: 300px;
-    overflow-y: auto;
-    border: 1px solid #ccc;
-    padding: 10px;
-}
-
-#itemsList li {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+td, th {
+    border: 1px solid #ddd;
     padding: 8px;
-    border-bottom: 1px solid #eee;
+}
+
+input {
+    width: 100%;
+    padding: 6px;
+    box-sizing: border-box;
 }
 
 /* Summary */
@@ -61,58 +48,34 @@ input, button {
     font-weight: bold;
 }
 
-.note {
-    font-size: 0.9em;
-    color: gray;
+button {
+    padding: 8px;
+    margin-top: 10px;
 }
 
 </style>
-
 </head>
 
 <body>
 
 <h1>Bill Splitter</h1>
 
-<!-- FAST INPUT -->
+<!-- INPUT TABLE -->
 <div class="section">
 
-<h2>Fast Input</h2>
-
-<input id="fastInput"
-placeholder="23.50 maria, willie">
-
-<button onclick="addFastItem()">
-Add
-</button>
-
-</div>
-
-<!-- OPTIONAL STRUCTURED INPUT -->
-<div class="section">
-
-<h2>Optional Item Input</h2>
-
-<input id="itemName" placeholder="Item name">
-
-<input id="itemPrice" placeholder="Price" type="number" step="0.01">
-
-<input id="itemPeople" placeholder="People (comma separated)">
-
-<button onclick="addStructuredItem()">
-Add Structured Item
-</button>
-
-<div class="note">
-Optional: use if you want clearer entry
-</div>
-
-</div>
-
-<!-- LIVE ITEMS DISPLAY -->
-<div class="section">
 <h2>Items</h2>
-<ul id="itemsList"></ul>
+
+<table id="itemsTable">
+<thead>
+<tr>
+<th>Item (optional)</th>
+<th>Price</th>
+<th>People (comma separated)</th>
+</tr>
+</thead>
+<tbody id="tableBody"></tbody>
+</table>
+
 </div>
 
 <!-- ADJUSTMENTS -->
@@ -121,18 +84,13 @@ Optional: use if you want clearer entry
 <h2>Adjustments</h2>
 
 <label>Tax %:</label>
-<input id="taxPercent" type="number" step="0.01">
+<input id="taxPercent" type="number">
 
 <label>Tip %:</label>
-<input id="tipPercent" type="number" step="0.01">
+<input id="tipPercent" type="number">
 
 <label>Cashback %:</label>
-<input id="cashbackPercent" type="number" step="0.01">
-
-<br>
-
-<button onclick="updateTotals()">Recalculate</button>
-<button onclick="clearAll()">Clear All</button>
+<input id="cashbackPercent" type="number">
 
 </div>
 
@@ -140,151 +98,88 @@ Optional: use if you want clearer entry
 <div class="section">
 
 <h2>Summary</h2>
-
 <div id="summary" class="summary-box"></div>
 
 </div>
 
-<!-- TOTALS -->
+<!-- RESULTS -->
 <div class="section">
 
 <h2>Totals</h2>
-
 <div id="totals"></div>
 
 </div>
 
 <script>
 
-let items = [];
+let rows = [];
 
-function norm(n){
-    return n.trim().toLowerCase();
+/* INIT 10 ROWS */
+function initRows(){
+    for(let i=0;i<10;i++){
+        addRow();
+    }
+    renderRows();
 }
 
-/* FAST INPUT */
-function addFastItem(){
-
-let input = document.getElementById("fastInput").value;
-if (!input.trim()) return;
-
-let parts = input.split(" ");
-let price = parseFloat(parts[0]);
-
-if (isNaN(price)) {
-    alert("Invalid price");
-    return;
+/* ADD ROW */
+function addRow(){
+    rows.push({
+        name:"",
+        price:"",
+        people:""
+    });
 }
 
-let people = parts
-.slice(1)
-.join(" ")
-.split(",")
-.map(p => p.trim())
-.filter(p => p);
-
-items.push({ price, people });
-
-document.getElementById("fastInput").value = "";
-
-updateItems();
-updateTotals();
-
+/* AUTO EXPAND */
+function maybeExpand(){
+    let filled = rows.filter(r => r.price || r.people).length;
+    if(filled >= rows.length - 2){
+        for(let i=0;i<5;i++) addRow();
+        renderRows();
+    }
 }
 
-/* STRUCTURED INPUT */
-function addStructuredItem(){
+/* RENDER TABLE */
+function renderRows(){
 
-let name = document.getElementById("itemName").value;
-let price = parseFloat(document.getElementById("itemPrice").value);
-let people = document.getElementById("itemPeople").value;
+let body = document.getElementById("tableBody");
+body.innerHTML = "";
 
-if (isNaN(price) || !people.trim()) return;
+rows.forEach((row,i)=>{
 
-items.push({
-    price,
-    people: people.split(",")
-        .map(p => p.trim())
-        .filter(p => p)
+let tr = document.createElement("tr");
+
+tr.innerHTML = `
+<td><input value="${row.name}" oninput="updateRow(${i},'name',this.value)"></td>
+<td><input type="number" value="${row.price}" oninput="updateRow(${i},'price',this.value)"></td>
+<td><input value="${row.people}" oninput="updateRow(${i},'people',this.value)"></td>
+`;
+
+body.appendChild(tr);
+
 });
 
-document.getElementById("itemName").value = "";
-document.getElementById("itemPrice").value = "";
-document.getElementById("itemPeople").value = "";
-
-updateItems();
-updateTotals();
-
 }
 
-/* UPDATE ITEMS DISPLAY */
-function updateItems(){
-
-let list = document.getElementById("itemsList");
-list.innerHTML = "";
-
-items.forEach((item,i)=>{
-
-let li = document.createElement("li");
-
-li.textContent =
-item.price.toFixed(2) +
-" → " +
-item.people.join(", ");
-
-let del = document.createElement("button");
-del.textContent = "Delete";
-
-del.onclick = () => {
-    items.splice(i,1);
-    updateItems();
+/* UPDATE ROW */
+function updateRow(i,key,value){
+    rows[i][key] = value;
+    maybeExpand();
     updateTotals();
-};
-
-li.appendChild(del);
-list.appendChild(li);
-
-});
-
 }
 
-/* CLEAR ALL */
-function clearAll(){
-
-if (!confirm("Clear all data?")) return;
-
-items = [];
-
-updateItems();
-updateTotals();
-
-}
-
-/* PEOPLE MAP */
-function getPeople(){
-
-let map = {};
-
-items.forEach(item=>{
-item.people.forEach(p=>{
-    let key = norm(p);
-    if (!map[key]) map[key] = p;
-});
-});
-
-return map;
-
-}
-
-/* CALCULATION */
+/* CALCULATE */
 function updateTotals(){
 
-let peopleMap = getPeople();
-let keys = Object.keys(peopleMap);
+let items = rows
+.filter(r => r.price && r.people)
+.map(r => ({
+    price: parseFloat(r.price),
+    people: r.people.split(",").map(p=>p.trim()).filter(Boolean)
+}));
 
-let base = {};
-keys.forEach(k=>base[k]=0);
-
+let peopleMap = {};
 let subtotal = 0;
 
 items.forEach(item=>{
@@ -293,7 +188,9 @@ subtotal += item.price;
 let share = item.price / item.people.length;
 
 item.people.forEach(p=>{
-    base[norm(p)] += share;
+    let key = p.toLowerCase();
+    peopleMap[key] = peopleMap[key] || {name:p,total:0};
+    peopleMap[key].total += share;
 });
 
 });
@@ -304,26 +201,14 @@ let cashback = (parseFloat(cashbackPercent.value)||0)/100;
 
 let total = subtotal + tax + tip;
 
-let final = {};
+Object.keys(peopleMap).forEach(k=>{
+let p = peopleMap[k];
 
-keys.forEach(k=>{
-let val = base[k];
+let ratio = p.total / subtotal || 0;
 
-let ratio = subtotal ? val/subtotal : 0;
-
-val += tax*ratio + tip*ratio;
-
-val = val - val*cashback;
-
-final[k] = val;
+p.total += tax*ratio + tip*ratio;
+p.total -= p.total*cashback;
 });
-
-let sum = Object.values(final).reduce((a,b)=>a+b,0);
-let diff = total - sum;
-
-if(keys.length){
-final[keys[0]] += diff;
-}
 
 /* SUMMARY */
 document.getElementById("summary").innerHTML = `
@@ -331,29 +216,25 @@ Subtotal: $${subtotal.toFixed(2)}<br>
 Tax: $${tax.toFixed(2)}<br>
 Tip: $${tip.toFixed(2)}<br>
 Cashback: ${(cashback*100).toFixed(2)}%<br><br>
-
-<strong>Total: $${total.toFixed(2)}</strong><br><br>
-
-Persons involved: ${keys.length}
+<strong>Total: $${total.toFixed(2)}</strong>
 `;
 
-/* TOTALS */
+/* OUTPUT */
 let div = document.getElementById("totals");
 div.innerHTML = "";
 
-keys.forEach(k=>{
+Object.values(peopleMap).forEach(p=>{
 let el = document.createElement("div");
 el.className = "result";
-
-el.textContent =
-peopleMap[k] +
-" owes $" +
-(final[k]||0).toFixed(2);
-
+el.textContent = `${p.name} owes $${p.total.toFixed(2)}`;
 div.appendChild(el);
 });
 
 }
+
+/* START */
+initRows();
+updateTotals();
 
 </script>
 
