@@ -46,13 +46,13 @@ padding:3px;
 vertical-align:top;
 }
 
-/* 🔥 COLUMN WIDTH CONTROL (PRICE NOW NARROWER) */
+/* column widths */
 th:nth-child(1), td:nth-child(1){ width:38%; }
-th:nth-child(2), td:nth-child(2){ width:12%; }  /* price smaller */
+th:nth-child(2), td:nth-child(2){ width:12%; }
 th:nth-child(3), td:nth-child(3){ width:30%; }
 th:nth-child(4), td:nth-child(4){ width:20%; }
 
-/* WRAPPING TEXTAREAS */
+/* textareas */
 td textarea{
 width:100%;
 box-sizing:border-box;
@@ -168,9 +168,11 @@ onkeydown="handleAddPerson(event)">
 
 <script>
 
-let nameList=[
+let defaultNames=[
 "jamin","jack","cliff","willie","howard","lin","freddy"
 ];
+
+let nameList=[...defaultNames];
 
 let rows=[];
 let venmoNames={};
@@ -191,6 +193,18 @@ selected:[]
 renderPeopleBar();
 render();
 calc();
+}
+
+/* 🔥 FIXED CLEAR ALL */
+function clearAll(){
+
+if(!confirm("Clear everything?")) return;
+
+rows=[];
+nameList=[...defaultNames];
+venmoNames={};
+
+init();
 }
 
 function renderPeopleBar(){
@@ -275,13 +289,11 @@ next.select?.();
 
 }
 
-/* AUTO RESIZE */
 function autoGrow(el){
 el.style.height="auto";
 el.style.height=el.scrollHeight+"px";
 }
 
-/* PRICE INPUT */
 function handlePriceInput(row, el){
 
 el.value=el.value
@@ -483,26 +495,7 @@ window.open(
 );
 
 }
-function clearAll(){
 
-rows.forEach(r=>{
-r.item = "";
-r.price = "";
-r.people = "";
-r.selected = [];
-});
-
-nameList = [
-"jamin","jack","cliff","willie","howard","lin","freddy"
-];
-
-venmoNames = {};
-
-renderPeopleBar();
-render();
-calc();
-}
-  
 init();
 calc();
 
