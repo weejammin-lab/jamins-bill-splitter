@@ -6,142 +6,122 @@
 
 <style>
 
-body {
-    font-family: Arial;
-    max-width: 1100px;
-    margin: auto;
+body{
+font-family:Arial;
+max-width:1100px;
+margin:auto;
 }
 
-/* People Bar */
+/* PEOPLE BAR */
 
-.person-tag {
-
-    display:inline-block;
-    border:1px solid #ccc;
-    padding:3px 6px;
-    margin:2px;
-    font-size:12px;
-
+.person-tag{
+display:inline-block;
+border:1px solid #ccc;
+padding:3px 6px;
+margin:2px;
+font-size:12px;
 }
 
-.delete-person {
-    color:red;
-    cursor:pointer;
-    margin-left:4px;
+.delete-person{
+color:red;
+cursor:pointer;
+margin-left:4px;
 }
 
-/* Add Person Input */
-
-.add-person-input {
-
-    padding:4px;
-    font-size:12px;
-    width:140px;
-    margin-top:4px;
-
+.add-person-input{
+padding:4px;
+font-size:12px;
+width:140px;
+margin-top:4px;
 }
 
-/* Table */
+/* TABLE */
 
-table {
-    width:100%;
-    border-collapse:collapse;
-    font-size:12px;
+table{
+width:100%;
+border-collapse:collapse;
+font-size:12px;
 }
 
-td, th {
-    border:1px solid #ddd;
-    padding:3px;
+td,th{
+border:1px solid #ddd;
+padding:3px;
 }
 
-/* Column widths */
+.item-col{width:90px;}
+.price-col{width:40px;}
+.people-col{width:360px;}
+.tap-col{width:360px;}
 
-.item-col { width:90px; }
-
-.price-col { width:25px; }  /* HALVED */
-
-.people-col { width:340px; }
-
-.tap-col { width:340px; }
-
-/* Inputs full width */
-
-input {
-    width:100%;
-    box-sizing:border-box;
+input{
+width:100%;
+box-sizing:border-box;
 }
 
-/* Price */
+/* PRICE */
 
-.price-cell {
-    position:relative;
+.price-cell{
+position:relative;
 }
 
-.price-cell span {
-    position:absolute;
-    left:4px;
-    top:3px;
-    color:gray;
+.price-cell span{
+position:absolute;
+left:4px;
+top:3px;
+color:gray;
 }
 
-.price-cell input {
-    padding-left:10px;
+.price-cell input{
+padding-left:10px;
 }
 
-/* Tap buttons */
+/* TAP BUTTONS */
 
-.name-btn {
-
-    margin:2px;
-    padding:2px 6px;
-    font-size:11px;
-    cursor:pointer;
-
+.name-btn{
+margin:2px;
+padding:2px 6px;
+font-size:11px;
+cursor:pointer;
 }
 
-.everyone-row {
-    margin-bottom:4px;
+.everyone-row{
+margin-bottom:4px;
 }
 
-/* Summary */
+/* TAX TIP */
 
-.summary-box {
-
-    border:1px solid #ccc;
-    padding:8px;
-    margin-top:8px;
-
+.taxbox{
+width:80px;
 }
 
-.result {
+/* SUMMARY */
 
-    font-weight:bold;
-    margin:4px 0;
-
+.summary-box{
+border:1px solid #ccc;
+padding:8px;
+margin-top:8px;
 }
 
-.venmo-input {
+.result{
+font-weight:bold;
+margin:4px 0;
+}
 
-    width:120px;
-    margin-left:6px;
-
+.venmo-input{
+width:120px;
+margin-left:6px;
 }
 
 </style>
-
 </head>
 
 <body>
 
 <h2>Bill Splitter</h2>
 
-<button onclick="clearAll()">
-Clear All
-</button>
+<button onclick="clearAll()">Clear All</button>
 
 <br><br>
-
-<!-- PEOPLE BAR -->
 
 <div id="personBar"></div>
 
@@ -192,9 +172,7 @@ Tax
 <option value="amount">$</option>
 </select>
 
-<input id="taxValue"
-type="number"
-oninput="calc()">
+<input id="taxValue" class="taxbox" oninput="calc()">
 
 Tip
 
@@ -203,9 +181,7 @@ Tip
 <option value="amount">$</option>
 </select>
 
-<input id="tipValue"
-type="number"
-oninput="calc()">
+<input id="tipValue" class="taxbox" oninput="calc()">
 
 <div class="summary-box" id="summary"></div>
 
@@ -213,7 +189,7 @@ oninput="calc()">
 
 <script>
 
-/* PEOPLE ORDER FIXED */
+/* PEOPLE ORDER */
 
 let nameList=[
 "jamin",
@@ -231,7 +207,7 @@ let placeholders=[
 "jamin",
 "jack",
 "jamin, cliff, willie, howard",
-"lin, lin, freddy (type the extra name for uneven splits)",
+"lin, lin, freddy (type extra name for uneven splits)",
 "everyone"
 ];
 
@@ -260,7 +236,7 @@ render();
 
 }
 
-/* ADD PERSON INLINE */
+/* ADD PERSON */
 
 function handleAddPerson(e){
 
@@ -343,35 +319,23 @@ calc();
 
 }
 
-/* ADD ROW */
+/* HANDLE PRICE */
 
-function addRow(){
+function handlePriceInput(row, el){
 
-rows.push({
-item:"",
-price:"",
-people:"",
-placeholder:"everyone"
-});
+el.value=el.value
+.replace(/[^0-9.]/g,"")
+.replace(/(\..*?)\..*/g,"$1");
 
-}
+rows[row].price=el.value;
 
-/* EXPAND */
+checkRowExpansion();
 
-function maybeExpand(){
-
-let last=rows[rows.length-1];
-
-if(last.price || last.people){
-
-addRow();
-render();
+calc();
 
 }
 
-}
-
-/* ENTER NAVIGATION */
+/* ENTER MOVE */
 
 function moveNextRow(e,row,col){
 
@@ -387,6 +351,45 @@ let inputs=document.querySelectorAll(
 
 if(inputs[next])
 inputs[next].focus();
+
+}
+
+}
+
+/* ROW EXPANSION */
+
+function checkRowExpansion(){
+
+let lastIndex=rows.length-1;
+let last=rows[lastIndex];
+
+/* ADD */
+
+if(last.price || last.people){
+
+rows.push({
+item:"",
+price:"",
+people:"",
+placeholder:"everyone"
+});
+
+render();
+return;
+
+}
+
+/* REMOVE */
+
+if(
+rows.length>5 &&
+!last.price &&
+!last.people &&
+!last.item
+){
+
+rows.pop();
+render();
 
 }
 
@@ -450,11 +453,11 @@ oninput="update(${i},'item',this.value)">
 
 <input
 data-col="1"
-type="number"
-step="0.01"
+type="text"
+inputmode="decimal"
 value="${r.price}"
 onkeydown="moveNextRow(event,${i},1)"
-oninput="update(${i},'price',this.value)">
+oninput="handlePriceInput(${i},this)">
 
 </td>
 
@@ -483,7 +486,7 @@ body.appendChild(tr);
 
 }
 
-/* TOGGLE */
+/* TOGGLE NAME */
 
 function toggleName(row,name){
 
@@ -519,11 +522,14 @@ r.people=list.join(", ");
 }
 
 render();
+
+checkRowExpansion();
+
 calc();
 
 }
 
-/* EVERYONE TOGGLE */
+/* EVERYONE */
 
 function toggleEveryone(row){
 
@@ -542,6 +548,9 @@ r.people="everyone";
 }
 
 render();
+
+checkRowExpansion();
+
 calc();
 
 }
@@ -552,7 +561,7 @@ function update(i,key,val){
 
 rows[i][key]=val;
 
-maybeExpand();
+checkRowExpansion();
 
 calc();
 
@@ -569,7 +578,7 @@ calc();
 
 }
 
-/* CALCULATION */
+/* CALC */
 
 function calc(){
 
@@ -666,6 +675,7 @@ ${p} owes $${amt}
 
 <input
 class="venmo-input"
+placeholder="venmo user"
 value="${venmoNames[p]}"
 oninput="venmoNames['${p}']=this.value">
 
@@ -682,7 +692,7 @@ Venmo
 
 }
 
-/* VENMO LINK */
+/* VENMO */
 
 function openVenmo(p,amt){
 
