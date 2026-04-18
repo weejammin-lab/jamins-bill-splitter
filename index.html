@@ -177,6 +177,17 @@ onkeydown="handleAddPerson(event)">
 
 <script>
 
+/* VENMO PREFILLS */
+const defaultVenmoMap = {
+jamin:"jamin-chen",
+jack:"jack-bao",
+cliff:"clifford-chao",
+howard:"braveclaw",
+willie:"willie-zeng",
+freddy:"freddy-dai",
+lin:"linlin221"
+};
+
 let defaultNames=[
 "jamin","jack","cliff","willie","howard","lin","freddy"
 ];
@@ -199,19 +210,20 @@ selected:[]
 });
 }
 
+venmoNames={...defaultVenmoMap};
+
 renderPeopleBar();
 render();
 calc();
 }
 
-/* CLEAR ALL */
 function clearAll(){
 
 if(!confirm("Clear everything?")) return;
 
 rows=[];
 nameList=[...defaultNames];
-venmoNames={};
+venmoNames={...defaultVenmoMap};
 
 init();
 }
@@ -361,7 +373,7 @@ let tapHTML=`<div>`;
 
 tapHTML+=`
 <button class="name-btn ${r.selected?.length===nameList.length?'selected':''}"
-onclick="toggleEveryone(${i})">everyone</button>
+onclick="toggleEveryone(${i})">EVERYONE</button>
 `;
 
 nameList.forEach(n=>{
@@ -471,7 +483,9 @@ div.innerHTML="";
 
 Object.keys(people).forEach(p=>{
 
-if(!venmoNames[p]) venmoNames[p]="";
+if(!venmoNames[p]){
+venmoNames[p]=defaultVenmoMap[p] || "";
+}
 
 div.innerHTML+=`
 <div class="result">
@@ -479,7 +493,6 @@ div.innerHTML+=`
 ${p} owes $${people[p].total.toFixed(2)}
 
 <input class="venmo-input"
-placeholder="venmo user"
 value="${venmoNames[p]}"
 oninput="venmoNames['${p}']=this.value">
 
