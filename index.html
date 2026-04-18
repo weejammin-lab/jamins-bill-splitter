@@ -240,6 +240,9 @@ let nameList=[...defaultNames];
 let rows=[];
 let venmoNames={...defaultVenmoMap};
 
+/* 🔴 FIX: global storage for computed totals */
+window.__peopleData = {};
+
 /* ---------------- FIREBASE LOAD ---------------- */
 
 function loadBill(){
@@ -465,21 +468,7 @@ oninput="handlePriceInput(${i},this)">${r.price}</textarea></td>
 onkeydown="if(event.key==='Enter'){nav(event,${i},2)}"
 oninput="update(${i},'people',this.value)">${r.people}</textarea></td>
 
-<td>
-<div class="result">
-${(() => {
-const amt = people?.[p]?.total;
-if(!amt) return "";
-return `
-<button class="venmo-btn"
-onclick="
-window.open('https://venmo.com/' + (venmoNames[p]||'') + '?txn=request&amount=' + amt.toFixed(2),'_blank')
-">
-Request
-</button>`;
-})()}
-</div>
-</td>
+<td></td>
 `;
 
 body.appendChild(tr);
@@ -529,6 +518,9 @@ let ratio=subtotal?share/subtotal:0;
 people[p].total=share+(taxAmount*ratio)+(tipAmount*ratio);
 });
 
+/* 🔴 FIX: expose computed data safely */
+window.__peopleData = people;
+
 summary.innerHTML=`Subtotal: $${subtotal.toFixed(2)}<br>
 Tax: $${taxAmount.toFixed(2)}<br>
 Tip: $${tipAmount.toFixed(2)}<br>
@@ -551,7 +543,7 @@ oninput="venmoNames['${p}']=this.value;saveBill()">
 
 <button class="venmo-btn"
 onclick="
-const amt = people['${p}']?.total;
+let amt = window.__peopleData['${p}']?.total;
 if(!amt) return;
 window.open('https://venmo.com/' + (venmoNames['${p}']||'') + '?txn=request&amount=' + amt.toFixed(2),'_blank')
 ">
