@@ -129,6 +129,11 @@ padding:8px;
 margin-top:8px;
 }
 
+.venmo-input{
+width:120px;
+margin-left:6px;
+}
+
 .result{
 font-weight:bold;
 margin:4px 0;
@@ -334,9 +339,42 @@ render();
 calc();
 }
 
-/* =========================
-   CALC (UNCHANGED)
-   ========================= */
+function render(){
+
+let body=document.getElementById("tableBody");
+body.innerHTML="";
+
+rows.forEach((r,i)=>{
+
+let tapHTML=`
+<button class="name-btn everyone-btn ${r.selected?.length===nameList.length?'selected':''}"
+onclick="toggleEveryone(${i})">EVERYONE</button>
+
+<div class="tap-grid">
+`;
+
+nameList.forEach(n=>{
+tapHTML+=`
+<button class="name-btn ${r.selected?.includes(n)?'selected':''}"
+onclick="toggleName(${i},'${n}')">${n}</button>`;
+});
+
+tapHTML+=`</div>`;
+
+let tr=document.createElement("tr");
+
+tr.innerHTML=`
+<td><textarea oninput="update(${i},'item',this.value)">${r.item}</textarea></td>
+<td><textarea oninput="handlePriceInput(${i},this)">${r.price}</textarea></td>
+<td><textarea oninput="update(${i},'people',this.value)">${r.people}</textarea></td>
+<td>${tapHTML}</td>
+`;
+
+body.appendChild(tr);
+
+});
+
+}
 
 function calc(){
 
@@ -377,11 +415,8 @@ ${p} owes $${people[p].total.toFixed(2)}
 
 }
 
-/* 🔥 FIX: guaranteed initialization on refresh */
-window.addEventListener("DOMContentLoaded", () => {
 init();
 calc();
-});
 
 </script>
 
