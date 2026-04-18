@@ -54,7 +54,7 @@ table-layout:fixed;
 td,th{
 border:1px solid #ddd;
 padding:3px;
-vertical-align:top;
+vertical-align:stretch;
 }
 
 /* COLUMN WIDTHS */
@@ -72,6 +72,8 @@ overflow:hidden;
 border:1px solid #ddd;
 padding:3px;
 font-family:Arial;
+height:100%;
+min-height:100%;
 }
 
 /* TAP GRID */
@@ -340,6 +342,30 @@ render();
 calc();
 }
 
+/* ENTER NAV FIX WORKS NOW BECAUSE data-r / data-c ARE PRESENT */
+function nav(e,row,col){
+
+e.preventDefault();
+
+let nextRow = row + 1;
+
+if(nextRow >= rows.length){
+addRow();
+setTimeout(()=>{
+document.querySelector(`[data-r="${nextRow}"][data-c="${col}"]`)?.focus();
+},0);
+return;
+}
+
+setTimeout(()=>{
+let next = document.querySelector(`[data-r="${nextRow}"][data-c="${col}"]`);
+if(next){
+next.focus();
+next.select?.();
+}
+},0);
+}
+
 function addRow(){
 rows.push({
 item:"",
@@ -376,9 +402,18 @@ tapHTML+=`</div>`;
 let tr=document.createElement("tr");
 
 tr.innerHTML=`
-<td><textarea oninput="update(${i},'item',this.value)">${r.item}</textarea></td>
-<td><textarea oninput="handlePriceInput(${i},this)">${r.price}</textarea></td>
-<td><textarea oninput="update(${i},'people',this.value)">${r.people}</textarea></td>
+<td><textarea data-r="${i}" data-c="0"
+onkeydown="if(event.key==='Enter'){nav(event,${i},0)}"
+oninput="update(${i},'item',this.value)">${r.item}</textarea></td>
+
+<td><textarea data-r="${i}" data-c="1"
+onkeydown="if(event.key==='Enter'){nav(event,${i},1)}"
+oninput="handlePriceInput(${i},this)">${r.price}</textarea></td>
+
+<td><textarea data-r="${i}" data-c="2"
+onkeydown="if(event.key==='Enter'){nav(event,${i},2)}"
+oninput="update(${i},'people',this.value)">${r.people}</textarea></td>
+
 <td>${tapHTML}</td>
 `;
 
