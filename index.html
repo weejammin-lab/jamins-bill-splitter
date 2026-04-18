@@ -11,6 +11,7 @@
 <title>Bill Splitter</title>
 
 <style>
+
 body{
 font-family:Arial;
 max-width:550px;
@@ -147,6 +148,7 @@ padding:2px;
 .venmo-input.default{
 color:#999;
 }
+
 </style>
 
 </head>
@@ -169,6 +171,7 @@ onkeydown="handleAddPerson(event)">
 <br><br>
 
 <table>
+
 <thead>
 <tr>
 <th>Item</th>
@@ -177,7 +180,9 @@ onkeydown="handleAddPerson(event)">
 <th>Tap Names</th>
 </tr>
 </thead>
+
 <tbody id="tableBody"></tbody>
+
 </table>
 
 <br>
@@ -208,8 +213,6 @@ onkeydown="handleAddPerson(event)">
 
 <script>
 
-/* ---------------- FIREBASE ---------------- */
-
 const firebaseConfig = {
 apiKey: "AIzaSyB6rIAq2loPyngSITMCwKVZZwGrwzs6Kmk",
 authDomain: "jamins-bill-splitter.firebaseapp.com",
@@ -222,8 +225,6 @@ appId: "1:139094691642:web:fa1f61dcfae8d085094a03"
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const billRef = db.collection("bills").doc("main");
-
-/* ---------------- ORIGINAL DATA ---------------- */
 
 const defaultVenmoMap = {
 jamin:"jamin-chen",
@@ -240,49 +241,19 @@ let nameList=[...defaultNames];
 let rows=[];
 let venmoNames={...defaultVenmoMap};
 
-/* ---------------- FIREBASE LOAD ---------------- */
-
-function loadBill(){
-billRef.onSnapshot(doc=>{
-const data=doc.data();
-if(!data) return;
-
-rows=data.rows||[];
-nameList=data.nameList||[];
-venmoNames=data.venmoNames||{};
-
-document.getElementById("taxValue").value=data.taxValue||"";
-document.getElementById("tipValue").value=data.tipValue||"";
-document.getElementById("taxMode").value=data.taxMode||"percent";
-document.getElementById("tipMode").value=data.tipMode||"percent";
-
-renderPeopleBar();
-render();
-calc();
-});
-}
-
-/* ---------------- FIREBASE SAVE ---------------- */
-
-function saveBill(){
-billRef.set({
-rows,
-nameList,
-venmoNames,
-taxValue:document.getElementById("taxValue").value,
-tipValue:document.getElementById("tipValue").value,
-taxMode:document.getElementById("taxMode").value,
-tipMode:document.getElementById("tipMode").value
-});
-}
-
-/* ---------------- ORIGINAL FUNCTIONS (UNCHANGED LOGIC) ---------------- */
-
 function init(){
+
 rows=[];
+
 for(let i=0;i<8;i++){
-rows.push({item:"",price:"",people:"",selected:[]});
+rows.push({
+item:"",
+price:"",
+people:"",
+selected:[]
+});
 }
+
 renderPeopleBar();
 render();
 calc();
@@ -296,12 +267,12 @@ nameList=[...defaultNames];
 venmoNames={...defaultVenmoMap};
 
 init();
-saveBill();
 }
 
 function renderPeopleBar(){
 let bar=document.getElementById("personBar");
 bar.innerHTML="";
+
 nameList.forEach((n,i)=>{
 bar.innerHTML+=`
 <span class="person-tag">
@@ -324,7 +295,6 @@ box.value="";
 renderPeopleBar();
 render();
 calc();
-saveBill();
 }
 
 function deletePerson(i){
@@ -339,20 +309,17 @@ r.people=(r.selected||[]).join(", ");
 renderPeopleBar();
 render();
 calc();
-saveBill();
 }
 
 function update(i,key,val){
 rows[i][key]=val;
 calc();
-saveBill();
 }
 
 function handlePriceInput(row, el){
 el.value=el.value.replace(/[^0-9.]/g,"").replace(/(\..*?)\..*/g,"$1");
 rows[row].price=el.value;
 calc();
-saveBill();
 }
 
 function toggleName(row,name){
@@ -363,7 +330,7 @@ let idx=r.selected.indexOf(name);
 if(idx>-1) r.selected.splice(idx,1);
 else r.selected.push(name);
 
-if(r.selected.length===nameList.length){
+if(r.selected.length === nameList.length){
 r.people="EVERYONE";
 }else{
 r.people=r.selected.join(", ");
@@ -371,7 +338,6 @@ r.people=r.selected.join(", ");
 
 render();
 calc();
-saveBill();
 }
 
 function toggleEveryone(row){
@@ -387,24 +353,26 @@ r.people="EVERYONE";
 
 render();
 calc();
-saveBill();
 }
 
 function addRow(){
-rows.push({item:"",price:"",people:"",selected:[]});
+rows.push({
+item:"",
+price:"",
+people:"",
+selected:[]
+});
 render();
 calc();
-saveBill();
 }
 
-/* ENTER NAVIGATION (UNCHANGED) */
 function nav(e,row,col){
 
 e.preventDefault();
 
-let nextRow=row+1;
+let nextRow = row + 1;
 
-if(nextRow>=rows.length){
+if(nextRow >= rows.length){
 addRow();
 setTimeout(()=>{
 document.querySelector(`[data-r="${nextRow}"][data-c="${col}"]`)?.focus();
@@ -413,15 +381,13 @@ return;
 }
 
 setTimeout(()=>{
-let next=document.querySelector(`[data-r="${nextRow}"][data-c="${col}"]`);
+let next = document.querySelector(`[data-r="${nextRow}"][data-c="${col}"]`);
 if(next){
 next.focus();
 next.select?.();
 }
 },0);
 }
-
-/* ---------------- RENDER ---------------- */
 
 function render(){
 
@@ -467,8 +433,6 @@ body.appendChild(tr);
 });
 }
 
-/* ---------------- CALC ---------------- */
-
 function calc(){
 
 let subtotal=0;
@@ -506,7 +470,6 @@ let total=subtotal+taxAmount+tipAmount;
 Object.keys(people).forEach(p=>{
 let share=people[p].subtotalShare||0;
 let ratio=subtotal?share/subtotal:0;
-
 people[p].total=share+(taxAmount*ratio)+(tipAmount*ratio);
 });
 
@@ -520,29 +483,29 @@ div.innerHTML="";
 
 Object.keys(people).forEach(p=>{
 
-let venmo=venmoNames[p]||"";
+let venmo = venmoNames[p] || "";
 
 div.innerHTML+=`
 <div class="result">
 ${p} owes $${people[p].total.toFixed(2)}
-
-<input class="venmo-input ${defaultVenmoMap[p]?'default':''}"
+<input class="venmo-input ${defaultVenmoMap[p] ? 'default':''}"
 value="${venmo}"
-oninput="venmoNames['${p}']=this.value;saveBill()">
-
+oninput="venmoNames['${p}']=this.value">
 <button class="venmo-btn"
-onclick="window.open('https://venmo.com/'+(venmoNames[p]||'')+'?txn=request&amount='+people[p].total.toFixed(2),'_blank')">
+onclick="
+let user = venmoNames['${p}'] || '';
+let amt = (people['${p}']?.total || 0).toFixed(2);
+if(user){
+window.open('https://venmo.com/' + user + '?txn=request&amount=' + amt,'_blank');
+}
+">
 Request
 </button>
-
 </div>`;
 });
 }
 
-/* ---------------- START ---------------- */
-
 init();
-loadBill();
 
 </script>
 
