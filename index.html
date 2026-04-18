@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html>
 <head>
+
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
@@ -210,7 +213,19 @@ onkeydown="handleAddPerson(event)">
 <div id="totals"></div>
 
 <script>
-
+const firebaseConfig = {
+  apiKey: "AIzaSyB6rIAq2loPyngSITMCwKVZZwGrwzs6Kmk",
+  authDomain: "jamins-bill-splitter.firebaseapp.com",
+  databaseURL: "https://jamins-bill-splitter-default-rtdb.firebaseio.com",
+  projectId: "jamins-bill-splitter",
+  storageBucket: "jamins-bill-splitter.firebasestorage.app",
+  messagingSenderId: "139094691642",
+  appId: "1:139094691642:web:fa1f61dcfae8d085094a03"
+};
+  firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const billRef = db.collection("bills").doc("main");
+  
 const defaultVenmoMap = {
 jamin:"jamin-chen",
 jack:"jack-bao",
