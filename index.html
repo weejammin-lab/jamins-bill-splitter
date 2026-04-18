@@ -483,7 +483,26 @@ window.open(
 );
 
 }
+function clearAll(){
 
+rows.forEach(r=>{
+r.item = "";
+r.price = "";
+r.people = "";
+r.selected = [];
+});
+
+nameList = [
+"jamin","jack","cliff","willie","howard","lin","freddy"
+];
+
+venmoNames = {};
+
+renderPeopleBar();
+render();
+calc();
+}
+  
 init();
 calc();
 
