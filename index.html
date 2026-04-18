@@ -37,7 +37,7 @@ table{
 width:100%;
 border-collapse:collapse;
 font-size:12px;
-table-layout:fixed; /* 🔥 IMPORTANT FIX */
+table-layout:fixed;
 }
 
 td,th{
@@ -46,27 +46,10 @@ padding:3px;
 overflow:hidden;
 }
 
-/* =========================
-   COLUMN WIDTH FIXES
-   ========================= */
-
-.item-col{
-width:120px;
-}
-
-.price-col{
-width:55px;   /* 🔥 NARROW */
-}
-
-.people-col{
-width:520px;  /* 🔥 WIDER */
-}
-
-.tap-col{
-width:360px;
-}
-
-/* force inputs NOT to expand table */
+.item-col{width:120px;}
+.price-col{width:55px;}
+.people-col{width:520px;}
+.tap-col{width:360px;}
 
 td input{
 width:100%;
@@ -75,8 +58,6 @@ border:1px solid #ccc;
 background:white;
 font-size:12px;
 }
-
-/* ITEM PLACEHOLDER */
 
 input::placeholder{
 color:#a8a8a8;
@@ -100,7 +81,7 @@ color:gray;
 padding-left:10px;
 }
 
-/* TAP BUTTONS */
+/* TAP */
 
 .name-btn{
 margin:2px;
@@ -135,8 +116,6 @@ padding:4px;
 width:50px;
 padding:4px;
 }
-
-/* SUMMARY */
 
 .summary-box{
 border:1px solid #ccc;
@@ -182,7 +161,6 @@ onkeydown="handleAddPerson(event)">
 
 <br>
 
-<!-- TAX -->
 <div class="tax-tip-wrap">
 <label>Tax</label>
 <select id="taxMode" class="tax-tip-select" onchange="calc()">
@@ -192,7 +170,6 @@ onkeydown="handleAddPerson(event)">
 <input id="taxValue" class="tax-tip-input" oninput="calc()">
 </div>
 
-<!-- TIP -->
 <div class="tax-tip-wrap">
 <label>Tip</label>
 <select id="tipMode" class="tax-tip-select" onchange="calc()">
@@ -203,8 +180,6 @@ onkeydown="handleAddPerson(event)">
 </div>
 
 <div class="summary-box" id="summary"></div>
-
-<div id="totals"></div>
 
 <script>
 
@@ -353,9 +328,7 @@ let tr=document.createElement("tr");
 tr.innerHTML=`
 
 <td>
-<input value="${r.item}"
-placeholder="${r.placeholder}"
-oninput="update(${i},'item',this.value)">
+<input value="${r.item}">
 </td>
 
 <td>
