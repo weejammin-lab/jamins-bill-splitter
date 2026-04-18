@@ -134,6 +134,13 @@ font-weight:bold;
 margin:4px 0;
 }
 
+.add-row-btn{
+margin-top:8px;
+padding:6px 10px;
+font-size:12px;
+cursor:pointer;
+}
+
 </style>
 </head>
 
@@ -169,6 +176,9 @@ onkeydown="handleAddPerson(event)">
 <tbody id="tableBody"></tbody>
 
 </table>
+
+<!-- ✅ NEW ADD ROW BUTTON -->
+<button class="add-row-btn" onclick="addRow()">+ Add Item</button>
 
 <br>
 
@@ -285,6 +295,17 @@ render();
 calc();
 }
 
+function addRow(){
+rows.push({
+item:"",
+price:"",
+people:"",
+selected:[]
+});
+render();
+calc();
+}
+
 function update(i,key,val){
 rows[i][key]=val;
 calc();
@@ -365,14 +386,14 @@ function calc(){
 let subtotal=0;
 let people={};
 
-// read inputs
+// tax/tip inputs
 let taxVal=parseFloat(document.getElementById("taxValue").value)||0;
 let tipVal=parseFloat(document.getElementById("tipValue").value)||0;
 
 let taxMode=document.getElementById("taxMode").value;
 let tipMode=document.getElementById("tipMode").value;
 
-// STEP 1: item shares
+// STEP 1: item split
 rows.forEach(r=>{
 
 if(r.price){
@@ -393,25 +414,21 @@ people[p].subtotalShare+=share;
 
 });
 
-// STEP 2: tax + tip totals
+// STEP 2: tax + tip
 let taxAmount = taxMode==="percent" ? subtotal*(taxVal/100) : taxVal;
 let tipAmount = tipMode==="percent" ? subtotal*(tipVal/100) : tipVal;
 
 let total = subtotal + taxAmount + tipAmount;
 
-// STEP 3: distribute tax + tip proportionally
+// STEP 3: distribute
 Object.keys(people).forEach(p=>{
 let share = people[p].subtotalShare || 0;
+let ratio = subtotal ? share/subtotal : 0;
 
-let ratio = subtotal ? (share / subtotal) : 0;
-
-let taxShare = taxAmount * ratio;
-let tipShare = tipAmount * ratio;
-
-people[p].total = share + taxShare + tipShare;
+people[p].total = share + (taxAmount*ratio) + (tipAmount*ratio);
 });
 
-// OUTPUT
+// UI
 summary.innerHTML=`
 Subtotal: $${subtotal.toFixed(2)}<br>
 Tax: $${taxAmount.toFixed(2)}<br>
