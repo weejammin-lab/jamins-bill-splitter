@@ -22,15 +22,11 @@ margin:2px;
 font-size:12px;
 }
 
-/* delete person */
-
 .delete-person{
 color:red;
 cursor:pointer;
 margin-left:4px;
 }
-
-/* add person */
 
 .add-person-input{
 padding:4px;
@@ -52,30 +48,34 @@ border:1px solid #ddd;
 padding:3px;
 }
 
-/* COLUMN WIDTH FIXES */
+/* COLUMN WIDTHS */
+
 .item-col{width:120px;}
 .price-col{width:70px;}
 .people-col{width:420px;}
 .tap-col{width:360px;}
 
+/* 🔴 REVERT INPUTS BACK TO DEFAULT LOOK */
+
 input{
 width:100%;
 box-sizing:border-box;
-border-radius:0px; /* keep rectangular */
+border-radius:0;
+border:1px solid #ccc;
+background:white;
+color:black;
 }
 
-/* ONLY placeholders in people column */
+/* placeholder (slightly darker than before but still subtle) */
 input::placeholder{
-color:#c7c7c7;
+color:#a8a8a8;
 }
 
-/* PRICE CELL (STRICT WIDTH) */
+/* PRICE */
 
 .price-cell{
 position:relative;
 width:70px;
-min-width:70px;
-max-width:70px;
 }
 
 .price-cell span{
@@ -87,10 +87,9 @@ color:gray;
 
 .price-cell input{
 padding-left:10px;
-width:100%;
 }
 
-/* TAP BUTTONS (ONLY ROUND THING YOU WANTED) */
+/* TAP BUTTONS (ONLY THING STILL STYLED) */
 
 .name-btn{
 margin:2px;
@@ -108,8 +107,6 @@ background:#7dff8a;
 border-color:#2ecc71;
 color:#000;
 }
-
-/* EVERYONE ROW */
 
 .everyone-row{
 margin-bottom:4px;
