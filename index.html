@@ -54,11 +54,11 @@ padding:3px;
 vertical-align:top;
 }
 
-/* column widths */
+/* widened tap column */
 th:nth-child(1), td:nth-child(1){ width:38%; }
 th:nth-child(2), td:nth-child(2){ width:12%; }
-th:nth-child(3), td:nth-child(3){ width:30%; }
-th:nth-child(4), td:nth-child(4){ width:20%; }
+th:nth-child(3), td:nth-child(3){ width:20%; }
+th:nth-child(4), td:nth-child(4){ width:30%; }
 
 td textarea{
 width:100%;
@@ -84,6 +84,13 @@ border-radius:7px;
 .name-btn.selected{
 background:#7dff8a;
 border-color:#2ecc71;
+}
+
+.tap-grid{
+display:grid;
+grid-template-columns:repeat(3,1fr);
+gap:4px;
+margin-top:4px;
 }
 
 .tax-tip-wrap{
@@ -195,9 +202,6 @@ let nameList=[...defaultNames];
 let rows=[];
 let venmoNames={};
 
-/* 🔒 duplicate row protection lock */
-let rowLock = false;
-
 function init(){
 
 rows=[];
@@ -216,7 +220,6 @@ venmoNames={...defaultVenmoMap};
 renderPeopleBar();
 render();
 calc();
-rowLock = false;
 }
 
 function clearAll(){
@@ -278,9 +281,6 @@ calc();
 
 function addRow(){
 
-if(rowLock) return; // 🔒 prevent duplicates
-rowLock = true;
-
 rows.push({
 item:"",
 price:"",
@@ -290,8 +290,6 @@ selected:[]
 
 render();
 calc();
-
-setTimeout(()=>rowLock=false, 50);
 }
 
 function checkAddRow(row){
@@ -307,6 +305,7 @@ r.people.trim() !== ""
 ){
 addRow();
 }
+
 }
 
 function move(e,row,col){
@@ -393,11 +392,15 @@ body.innerHTML="";
 
 rows.forEach((r,i)=>{
 
-let tapHTML=`<div>`;
-
-tapHTML+=`
+let tapHTML = `
+<div>
 <button class="name-btn ${r.selected?.length===nameList.length?'selected':''}"
-onclick="toggleEveryone(${i})">EVERYONE</button>
+onclick="toggleEveryone(${i})">
+EVERYONE
+</button>
+</div>
+
+<div class="tap-grid">
 `;
 
 nameList.forEach(n=>{
@@ -407,7 +410,7 @@ onclick="toggleName(${i},'${n}')">${n}</button>
 `;
 });
 
-tapHTML+=`</div>`;
+tapHTML += `</div>`;
 
 let tr=document.createElement("tr");
 
