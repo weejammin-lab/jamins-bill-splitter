@@ -1,255 +1,299 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bill Splitter</title>
+
+<style>
+body{
+font-family:Arial;
+max-width:550px;
+margin:auto;
+padding:10px;
+}
+
+#personBar{
+display:grid;
+grid-template-columns:repeat(3,1fr);
+gap:4px;
+max-width:50%;
+margin-bottom:4px;
+}
+
+.person-tag{
+border:1px solid #ccc;
+padding:3px 6px;
+font-size:12px;
+text-align:center;
+}
+
+.delete-person{
+color:red;
+cursor:pointer;
+margin-left:4px;
+}
+
+.add-person-input{
+padding:4px;
+font-size:12px;
+width:140px;
+margin-top:6px;
+display:block;
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+font-size:12px;
+table-layout:fixed;
+}
+
+td,th{
+border:1px solid #ddd;
+padding:3px;
+vertical-align:top;
+}
+
+th:nth-child(1), td:nth-child(1){ width:20%; }
+th:nth-child(2), td:nth-child(2){ width:12%; }
+th:nth-child(3), td:nth-child(3){ width:20%; }
+th:nth-child(4), td:nth-child(4){ width:48%; }
+
+td textarea{
+width:100%;
+box-sizing:border-box;
+font-size:12px;
+resize:none;
+overflow:hidden;
+border:1px solid #ddd;
+padding:3px;
+font-family:Arial;
+}
+
+.tap-grid{
+display:grid;
+grid-template-columns:repeat(3,1fr);
+gap:2px;
+margin-top:3px;
+}
+
+.name-btn{
+padding:2px 5px;
+font-size:11px;
+cursor:pointer;
+border:1px solid #ccc;
+background:#e0e0e0;
+border-radius:7px;
+white-space:nowrap;
+overflow:hidden;
+text-overflow:ellipsis;
+}
+
+.name-btn.selected{
+background:#7dff8a;
+border-color:#2ecc71;
+}
+
+.everyone-btn{
+width:100%;
+margin-bottom:4px;
+}
+
+.tax-tip-wrap{
+display:flex;
+gap:6px;
+align-items:center;
+margin-top:8px;
+}
+
+.tax-tip-input{
+width:70px;
+padding:4px;
+}
+
+.summary-box{
+border:1px solid #ccc;
+padding:8px;
+margin-top:8px;
+}
+
+.result{
+font-weight:bold;
+margin:4px 0;
+}
+
+.add-row-btn{
+margin-top:8px;
+padding:6px 10px;
+font-size:12px;
+cursor:pointer;
+}
+</style>
+</head>
+
+<body>
+
+<h2>Bill Splitter</h2>
+
+<button onclick="clearAll()">Clear All</button>
+
+<br><br>
+
+<div id="personBar"></div>
+
+<input id="addPersonBox"
+class="add-person-input"
+placeholder="type name + Enter"
+onkeydown="addPerson(event)">
+
+<br><br>
+
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Price</th>
+<th>People</th>
+<th>Tap</th>
+</tr>
+</thead>
+<tbody id="tableBody"></tbody>
+</table>
+
+<button class="add-row-btn" onclick="addRow()">+ Add Item</button>
+
+<br>
+
+<div class="tax-tip-wrap">
+<label>Tax</label>
+<select id="taxMode" onchange="calc()">
+<option value="percent">%</option>
+<option value="amount">$</option>
+</select>
+<input id="taxValue" class="tax-tip-input" oninput="calc()">
+</div>
+
+<div class="tax-tip-wrap">
+<label>Tip</label>
+<select id="tipMode" onchange="calc()">
+<option value="percent">%</option>
+<option value="amount">$</option>
+</select>
+<input id="tipValue" class="tax-tip-input" oninput="calc()">
+</div>
+
+<div class="summary-box" id="summary"></div>
+<div id="totals"></div>
+
 <script>
 
-const defaultVenmoMap = {
-jamin:"jamin-chen",
-jack:"jack-bao",
-cliff:"clifford-chao",
-howard:"braveclaw",
-willie:"willie-zeng",
-freddy:"freddy-dai",
-lin:"linlin221"
-};
-
-let defaultNames=[
-"jamin","jack","cliff","willie","howard","lin","freddy"
-];
-
-let nameList=[...defaultNames];
+let nameList=["jamin","jack","cliff","willie","howard","lin","freddy"];
 let rows=[];
-let venmoNames={};
 
 function init(){
-
 rows=[];
-
 for(let i=0;i<8;i++){
-rows.push({
-item:"",
-price:"",
-people:"",
-selected:[]
-});
+rows.push({item:"",price:"",people:"",selected:[]});
 }
-
-venmoNames={...defaultVenmoMap};
-
-renderPeopleBar();
-render();
-calc();
-}
-
-function clearAll(){
-if(!confirm("Clear everything?")) return;
-
-rows=[];
-nameList=[...defaultNames];
-venmoNames={...defaultVenmoMap};
-
-init();
-}
-
-function renderPeopleBar(){
-let bar=document.getElementById("personBar");
-bar.innerHTML="";
-
-nameList.forEach((n,i)=>{
-bar.innerHTML+=`
-<span class="person-tag">
-${n}
-<span class="delete-person" onclick="deletePerson(${i})">✖</span>
-</span>`;
-});
-}
-
-function handleAddPerson(e){
-if(e.key!=="Enter") return;
-
-let box=document.getElementById("addPersonBox");
-let name=box.value.trim();
-if(!name) return;
-
-nameList.push(name);
-box.value="";
-
-renderPeopleBar();
-render();
-calc();
-}
-
-function deletePerson(i){
-let removed=nameList[i];
-nameList.splice(i,1);
-
-rows.forEach(r=>{
-r.selected=(r.selected||[]).filter(p=>p!==removed);
-r.people=(r.selected||[]).join(", ");
-});
-
-renderPeopleBar();
 render();
 calc();
 }
 
 function addRow(){
-rows.push({
-item:"",
-price:"",
-people:"",
-selected:[]
-});
+rows.push({item:"",price:"",people:"",selected:[]});
 render();
 calc();
 }
 
-function update(i,key,val){
-rows[i][key]=val;
-calc();
+function clearAll(){
+rows=[];
+init();
 }
 
-function handlePriceInput(row, el){
-el.value=el.value.replace(/[^0-9.]/g,"").replace(/(\..*?)\..*/g,"$1");
-rows[row].price=el.value;
-calc();
-}
-
-/* =========================
-   KEYBOARD NAVIGATION
-========================= */
-
-function handleKeyNav(e, row, col){
-
-const maxRow = rows.length - 1;
-const maxCol = 2; // item, price, people (3 columns = 0-2)
-
-let nextRow = row;
-let nextCol = col;
-
-if(e.key === "Enter"){
-e.preventDefault();
-
-nextRow = row + 1;
-
-// if at last row, create new row
-if(nextRow > maxRow){
-addRow();
-setTimeout(()=>focusCell(nextRow, col),0);
-return;
-}
-
-focusCell(nextRow, col);
-return;
-}
-
-if(e.key === "Tab"){
-// let default tab work but keep inside grid bounds
-if(e.shiftKey){
-if(col > 0){
-e.preventDefault();
-nextCol = col - 1;
-focusCell(row, nextCol);
-}
-}else{
-if(col < maxCol){
-e.preventDefault();
-nextCol = col + 1;
-focusCell(row, nextCol);
-}
-}
-}
-
-}
-
-function focusCell(row,col){
-setTimeout(()=>{
-let el = document.querySelector(
-`textarea[data-row="${row}"][data-col="${col}"]`
-);
-if(el) el.focus();
-},0);
-}
-
-/* ========================= */
-
-function toggleName(row,name){
-let r=rows[row];
-if(!r.selected) r.selected=[];
-let idx=r.selected.indexOf(name);
-
-if(idx>-1) r.selected.splice(idx,1);
-else r.selected.push(name);
-
-r.people=r.selected.length ? r.selected.join(", ") : "";
-render();
-calc();
-}
-
-function toggleEveryone(row){
-let r=rows[row];
-
-if(r.selected?.length===nameList.length){
-r.selected=[];
-r.people="";
-}else{
-r.selected=[...nameList];
-r.people="EVERYONE";
-}
-
+function addPerson(e){
+if(e.key!=="Enter") return;
+let v=e.target.value.trim();
+if(!v) return;
+nameList.push(v);
+e.target.value="";
 render();
 calc();
 }
 
 function render(){
+
 let body=document.getElementById("tableBody");
 body.innerHTML="";
 
 rows.forEach((r,i)=>{
 
-let tapHTML=`
-<button class="name-btn everyone-btn ${r.selected?.length===nameList.length?'selected':''}"
-onclick="toggleEveryone(${i})">EVERYONE</button>
-
-<div class="tap-grid">
-`;
+let tap=`<button onclick="toggleAll(${i})">EVERYONE</button><div class="tap-grid">`;
 
 nameList.forEach(n=>{
-tapHTML+=`
-<button class="name-btn ${r.selected?.includes(n)?'selected':''}"
-onclick="toggleName(${i},'${n}')">${n}</button>`;
+tap+=`<button class="name-btn ${r.selected.includes(n)?'selected':''}"
+onclick="toggle(${i},'${n}')">${n}</button>`;
 });
 
-tapHTML+=`</div>`;
+tap+=`</div>`;
 
-let tr=document.createElement("tr");
+body.innerHTML+=`
+<tr>
+<td><textarea data-r="${i}" data-c="0"
+onkeydown="nav(event,${i},0)"
+oninput="r(${i},'item',this.value)">${r.item}</textarea></td>
 
-tr.innerHTML=`
-<td>
-<textarea
-data-row="${i}" data-col="0"
-onkeydown="handleKeyNav(event,${i},0)"
-oninput="update(${i},'item',this.value)">${r.item}</textarea>
-</td>
+<td><textarea data-r="${i}" data-c="1"
+onkeydown="nav(event,${i},1)"
+oninput="r(${i},'price',this.value)">${r.price}</textarea></td>
 
-<td>
-<textarea
-data-row="${i}" data-col="1"
-onkeydown="handleKeyNav(event,${i},1)"
-oninput="handlePriceInput(${i},this)">${r.price}</textarea>
-</td>
+<td><textarea data-r="${i}" data-c="2"
+onkeydown="nav(event,${i},2)"
+oninput="r(${i},'people',this.value)">${r.people}</textarea></td>
 
-<td>
-<textarea
-data-row="${i}" data-col="2"
-onkeydown="handleKeyNav(event,${i},2)"
-oninput="update(${i},'people',this.value)">${r.people}</textarea>
-</td>
-
-<td>${tapHTML}</td>
-`;
-
-body.appendChild(tr);
-
+<td>${tap}</td>
+</tr>`;
 });
+}
 
+function nav(e,row,col){
+
+if(e.key==="Enter"){
+e.preventDefault();
+focus(row+1,col);
+}
+
+if(e.key==="Tab"){
+e.preventDefault();
+focus(row,col+ (e.shiftKey?-1:1));
+}
+}
+
+function focus(r,c){
+setTimeout(()=>{
+document.querySelector(`[data-r="${r}"][data-c="${c}"]`)?.focus();
+},0);
+}
+
+function r(i,k,v){
+rows[i][k]=v;
+calc();
+}
+
+function toggle(i,n){
+let r=rows[i];
+r.selected.includes(n)
+?r.selected=r.selected.filter(x=>x!==n)
+:r.selected.push(n);
+render();
+calc();
+}
+
+function toggleAll(i){
+let r=rows[i];
+r.selected = r.selected.length===nameList.length ? [] : [...nameList];
+render();
+calc();
 }
 
 function calc(){
@@ -257,64 +301,60 @@ function calc(){
 let subtotal=0;
 let people={};
 
-let taxVal=parseFloat(document.getElementById("taxValue").value)||0;
-let tipVal=parseFloat(document.getElementById("tipValue").value)||0;
-
-let taxMode=document.getElementById("taxMode").value;
-let tipMode=document.getElementById("tipMode").value;
-
 rows.forEach(r=>{
 
-if(r.price){
-let price=parseFloat(r.price);
-if(!isNaN(price)) subtotal+=price;
+if(!r.price) return;
 
-let list=r.people==="EVERYONE"
-? nameList
-: (r.people||"").split(",").map(p=>p.trim()).filter(Boolean);
+let price=parseFloat(r.price)||0;
+subtotal+=price;
 
-let share=price/list.length||0;
+let list=r.people==="EVERYONE"?nameList:r.selected;
+
+if(list.length===0) return;
+
+let share=price/list.length;
 
 list.forEach(p=>{
-if(!people[p]) people[p]={subtotalShare:0};
-people[p].subtotalShare+=share;
-});
-}
-
+if(!people[p]) people[p]={v:0};
+people[p].v+=share;
 });
 
-let taxAmount = taxMode==="percent" ? subtotal*(taxVal/100) : taxVal;
-let tipAmount = tipMode==="percent" ? subtotal*(tipVal/100) : tipVal;
+});
 
-let total = subtotal + taxAmount + tipAmount;
+let tax=parseFloat(document.getElementById("taxValue").value)||0;
+let tip=parseFloat(document.getElementById("tipValue").value)||0;
+
+let taxM=document.getElementById("taxMode").value;
+let tipM=document.getElementById("tipMode").value;
+
+let taxA=taxM==="percent"?subtotal*tax/100:tax;
+let tipA=tipM==="percent"?subtotal*tip/100:tip;
+
+let total=subtotal+taxA+tipA;
 
 Object.keys(people).forEach(p=>{
-let share = people[p].subtotalShare || 0;
-let ratio = subtotal ? share/subtotal : 0;
-
-people[p].total = share + (taxAmount*ratio) + (tipAmount*ratio);
+let r=people[p].v/subtotal;
+people[p].v+=taxA*r+tipA*r;
 });
 
-summary.innerHTML=`
-Subtotal: $${subtotal.toFixed(2)}<br>
-Tax: $${taxAmount.toFixed(2)}<br>
-Tip: $${tipAmount.toFixed(2)}<br>
-Total: $${total.toFixed(2)}
-`;
+summary.innerHTML=
+`Subtotal: $${subtotal.toFixed(2)}<br>
+Tax: $${taxA.toFixed(2)}<br>
+Tip: $${tipA.toFixed(2)}<br>
+Total: $${total.toFixed(2)}`;
 
-let div=document.getElementById("totals");
-div.innerHTML="";
+let d=document.getElementById("totals");
+d.innerHTML="";
 
 Object.keys(people).forEach(p=>{
-div.innerHTML+=`
-<div class="result">
-${p} owes $${people[p].total.toFixed(2)}
-</div>`;
+d.innerHTML+=`<div class="result">${p}: $${people[p].v.toFixed(2)}</div>`;
 });
 
 }
 
 init();
-calc();
 
 </script>
+
+</body>
+</html>
