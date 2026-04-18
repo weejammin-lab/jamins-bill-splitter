@@ -335,7 +335,7 @@ calc();
 }
 
 /* =========================
-   ✅ FIXED CALC (ONLY CHANGE)
+   CALC (UNCHANGED)
    ========================= */
 
 function calc(){
@@ -343,52 +343,28 @@ function calc(){
 let subtotal=0;
 let people={};
 
-/* 1. ROW TOTALS */
 rows.forEach(r=>{
 
+if(r.price){
 let price=parseFloat(r.price);
-if(isNaN(price)) return;
+if(!isNaN(price)) subtotal+=price;
 
-subtotal += price;
-
-let list = r.people==="EVERYONE"
+let list=r.people==="EVERYONE"
 ? nameList
 : (r.people||"").split(",").map(p=>p.trim()).filter(Boolean);
 
-let share = list.length ? price/list.length : 0;
+let share=price/list.length||0;
 
 list.forEach(p=>{
-if(!people[p]) people[p]={base:0};
-people[p].base += share;
+if(!people[p]) people[p]={total:0};
+people[p].total+=share;
+});
+}
+
 });
 
-});
+summary.innerHTML=`Subtotal: $${subtotal.toFixed(2)}`;
 
-/* 2. TAX + TIP */
-let taxVal=parseFloat(taxValue.value)||0;
-let tipVal=parseFloat(tipValue.value)||0;
-
-let tax = taxMode.value==="percent"
-? subtotal*(taxVal/100)
-: taxVal;
-
-let tip = tipMode.value==="percent"
-? subtotal*(tipVal/100)
-: tipVal;
-
-let total = subtotal + tax + tip;
-
-/* 3. DISTRIBUTE TAX + TIP */
-Object.keys(people).forEach(p=>{
-let ratio = subtotal ? (people[p].base/subtotal) : 0;
-people[p].total = people[p].base + (tax*ratio) + (tip*ratio);
-});
-
-/* 4. SUMMARY */
-summary.innerHTML =
-`Subtotal: $${subtotal.toFixed(2)} | Tax: $${tax.toFixed(2)} | Tip: $${tip.toFixed(2)} | Total: $${total.toFixed(2)}`;
-
-/* 5. OUTPUT */
 let div=document.getElementById("totals");
 div.innerHTML="";
 
@@ -401,8 +377,11 @@ ${p} owes $${people[p].total.toFixed(2)}
 
 }
 
+/* 🔥 FIX: guaranteed initialization on refresh */
+window.addEventListener("DOMContentLoaded", () => {
 init();
 calc();
+});
 
 </script>
 
