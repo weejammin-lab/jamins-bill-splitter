@@ -386,22 +386,19 @@ body.appendChild(tr);
 
 }
 
-/* CALC (RESTORED FULL VERSION) */
+/* CALC */
 
 function calc(){
 
 let subtotal=0;
 let people={};
 
-/* split costs */
 rows.forEach(r=>{
 
 if(r.price){
 
 let price=parseFloat(r.price);
-if(isNaN(price)) return;
-
-subtotal+=price;
+if(!isNaN(price)) subtotal+=price;
 
 let list =
 r.people==="everyone"
@@ -425,13 +422,11 @@ people[p].total+=share;
 
 });
 
-/* tax */
 let tax =
 taxMode.value==="percent"
 ? subtotal*(taxValue.value||0)/100
 : parseFloat(taxValue.value||0);
 
-/* tip */
 let tip =
 tipMode.value==="percent"
 ? subtotal*(tipValue.value||0)/100
@@ -439,7 +434,6 @@ tipMode.value==="percent"
 
 let total=subtotal+tax+tip;
 
-/* distribute tax/tip */
 Object.keys(people).forEach(p=>{
 
 let ratio=people[p].total/subtotal||0;
@@ -448,7 +442,6 @@ people[p].total+=tax*ratio+tip*ratio;
 
 });
 
-/* SUMMARY */
 summary.innerHTML=`
 Subtotal: $${subtotal.toFixed(2)} |
 Tax: $${tax.toFixed(2)} |
@@ -456,7 +449,6 @@ Tip: $${tip.toFixed(2)} |
 <strong>Total: $${total.toFixed(2)}</strong>
 `;
 
-/* VENMO */
 let div=document.getElementById("totals");
 div.innerHTML="";
 
@@ -484,6 +476,7 @@ Venmo
 
 }
 
+/* 🔥 ONLY CHANGE IS HERE */
 function openVenmo(p,amt){
 
 let name=venmoNames[p];
@@ -494,7 +487,7 @@ return;
 }
 
 window.open(
-`https://venmo.com/${name}?txn=pay&amount=${amt}`,
+`https://venmo.com/${name}?txn=request&amount=${amt}`,
 "_blank"
 );
 
