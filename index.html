@@ -57,11 +57,11 @@ padding:3px;
 vertical-align:top;
 }
 
-/* 🔥 UPDATED COLUMN WIDTHS */
-th:nth-child(1), td:nth-child(1){ width:20%; }  /* ITEM SHRUNK */
+/* COLUMN WIDTHS */
+th:nth-child(1), td:nth-child(1){ width:20%; }
 th:nth-child(2), td:nth-child(2){ width:12%; }
 th:nth-child(3), td:nth-child(3){ width:20%; }
-th:nth-child(4), td:nth-child(4){ width:48%; }  /* TAP NAMES EXPANDED */
+th:nth-child(4), td:nth-child(4){ width:48%; }
 
 td textarea{
 width:100%;
@@ -78,25 +78,28 @@ td:nth-child(3) textarea{
 min-height:70px;
 }
 
-/* TAP GRID */
+/* 🔥 TAP GRID (tighter spacing) */
 .tap-grid{
 display:grid;
 grid-template-columns:repeat(3,1fr);
-gap:4px;
-margin-top:4px;
+gap:2px;              /* reduced spacing */
+margin-top:3px;
 word-break:break-word;
 }
 
 .name-btn{
-margin:2px;
-padding:2px 6px;
+margin:1px;           /* tighter */
+padding:2px 5px;      /* more room for text */
 font-size:11px;
 cursor:pointer;
 border:1px solid #ccc;
 background:#e0e0e0;
 border-radius:7px;
-white-space:normal;
-word-break:break-word;
+
+/* 🔥 prevents wrapping like "howard" */
+white-space:nowrap;
+overflow:hidden;
+text-overflow:ellipsis;
 }
 
 .name-btn.selected{
@@ -198,8 +201,6 @@ onkeydown="handleAddPerson(event)">
 
 <script>
 
-/* --- everything JS unchanged from your working version --- */
-
 const defaultVenmoMap = {
 jamin:"jamin-chen",
 jack:"jack-bao",
@@ -210,7 +211,9 @@ freddy:"freddy-dai",
 lin:"linlin221"
 };
 
-let defaultNames=["jamin","jack","cliff","willie","howard","lin","freddy"];
+let defaultNames=[
+"jamin","jack","cliff","willie","howard","lin","freddy"
+];
 
 let nameList=[...defaultNames];
 let rows=[];
@@ -221,7 +224,12 @@ function init(){
 rows=[];
 
 for(let i=0;i<5;i++){
-rows.push({item:"",price:"",people:"",selected:[]});
+rows.push({
+item:"",
+price:"",
+people:"",
+selected:[]
+});
 }
 
 venmoNames={...defaultVenmoMap};
@@ -232,6 +240,7 @@ calc();
 }
 
 function clearAll(){
+
 if(!confirm("Clear everything?")) return;
 
 rows=[];
@@ -256,6 +265,7 @@ ${n}
 }
 
 function handleAddPerson(e){
+
 if(e.key!=="Enter") return;
 
 let box=document.getElementById("addPersonBox");
@@ -306,6 +316,7 @@ function toggleName(row,name){
 let r=rows[row];
 if(!r.selected) r.selected=[];
 let idx=r.selected.indexOf(name);
+
 if(idx>-1) r.selected.splice(idx,1);
 else r.selected.push(name);
 
@@ -377,7 +388,10 @@ if(r.price){
 let price=parseFloat(r.price);
 if(!isNaN(price)) subtotal+=price;
 
-let list=r.people==="EVERYONE"?nameList:(r.people||"").split(",").map(p=>p.trim()).filter(Boolean);
+let list=r.people==="EVERYONE"
+? nameList
+: (r.people||"").split(",").map(p=>p.trim()).filter(Boolean);
+
 let share=price/list.length||0;
 
 list.forEach(p=>{
@@ -388,15 +402,12 @@ people[p].total+=share;
 
 });
 
-summary.innerHTML=`
-Subtotal: $${subtotal.toFixed(2)}
-`;
+summary.innerHTML=`Subtotal: $${subtotal.toFixed(2)}`;
 
 let div=document.getElementById("totals");
 div.innerHTML="";
 
 Object.keys(people).forEach(p=>{
-
 div.innerHTML+=`
 <div class="result">
 ${p} owes $${people[p].total.toFixed(2)}
