@@ -54,6 +54,8 @@ background:white;
 font-size:12px;
 }
 
+/* TAP */
+
 .name-btn{
 margin:2px;
 padding:2px 6px;
@@ -68,6 +70,8 @@ border-radius:7px;
 background:#7dff8a;
 border-color:#2ecc71;
 }
+
+/* TAX / TIP */
 
 .tax-tip-wrap{
 display:flex;
@@ -159,7 +163,6 @@ let nameList=[
 let rows=[];
 
 /* INIT */
-
 function init(){
 
 rows=[];
@@ -177,8 +180,7 @@ render();
 calc();
 }
 
-/* FORCE NEW ROW */
-
+/* ADD ROW SAFELY */
 function addRow(){
 rows.push({
 item:"",
@@ -188,22 +190,22 @@ selected:[]
 });
 }
 
-/* ENTER FIXED */
-
+/* ENTER FIX (IMPORTANT FIX) */
 function move(e,row,col){
 
 if(e.key!=="Enter") return;
 
 e.preventDefault();
 
-/* IF LAST ROW → CREATE NEW FIRST */
+/* If last row → create new row BEFORE moving */
 if(row === rows.length - 1){
 addRow();
 render();
+calc();
 }
 
-/* MOVE AFTER RENDER */
-setTimeout(()=>{
+/* wait for DOM to update */
+requestAnimationFrame(() => {
 
 let next=document.querySelector(
 `[data-row='${row+1}'][data-col='${col}']`
@@ -214,7 +216,8 @@ next.focus();
 next.select?.();
 }
 
-},0);
+});
+
 }
 
 /* INPUT */
@@ -226,7 +229,6 @@ el.value=el.value
 .replace(/(\..*?)\..*/g,"$1");
 
 rows[row].price=el.value;
-
 calc();
 }
 
