@@ -2,6 +2,10 @@
 <html>
 <head>
 <meta charset="UTF-8">
+
+<!-- ✅ FIX: prevents zoomed-out mobile scaling -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>Bill Splitter</title>
 
 <style>
@@ -10,6 +14,7 @@ body{
 font-family:Arial;
 max-width:550px;
 margin:auto;
+padding:10px; /* 👈 makes it feel like an app */
 }
 
 #personBar{
@@ -54,11 +59,11 @@ padding:3px;
 vertical-align:top;
 }
 
-/* COLUMN WIDTHS (FIXED) */
+/* COLUMN WIDTHS */
 th:nth-child(1), td:nth-child(1){ width:30%; }
 th:nth-child(2), td:nth-child(2){ width:12%; }
 th:nth-child(3), td:nth-child(3){ width:20%; }
-th:nth-child(4), td:nth-child(4){ width:38%; } /* 👈 WIDER TAP COLUMN */
+th:nth-child(4), td:nth-child(4){ width:38%; }
 
 td textarea{
 width:100%;
@@ -441,7 +446,6 @@ tipMode.value==="percent"
 
 let total=subtotal+tax+tip;
 
-/* add tax/tip per person */
 Object.keys(people).forEach(p=>{
 
 let ratio=people[p].total/subtotal||0;
@@ -450,7 +454,6 @@ people[p].total+=tax*ratio+tip*ratio;
 
 });
 
-/* SUMMARY */
 summary.innerHTML=`
 Subtotal: $${subtotal.toFixed(2)} |
 Tax: $${tax.toFixed(2)} |
@@ -458,7 +461,6 @@ Tip: $${tip.toFixed(2)} |
 <strong>Total: $${total.toFixed(2)}</strong>
 `;
 
-/* VENMO */
 let div=document.getElementById("totals");
 div.innerHTML="";
 
