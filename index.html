@@ -8,7 +8,7 @@
 
 body{
 font-family:Arial;
-max-width:550px; /* 🔥 was 1100px */
+max-width:550px;
 margin:auto;
 }
 
@@ -43,15 +43,20 @@ table-layout:fixed;
 td,th{
 border:1px solid #ddd;
 padding:3px;
+vertical-align:top;
 }
 
-td input{
+/* 🔥 WRAPPING TEXT AREAS */
+td textarea{
 width:100%;
 box-sizing:border-box;
 font-size:12px;
+resize:none;
+overflow:hidden;
+border:1px solid #ddd;
+padding:3px;
+font-family:Arial;
 }
-
-/* TAP */
 
 .name-btn{
 margin:2px;
@@ -67,8 +72,6 @@ border-radius:7px;
 background:#7dff8a;
 border-color:#2ecc71;
 }
-
-/* TAX TIP */
 
 .tax-tip-wrap{
 display:flex;
@@ -87,15 +90,11 @@ width:50px;
 padding:4px;
 }
 
-/* SUMMARY */
-
 .summary-box{
 border:1px solid #ccc;
 padding:8px;
 margin-top:8px;
 }
-
-/* VENMO */
 
 .venmo-input{
 width:120px;
@@ -275,6 +274,13 @@ next.select?.();
 
 }
 
+/* 🔥 AUTO GROW TEXTAREA */
+function autoGrow(el){
+el.style.height="auto";
+el.style.height=el.scrollHeight+"px";
+}
+
+/* PRICE INPUT */
 function handlePriceInput(row, el){
 
 el.value=el.value
@@ -346,10 +352,9 @@ let tr=document.createElement("tr");
 tr.innerHTML=`
 
 <td>
-<input data-row="${i}" data-col="0"
-value="${r.item}"
-oninput="update(${i},'item',this.value)"
-onkeydown="move(event,${i},0)">
+<textarea data-row="${i}" data-col="0"
+oninput="update(${i},'item',this.value); autoGrow(this)"
+onkeydown="move(event,${i},0)">${r.item}</textarea>
 </td>
 
 <td>
@@ -360,10 +365,9 @@ onkeydown="move(event,${i},1)">
 </td>
 
 <td>
-<input data-row="${i}" data-col="2"
-value="${r.people}"
-oninput="update(${i},'people',this.value)"
-onkeydown="move(event,${i},2)">
+<textarea data-row="${i}" data-col="2"
+oninput="update(${i},'people',this.value); autoGrow(this)"
+onkeydown="move(event,${i},2)">${r.people}</textarea>
 </td>
 
 <td>${tapHTML}</td>
