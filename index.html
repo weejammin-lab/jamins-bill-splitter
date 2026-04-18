@@ -63,6 +63,7 @@ th:nth-child(2), td:nth-child(2){ width:12%; }
 th:nth-child(3), td:nth-child(3){ width:20%; }
 th:nth-child(4), td:nth-child(4){ width:48%; }
 
+/* ✅ FIXED TEXTAREA HEIGHT BEHAVIOR */
 td textarea{
 width:100%;
 box-sizing:border-box;
@@ -72,8 +73,10 @@ overflow:hidden;
 border:1px solid #ddd;
 padding:3px;
 font-family:Arial;
-height:100%;
+
+display:block;
 min-height:100%;
+height:100%;
 }
 
 /* TAP GRID */
@@ -340,30 +343,6 @@ r.people="EVERYONE";
 
 render();
 calc();
-}
-
-/* ENTER NAV FIX WORKS NOW BECAUSE data-r / data-c ARE PRESENT */
-function nav(e,row,col){
-
-e.preventDefault();
-
-let nextRow = row + 1;
-
-if(nextRow >= rows.length){
-addRow();
-setTimeout(()=>{
-document.querySelector(`[data-r="${nextRow}"][data-c="${col}"]`)?.focus();
-},0);
-return;
-}
-
-setTimeout(()=>{
-let next = document.querySelector(`[data-r="${nextRow}"][data-c="${col}"]`);
-if(next){
-next.focus();
-next.select?.();
-}
-},0);
 }
 
 function addRow(){
