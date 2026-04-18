@@ -75,13 +75,26 @@ color:gray;
 padding-left:10px;
 }
 
-/* TAP BUTTONS */
+/* TAP BUTTON STATES */
 
 .name-btn{
+
 margin:2px;
-padding:2px 6px;
+padding:3px 7px;
 font-size:11px;
 cursor:pointer;
+border:1px solid #ccc;
+border-radius:4px;
+
+background:#e0e0e0; /* default grey */
+
+transition:0.15s;
+
+}
+
+.name-btn.selected{
+background:#b8f5b8; /* light green */
+border-color:#7ad67a;
 }
 
 .everyone-row{
@@ -139,21 +152,10 @@ onkeydown="handleAddPerson(event)">
 
 <tr>
 
-<th class="item-col">
-Item (optional)
-</th>
-
-<th class="price-col">
-Price ($)
-</th>
-
-<th class="people-col">
-People involved
-</th>
-
-<th class="tap-col">
-Tap Names
-</th>
+<th class="item-col">Item (optional)</th>
+<th class="price-col">Price ($)</th>
+<th class="people-col">People involved</th>
+<th class="tap-col">Tap Names</th>
 
 </tr>
 
@@ -189,7 +191,7 @@ Tip
 
 <script>
 
-/* PEOPLE ORDER */
+/* PEOPLE */
 
 let nameList=[
 "jamin",
@@ -201,15 +203,7 @@ let nameList=[
 "freddy"
 ];
 
-/* PLACEHOLDERS */
-
-let placeholders=[
-"jamin",
-"jack",
-"jamin, cliff, willie, howard",
-"lin, lin, freddy (type extra name for uneven splits)",
-"everyone"
-];
+/* ROWS */
 
 let rows=[];
 let venmoNames={};
@@ -226,7 +220,7 @@ rows.push({
 item:"",
 price:"",
 people:"",
-placeholder:placeholders[i]
+selected:[]
 });
 
 }
@@ -278,9 +272,7 @@ ${n}
 
 <span
 class="delete-person"
-onclick="deletePerson(${i})">
-✖
-</span>
+onclick="deletePerson(${i})">✖</span>
 
 </span>
 
@@ -299,6 +291,9 @@ let removed=nameList[i];
 nameList.splice(i,1);
 
 rows.forEach(r=>{
+
+r.selected = (r.selected||[])
+.filter(p=>p!==removed);
 
 if(r.people){
 
@@ -319,9 +314,9 @@ calc();
 
 }
 
-/* HANDLE PRICE */
+/* PRICE INPUT */
 
-function handlePriceInput(row, el){
+function handlePriceInput(row,el){
 
 el.value=el.value
 .replace(/[^0-9.]/g,"")
@@ -329,69 +324,115 @@ el.value=el.value
 
 rows[row].price=el.value;
 
-checkRowExpansion();
+checkRowExpansion(row);
 
 calc();
 
 }
 
-/* ENTER MOVE */
+/* ROW EXPANSION (second-to-last logic) */
 
-function moveNextRow(e,row,col){
+function checkRowExpansion(row){
 
-if(e.key==="Enter"){
+let secondLast = rows.length - 2;
 
-e.preventDefault();
+if(row === secondLast){
 
-let next=row+1;
+let r=rows[row];
 
-let inputs=document.querySelectorAll(
-`[data-col='${col}']`
-);
-
-if(inputs[next])
-inputs[next].focus();
-
-}
-
-}
-
-/* ROW EXPANSION */
-
-function checkRowExpansion(){
-
-let lastIndex=rows.length-1;
-let last=rows[lastIndex];
-
-/* ADD */
-
-if(last.price || last.people){
+if(r.price || r.people){
 
 rows.push({
 item:"",
 price:"",
 people:"",
-placeholder:"everyone"
+selected:[]
 });
 
 render();
+
 return;
 
 }
 
-/* REMOVE */
+}
 
-if(
-rows.length>5 &&
+/* remove empty last row */
+
+let last=rows[rows.length-1];
+
+if(rows.length>5 &&
 !last.price &&
 !last.people &&
-!last.item
-){
+!last.item){
 
 rows.pop();
 render();
 
 }
+
+}
+
+/* TOGGLE NAME */
+
+function toggleName(row,name){
+
+let r=rows[row];
+
+if(!r.selected) r.selected=[];
+
+/* toggle */
+
+if(r.selected.includes(name)){
+
+r.selected=r.selected.filter(p=>p!==name);
+
+}else{
+
+r.selected.push(name);
+
+}
+
+/* sync people string */
+
+if(r.selected.length===0){
+
+r.people="";
+
+}else{
+
+r.people=r.selected.join(", ");
+
+}
+
+render();
+calc();
+
+}
+
+/* EVERYONE */
+
+function toggleEveryone(row){
+
+let r=rows[row];
+
+/* if all selected → clear */
+
+if(r.selected &&
+r.selected.length===nameList.length){
+
+r.selected=[];
+r.people="";
+
+}else{
+
+r.selected=[...nameList];
+r.people="everyone";
+
+}
+
+render();
+calc();
 
 }
 
@@ -407,29 +448,32 @@ rows.forEach((r,i)=>{
 
 let tapHTML="";
 
-/* Everyone */
+/* everyone */
 
-tapHTML+=
-`<div class="everyone-row">
+tapHTML+=`
+<div class="everyone-row">
 
 <button
-class="name-btn"
+class="name-btn ${r.selected?.length===nameList.length ? 'selected':''}"
 onclick="toggleEveryone(${i})">
 everyone
 </button>
 
 </div>`;
 
-/* Names */
+/* names */
 
 nameList.forEach(n=>{
 
-tapHTML+=
-`<button
-class="name-btn"
+let selected=r.selected?.includes(n);
+
+tapHTML+=`
+<button
+class="name-btn ${selected?'selected':''}"
 onclick="toggleName(${i},'${n}')">
 ${n}
-</button>`;
+</button>
+`;
 
 });
 
@@ -440,9 +484,7 @@ tr.innerHTML=`
 <td>
 
 <input
-data-col="0"
 value="${r.item}"
-onkeydown="moveNextRow(event,${i},0)"
 oninput="update(${i},'item',this.value)">
 
 </td>
@@ -452,11 +494,9 @@ oninput="update(${i},'item',this.value)">
 <span>$</span>
 
 <input
-data-col="1"
 type="text"
 inputmode="decimal"
 value="${r.price}"
-onkeydown="moveNextRow(event,${i},1)"
 oninput="handlePriceInput(${i},this)">
 
 </td>
@@ -464,10 +504,7 @@ oninput="handlePriceInput(${i},this)">
 <td>
 
 <input
-data-col="2"
 value="${r.people}"
-placeholder="${r.placeholder}"
-onkeydown="moveNextRow(event,${i},2)"
 oninput="update(${i},'people',this.value)">
 
 </td>
@@ -486,82 +523,13 @@ body.appendChild(tr);
 
 }
 
-/* TOGGLE NAME */
-
-function toggleName(row,name){
-
-let r=rows[row];
-
-if(r.people==="everyone"){
-
-r.people=name;
-
-}
-
-else{
-
-let list=r.people
-.split(",")
-.map(p=>p.trim())
-.filter(Boolean);
-
-if(list.includes(name)){
-
-list=list.filter(p=>p!==name);
-
-}
-
-else{
-
-list.push(name);
-
-}
-
-r.people=list.join(", ");
-
-}
-
-render();
-
-checkRowExpansion();
-
-calc();
-
-}
-
-/* EVERYONE */
-
-function toggleEveryone(row){
-
-let r=rows[row];
-
-if(r.people==="everyone"){
-
-r.people="";
-
-}
-
-else{
-
-r.people="everyone";
-
-}
-
-render();
-
-checkRowExpansion();
-
-calc();
-
-}
-
 /* UPDATE */
 
 function update(i,key,val){
 
 rows[i][key]=val;
 
-checkRowExpansion();
+checkRowExpansion(i);
 
 calc();
 
@@ -571,6 +539,7 @@ calc();
 
 function clearAll(){
 
+rows=[];
 venmoNames={};
 
 init();
@@ -594,12 +563,14 @@ let price=parseFloat(r.price);
 subtotal+=price;
 
 let list=
-r.people==="everyone"
+r.selected?.length
+? r.selected
+: (r.people==="everyone"
 ? nameList
-: r.people
+: (r.people||"")
 .split(",")
 .map(p=>p.trim())
-.filter(Boolean);
+.filter(Boolean));
 
 let share=price/list.length||0;
 
@@ -632,7 +603,7 @@ tipMode.value==="percent"
 
 let total=subtotal+tax+tip;
 
-/* DISTRIBUTE */
+/* distribute */
 
 Object.keys(people).forEach(p=>{
 
@@ -645,7 +616,7 @@ tip*ratio;
 
 });
 
-/* SUMMARY */
+/* summary */
 
 summary.innerHTML=
 
@@ -654,7 +625,7 @@ Tax: $${tax.toFixed(2)} |
 Tip: $${tip.toFixed(2)} |
 <strong>Total: $${total.toFixed(2)}</strong>`;
 
-/* VENMO */
+/* venmo */
 
 let div=document.getElementById("totals");
 
@@ -662,16 +633,13 @@ div.innerHTML="";
 
 Object.keys(people).forEach(p=>{
 
-if(!venmoNames[p])
-venmoNames[p]="";
-
-let amt=people[p].total.toFixed(2);
+if(!venmoNames[p]) venmoNames[p]="";
 
 div.innerHTML+=`
 
 <div class="result">
 
-${p} owes $${amt}
+${p} owes $${people[p].total.toFixed(2)}
 
 <input
 class="venmo-input"
@@ -680,7 +648,7 @@ value="${venmoNames[p]}"
 oninput="venmoNames['${p}']=this.value">
 
 <button
-onclick="openVenmo('${p}',${amt})">
+onclick="openVenmo('${p}',${people[p].total.toFixed(2)})">
 Venmo
 </button>
 
@@ -698,10 +666,7 @@ function openVenmo(p,amt){
 
 let name=venmoNames[p];
 
-if(!name){
-alert("Enter Venmo name");
-return;
-}
+if(!name) return alert("Enter venmo username");
 
 window.open(
 `https://venmo.com/${name}?txn=pay&amount=${amt}`,
