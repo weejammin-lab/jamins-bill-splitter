@@ -74,11 +74,6 @@ padding:3px;
 font-family:Arial;
 }
 
-/* ✅ CHANGE 1: taller people column */
-td:nth-child(3) textarea{
-min-height:70px;
-}
-
 /* TAP GRID */
 .tap-grid{
 display:grid;
@@ -307,6 +302,29 @@ rows[row].price=el.value;
 calc();
 }
 
+/* =========================
+   ONLY FIX: ENTER NAVIGATION
+========================= */
+function nav(e,row,col){
+
+e.preventDefault?.();
+
+let nextRow = row + 1;
+
+if(nextRow >= rows.length){
+addRow();
+setTimeout(()=>{
+document.querySelector(`[data-r="${nextRow}"][data-c="${col}"]`)?.focus();
+},0);
+return;
+}
+
+setTimeout(()=>{
+document.querySelector(`[data-r="${nextRow}"][data-c="${col}"]`)?.focus();
+},0);
+}
+/* ========================= */
+
 function toggleName(row,name){
 let r=rows[row];
 if(!r.selected) r.selected=[];
@@ -366,17 +384,20 @@ let tr=document.createElement("tr");
 
 tr.innerHTML=`
 <td>
-<textarea onkeydown="if(event.key==='Enter'){event.preventDefault();nav(event,${i},0)}"
+<textarea data-r="${i}" data-c="0"
+onkeydown="if(event.key==='Enter'){nav(event,${i},0)}"
 oninput="update(${i},'item',this.value)">${r.item}</textarea>
 </td>
 
 <td>
-<textarea onkeydown="if(event.key==='Enter'){event.preventDefault();nav(event,${i},1)}"
+<textarea data-r="${i}" data-c="1"
+onkeydown="if(event.key==='Enter'){nav(event,${i},1)}"
 oninput="handlePriceInput(${i},this)">${r.price}</textarea>
 </td>
 
 <td>
-<textarea onkeydown="if(event.key==='Enter'){event.preventDefault();nav(event,${i},2)}"
+<textarea data-r="${i}" data-c="2"
+onkeydown="if(event.key==='Enter'){nav(event,${i},2)}"
 oninput="update(${i},'people',this.value)">${r.people}</textarea>
 </td>
 
@@ -449,13 +470,6 @@ ${p} owes $${people[p].total.toFixed(2)}
 </div>`;
 });
 
-}
-
-/* navigation helper still assumed existing in your earlier version */
-function nav(e,row,col){
-let next=row+1;
-let el=document.querySelector(`[data-r="${next}"][data-c="${col}"]`);
-if(el) el.focus();
 }
 
 init();
