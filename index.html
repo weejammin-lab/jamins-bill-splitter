@@ -1,317 +1,10 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<title>Bill Splitter</title>
-
-<style>
-
-body{
-font-family:Arial;
-max-width:1100px;
-margin:auto;
-}
-
-.person-tag{
-display:inline-block;
-border:1px solid #ccc;
-padding:3px 6px;
-margin:2px;
-font-size:12px;
-}
-
-.delete-person{
-color:red;
-cursor:pointer;
-margin-left:4px;
-}
-
-.add-person-input{
-padding:4px;
-font-size:12px;
-width:140px;
-margin-top:4px;
-}
-
-table{
-width:100%;
-border-collapse:collapse;
-font-size:12px;
-}
-
-td,th{
-border:1px solid #ddd;
-padding:3px;
-}
-
-.item-col{width:120px;}
-.price-col{width:70px;}
-.people-col{width:420px;}
-.tap-col{width:360px;}
-
-input{
-width:100%;
-box-sizing:border-box;
-border-radius:0;
-border:1px solid #ccc;
-background:white;
-}
-
-input::placeholder{
-color:#a8a8a8;
-}
-
-/* PRICE */
-
-.price-cell{
-position:relative;
-width:70px;
-}
-
-.price-cell span{
-position:absolute;
-left:4px;
-top:3px;
-color:gray;
-}
-
-.price-cell input{
-padding-left:10px;
-}
-
-/* TAP BUTTONS */
-
-.name-btn{
-margin:2px;
-padding:2px 6px;
-font-size:11px;
-cursor:pointer;
-border:1px solid #ccc;
-background:#e0e0e0;
-color:#333;
-border-radius:7px;
-}
-
-.name-btn.selected{
-background:#7dff8a;
-border-color:#2ecc71;
-color:#000;
-}
-
-/* TAX */
-
-.taxbox{
-width:80px;
-}
-
-/* SUMMARY */
-
-.summary-box{
-border:1px solid #ccc;
-padding:8px;
-margin-top:8px;
-}
-
-</style>
-</head>
-
-<body>
-
-<h2>Bill Splitter</h2>
-
-<button onclick="clearAll()">Clear All</button>
-
-<br><br>
-
-<div id="personBar"></div>
-
-<input
-class="add-person-input"
-id="addPersonBox"
-placeholder="type name + Enter"
-onkeydown="handleAddPerson(event)">
-
-<br><br>
-
-<table>
-
-<thead>
-<tr>
-<th class="item-col">Item</th>
-<th class="price-col">Price ($)</th>
-<th class="people-col">People involved</th>
-<th class="tap-col">Tap Names</th>
-</tr>
-</thead>
-
-<tbody id="tableBody"></tbody>
-
-</table>
-
-<br>
-
-Tax
-<select id="taxMode" onchange="calc()">
-<option value="percent">%</option>
-<option value="amount">$</option>
-</select>
-
-<input id="taxValue" class="taxbox" oninput="calc()">
-
-Tip
-<select id="tipMode" onchange="calc()">
-<option value="percent">%</option>
-<option value="amount">$</option>
-</select>
-
-<input id="tipValue" class="taxbox" oninput="calc()">
-
-<div class="summary-box" id="summary"></div>
-
-<div id="totals"></div>
-
 <script>
 
-/* PEOPLE */
+/* ENTER NAVIGATION (FIXED PROPERLY) */
 
-let nameList=[
-"jamin","jack","cliff","willie","howard","lin","freddy"
-];
+function ensureRowExists(index){
 
-let rows=[];
-let venmoNames={};
-
-let placeholders=[
-"jamin",
-"jack",
-"jamin, cliff, willie, howard",
-"lin, lin, freddy (type extra name for uneven splits)",
-"everyone"
-];
-
-/* INIT */
-
-function init(){
-
-rows=[];
-
-for(let i=0;i<5;i++){
-rows.push({
-item:"",
-price:"",
-people:"",
-selected:[],
-placeholder:placeholders[i]
-});
-}
-
-renderPeopleBar();
-render();
-}
-
-/* ADD PERSON */
-
-function handleAddPerson(e){
-
-if(e.key==="Enter"){
-let box=document.getElementById("addPersonBox");
-let name=box.value.trim();
-if(!name) return;
-
-nameList.push(name);
-box.value="";
-renderPeopleBar();
-render();
-calc();
-}
-}
-
-/* PEOPLE BAR */
-
-function renderPeopleBar(){
-
-let bar=document.getElementById("personBar");
-bar.innerHTML="";
-
-nameList.forEach((n,i)=>{
-bar.innerHTML+=`
-<span class="person-tag">
-${n}
-<span class="delete-person" onclick="deletePerson(${i})">✖</span>
-</span>
-`;
-});
-}
-
-/* DELETE */
-
-function deletePerson(i){
-
-let removed=nameList[i];
-nameList.splice(i,1);
-
-rows.forEach(r=>{
-r.selected=(r.selected||[]).filter(p=>p!==removed);
-});
-
-renderPeopleBar();
-render();
-calc();
-}
-
-/* ENTER NAVIGATION (NEW) */
-
-function moveDown(e,row,col){
-
-if(e.key==="Enter"){
-e.preventDefault();
-
-let next=document.querySelector(
-`[data-row='${row+1}'][data-col='${col}']`
-);
-
-if(next){
-next.focus();
-next.select?.();
-}
-}
-}
-
-/* PRICE INPUT */
-
-function handlePriceInput(row, el){
-
-el.value=el.value
-.replace(/[^0-9.]/g,"")
-.replace(/(\..*?)\..*/g,"$1");
-
-rows[row].price=el.value;
-calc();
-}
-
-/* COMMIT */
-
-function commitPrice(e,row,el){
-
-if(e && e.key!=="Enter") return;
-
-rows[row].price=el.value;
-checkRowExpansion();
-calc();
-}
-
-/* ROW EXPANSION */
-
-function checkRowExpansion(){
-
-let last=rows[rows.length-1];
-
-let filled=
-(last.item && last.item.trim()) ||
-(last.price && last.price.trim()) ||
-(last.people && last.people.trim());
-
-if(filled){
+if(index === rows.length - 1){
 rows.push({
 item:"",
 price:"",
@@ -324,174 +17,63 @@ render();
 }
 }
 
+/* MOVE DOWN (FIXED) */
+
+function moveDown(e,row,col){
+
+if(e.key !== "Enter") return;
+
+e.preventDefault();
+
+/* make sure next row exists BEFORE moving */
+ensureRowExists(row);
+
+setTimeout(()=>{
+
+let next=document.querySelector(
+`[data-row='${row+1}'][data-col='${col}']`
+);
+
+if(next){
+next.focus();
+next.select?.();
+}
+
+},0);
+
+}
+
+/* PRICE INPUT */
+
+function handlePriceInput(row, el){
+
+el.value=el.value
+.replace(/[^0-9.]/g,"")
+.replace(/(\..*?)\..*/g,"$1");
+
+rows[row].price=el.value;
+
+calc();
+}
+
+/* COMMIT PRICE (keep for blur safety) */
+
+function commitPrice(e,row,el){
+
+if(e && e.key!=="Enter") return;
+
+rows[row].price=el.value;
+
+calc();
+}
+
 /* UPDATE */
 
 function update(i,key,val){
+
 rows[i][key]=val;
 calc();
-}
-
-/* TAP */
-
-function toggleName(row,name){
-
-let r=rows[row];
-
-if(!r.selected) r.selected=[];
-
-let idx=r.selected.indexOf(name);
-
-if(idx>-1){
-r.selected.splice(idx,1);
-}else{
-r.selected.push(name);
-}
-
-r.people=r.selected.length ? r.selected.join(", ") : "";
-
-render();
-calc();
-}
-
-/* EVERYONE */
-
-function toggleEveryone(row){
-
-let r=rows[row];
-
-if(r.selected?.length===nameList.length){
-r.selected=[];
-r.people="";
-}else{
-r.selected=[...nameList];
-r.people="everyone";
-}
-
-render();
-calc();
-}
-
-/* RENDER */
-
-function render(){
-
-let body=document.getElementById("tableBody");
-body.innerHTML="";
-
-rows.forEach((r,i)=>{
-
-let tapHTML="";
-
-tapHTML+=`
-<div>
-<button class="name-btn ${r.selected?.length===nameList.length?'selected':''}"
-onclick="toggleEveryone(${i})">everyone</button>
-</div>`;
-
-nameList.forEach(n=>{
-
-let selected=r.selected?.includes(n);
-
-tapHTML+=`
-<button class="name-btn ${selected?'selected':''}"
-onclick="toggleName(${i},'${n}')">
-${n}
-</button>
-`;
-});
-
-let tr=document.createElement("tr");
-
-tr.innerHTML=`
-
-<td>
-<input data-row="${i}" data-col="0"
-value="${r.item||''}"
-oninput="update(${i},'item',this.value)"
-onkeydown="moveDown(event,${i},0)">
-</td>
-
-<td class="price-cell">
-<span>$</span>
-<input data-row="${i}" data-col="1"
-value="${r.price||''}"
-oninput="handlePriceInput(${i},this)"
-onkeydown="moveDown(event,${i},1)"
-onblur="commitPrice(null,${i},this)">
-</td>
-
-<td>
-<input data-row="${i}" data-col="2"
-value="${r.people||''}"
-placeholder="${r.placeholder||''}"
-oninput="update(${i},'people',this.value)"
-onkeydown="moveDown(event,${i},2)">
-</td>
-
-<td>
-${tapHTML}
-</td>
-
-`;
-
-body.appendChild(tr);
-
-});
-}
-
-/* CALC */
-
-function calc(){
-
-let subtotal=0;
-let people={};
-
-rows.forEach(r=>{
-
-if(r.price){
-
-let price=parseFloat(r.price);
-if(!isNaN(price)) subtotal+=price;
-
-let list=
-r.selected?.length
-? r.selected
-: (r.people==="everyone"
-? nameList
-: (r.people||"")
-.split(",")
-.map(p=>p.trim())
-.filter(Boolean));
-
-let share=price/list.length||0;
-
-list.forEach(p=>{
-if(!people[p]) people[p]={total:0};
-people[p].total+=share;
-});
 
 }
-
-});
-
-summary.innerHTML=`Subtotal: $${subtotal.toFixed(2)}`;
-
-}
-
-/* CLEAR */
-
-function clearAll(){
-rows=[];
-venmoNames={};
-init();
-}
-
-/* START */
-
-init();
-calc();
 
 </script>
-
-</body>
-</html>
