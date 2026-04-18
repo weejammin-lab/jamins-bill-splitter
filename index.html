@@ -52,7 +52,6 @@ padding:3px;
 input{
 width:100%;
 box-sizing:border-box;
-border-radius:0;
 border:1px solid #ccc;
 background:white;
 }
@@ -60,6 +59,8 @@ background:white;
 input::placeholder{
 color:#a8a8a8;
 }
+
+/* PRICE */
 
 .price-cell{
 position:relative;
@@ -77,6 +78,8 @@ color:gray;
 padding-left:10px;
 }
 
+/* TAP BUTTONS */
+
 .name-btn{
 margin:2px;
 padding:2px 6px;
@@ -84,15 +87,34 @@ font-size:11px;
 cursor:pointer;
 border:1px solid #ccc;
 background:#e0e0e0;
-color:#333;
 border-radius:7px;
 }
 
 .name-btn.selected{
 background:#7dff8a;
 border-color:#2ecc71;
-color:#000;
 }
+
+/* TAX / TIP (FIXED) */
+
+.tax-tip-wrap{
+display:flex;
+gap:6px;
+align-items:center;
+margin-top:8px;
+}
+
+.tax-tip-input{
+width:70px;
+padding:4px;
+}
+
+.tax-tip-select{
+width:50px;
+padding:4px;
+}
+
+/* SUMMARY */
 
 .summary-box{
 border:1px solid #ccc;
@@ -138,15 +160,35 @@ onkeydown="handleAddPerson(event)">
 
 <br>
 
-Tax <input id="taxValue" oninput="calc()">
-Tip <input id="tipValue" oninput="calc()">
+<!-- ✅ TAX -->
+<div class="tax-tip-wrap">
+<label>Tax</label>
+<select id="taxMode" class="tax-tip-select" onchange="calc()">
+<option value="percent">%</option>
+<option value="amount">$</option>
+</select>
+<input id="taxValue" class="tax-tip-input" oninput="calc()">
+</div>
+
+<!-- ✅ TIP -->
+<div class="tax-tip-wrap">
+<label>Tip</label>
+<select id="tipMode" class="tax-tip-select" onchange="calc()">
+<option value="percent">%</option>
+<option value="amount">$</option>
+</select>
+<input id="tipValue" class="tax-tip-input" oninput="calc()">
+</div>
 
 <div class="summary-box" id="summary"></div>
+
 <div id="totals"></div>
 
 <script>
 
-let nameList=["jamin","jack","cliff","willie","howard","lin","freddy"];
+let nameList=[
+"jamin","jack","cliff","willie","howard","lin","freddy"
+];
 
 let rows=[];
 let venmoNames={};
@@ -155,7 +197,7 @@ let placeholders=[
 "jamin",
 "jack",
 "jamin, cliff, willie, howard",
-"lin, lin, freddy",
+"lin, lin, freddy (must type the repeated name for uneven splits)",
 "everyone"
 ];
 
@@ -214,53 +256,14 @@ render();
 calc();
 }
 
-/* ✅ FIXED ENTER NAVIGATION */
-
-function ensureRowExists(i){
-if(i === rows.length - 1){
-rows.push({
-item:"",
-price:"",
-people:"",
-selected:[],
-placeholder:""
-});
-render();
-}
-}
-
-function moveDown(e,row,col){
-
-if(e.key!=="Enter") return;
-
-e.preventDefault();
-
-ensureRowExists(row);
-
-setTimeout(()=>{
-
-let next=document.querySelector(
-`[data-row='${row+1}'][data-col='${col}']`
-);
-
-if(next){
-next.focus();
-next.select?.();
-}
-
-},0);
-}
-
 /* INPUT */
 
 function handlePriceInput(row, el){
-
 el.value=el.value
 .replace(/[^0-9.]/g,"")
 .replace(/(\..*?)\..*/g,"$1");
 
 rows[row].price=el.value;
-
 calc();
 }
 
@@ -274,7 +277,6 @@ calc();
 function toggleName(row,name){
 
 let r=rows[row];
-
 if(!r.selected) r.selected=[];
 
 let idx=r.selected.indexOf(name);
@@ -319,7 +321,6 @@ onclick="toggleEveryone(${i})">everyone</button>
 </div>`;
 
 nameList.forEach(n=>{
-
 tapHTML+=`
 <button class="name-btn ${r.selected?.includes(n)?'selected':''}"
 onclick="toggleName(${i},'${n}')">${n}</button>`;
@@ -330,26 +331,20 @@ let tr=document.createElement("tr");
 tr.innerHTML=`
 
 <td>
-<input data-row="${i}" data-col="0"
-value="${r.item}"
-oninput="update(${i},'item',this.value)"
-onkeydown="moveDown(event,${i},0)">
-</td>
-
-<td class="price-cell">
-<span>$</span>
-<input data-row="${i}" data-col="1"
-value="${r.price}"
-oninput="handlePriceInput(${i},this)"
-onkeydown="moveDown(event,${i},1)">
+<input value="${r.item}"
+placeholder="${r.placeholder}"
+oninput="update(${i},'item',this.value)">
 </td>
 
 <td>
-<input data-row="${i}" data-col="2"
-value="${r.people}"
+<input value="${r.price}"
+oninput="handlePriceInput(${i},this)">
+</td>
+
+<td>
+<input value="${r.people}"
 placeholder="${r.placeholder}"
-oninput="update(${i},'people',this.value)"
-onkeydown="moveDown(event,${i},2)">
+oninput="update(${i},'people',this.value)">
 </td>
 
 <td>${tapHTML}</td>
@@ -365,33 +360,15 @@ body.appendChild(tr);
 function calc(){
 
 let subtotal=0;
-let people={};
 
 rows.forEach(r=>{
-
 if(r.price){
-let price=parseFloat(r.price);
-if(!isNaN(price)) subtotal+=price;
-
-let list=
-r.selected?.length
-? r.selected
-: (r.people==="everyone"
-? nameList
-: (r.people||"").split(",").map(p=>p.trim()).filter(Boolean));
-
-let share=price/list.length||0;
-
-list.forEach(p=>{
-if(!people[p]) people[p]={total:0};
-people[p].total+=share;
-});
+let p=parseFloat(r.price);
+if(!isNaN(p)) subtotal+=p;
 }
-
 });
 
 summary.innerHTML=`Subtotal: $${subtotal.toFixed(2)}`;
-
 }
 
 function clearAll(){
