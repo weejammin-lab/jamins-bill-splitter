@@ -20,6 +20,7 @@ border:1px solid #ccc;
 padding:3px 6px;
 margin:2px;
 font-size:12px;
+border-radius:6px;
 }
 
 .delete-person{
@@ -33,6 +34,8 @@ padding:4px;
 font-size:12px;
 width:140px;
 margin-top:4px;
+border-radius:6px;
+border:1px solid #ccc;
 }
 
 /* TABLE */
@@ -48,17 +51,15 @@ border:1px solid #ddd;
 padding:3px;
 }
 
-.item-col{width:90px;}
-.price-col{width:40px;}
-.people-col{width:360px;}
-.tap-col{width:360px;}
-
 input{
 width:100%;
 box-sizing:border-box;
+border-radius:6px;
+border:1px solid #ccc;
 }
 
-/* PLACEHOLDER STYLE (LIGHTER GREY) */
+/* PLACEHOLDER */
+
 input::placeholder{
 color:#c4c4c4;
 }
@@ -90,6 +91,7 @@ cursor:pointer;
 border:1px solid #ccc;
 background:#e0e0e0;
 color:#333;
+border-radius:6px;
 }
 
 .name-btn.selected{
@@ -106,6 +108,8 @@ margin-bottom:4px;
 
 .taxbox{
 width:80px;
+border-radius:6px;
+border:1px solid #ccc;
 }
 
 /* SUMMARY */
@@ -114,6 +118,7 @@ width:80px;
 border:1px solid #ccc;
 padding:8px;
 margin-top:8px;
+border-radius:8px;
 }
 
 .result{
@@ -124,6 +129,12 @@ margin:4px 0;
 .venmo-input{
 width:120px;
 margin-left:6px;
+border-radius:6px;
+border:1px solid #ccc;
+}
+
+button{
+border-radius:6px;
 }
 
 </style>
@@ -189,13 +200,7 @@ Tip
 /* PEOPLE ORDER */
 
 let nameList=[
-"jamin",
-"jack",
-"cliff",
-"willie",
-"howard",
-"lin",
-"freddy"
+"jamin","jack","cliff","willie","howard","lin","freddy"
 ];
 
 let rows=[];
@@ -429,7 +434,7 @@ tr.innerHTML=`
 
 <td>
 <input value="${r.item}"
-placeholder=""
+placeholder="${r.placeholder||''}"
 oninput="update(${i},'item',this.value)">
 </td>
 
