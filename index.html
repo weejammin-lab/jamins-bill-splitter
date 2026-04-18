@@ -200,7 +200,6 @@ freddy:"freddy-dai",
 lin:"linlin221"
 };
 
-/* ✅ ONLY CHANGE: freddy removed from defaults */
 let defaultNames=[
 "jamin","jack","cliff","willie","howard","lin"
 ];
@@ -399,8 +398,21 @@ people[p].subtotalShare+=share;
 
 });
 
-let taxAmount = taxMode==="percent" ? subtotal*(taxVal/100) : taxVal;
-let tipAmount = tipMode==="percent" ? subtotal*(tipVal/100) : tipVal;
+/* ✅ FIXED: explicit % handling */
+let taxAmount = 0;
+let tipAmount = 0;
+
+if(taxMode === "percent"){
+taxAmount = subtotal * (taxVal / 100);
+}else{
+taxAmount = taxVal;
+}
+
+if(tipMode === "percent"){
+tipAmount = subtotal * (tipVal / 100);
+}else{
+tipAmount = tipVal;
+}
 
 let total = subtotal + taxAmount + tipAmount;
 
