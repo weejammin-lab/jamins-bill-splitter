@@ -177,7 +177,6 @@ onkeydown="handleAddPerson(event)">
 
 </table>
 
-<!-- ✅ NEW ADD ROW BUTTON -->
 <button class="add-row-btn" onclick="addRow()">+ Add Item</button>
 
 <br>
@@ -227,7 +226,8 @@ function init(){
 
 rows=[];
 
-for(let i=0;i<5;i++){
+// ✅ CHANGED: now 8 rows
+for(let i=0;i<8;i++){
 rows.push({
 item:"",
 price:"",
@@ -386,14 +386,12 @@ function calc(){
 let subtotal=0;
 let people={};
 
-// tax/tip inputs
 let taxVal=parseFloat(document.getElementById("taxValue").value)||0;
 let tipVal=parseFloat(document.getElementById("tipValue").value)||0;
 
 let taxMode=document.getElementById("taxMode").value;
 let tipMode=document.getElementById("tipMode").value;
 
-// STEP 1: item split
 rows.forEach(r=>{
 
 if(r.price){
@@ -414,13 +412,11 @@ people[p].subtotalShare+=share;
 
 });
 
-// STEP 2: tax + tip
 let taxAmount = taxMode==="percent" ? subtotal*(taxVal/100) : taxVal;
 let tipAmount = tipMode==="percent" ? subtotal*(tipVal/100) : tipVal;
 
 let total = subtotal + taxAmount + tipAmount;
 
-// STEP 3: distribute
 Object.keys(people).forEach(p=>{
 let share = people[p].subtotalShare || 0;
 let ratio = subtotal ? share/subtotal : 0;
@@ -428,7 +424,6 @@ let ratio = subtotal ? share/subtotal : 0;
 people[p].total = share + (taxAmount*ratio) + (tipAmount*ratio);
 });
 
-// UI
 summary.innerHTML=`
 Subtotal: $${subtotal.toFixed(2)}<br>
 Tax: $${taxAmount.toFixed(2)}<br>
