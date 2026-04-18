@@ -59,12 +59,7 @@ background:white;
 font-size:12px;
 }
 
-.price-cell span{
-position:absolute;
-left:4px;
-top:3px;
-color:gray;
-}
+/* TAP */
 
 .name-btn{
 margin:2px;
@@ -80,6 +75,8 @@ border-radius:7px;
 background:#7dff8a;
 border-color:#2ecc71;
 }
+
+/* TAX / TIP */
 
 .tax-tip-wrap{
 display:flex;
@@ -179,6 +176,8 @@ let placeholders=[
 "everyone"
 ];
 
+/* INIT */
+
 function init(){
 
 rows=[];
@@ -199,23 +198,72 @@ calc();
 }
 
 /* =========================
-   ENTER NAVIGATION (NEW)
+   AUTO ROW SYSTEM
    ========================= */
 
-function handleEnter(e,row,col){
+function ensureRow(){
 
-if(e.key!=="Enter") return;
+let last=rows[rows.length-1];
+
+let filled =
+(last.item && last.item.trim()) ||
+(last.price && last.price.trim()) ||
+(last.people && last.people.trim());
+
+if(filled){
+rows.push({
+item:"",
+price:"",
+people:"",
+selected:[],
+placeholder:""
+});
+}
+}
+
+/* =========================
+   ENTER / TAB NAVIGATION
+   ========================= */
+
+function move(e,row,col){
+
+let key=e.key;
+
+if(key!=="Enter" && key!=="Tab") return;
 
 e.preventDefault();
 
+ensureRow();
+
+let nextRow=row;
+let nextCol=col;
+
+if(key==="Enter"){
+nextRow=row+1;
+}
+
+if(key==="Tab"){
+if(e.shiftKey){
+nextCol--;
+if(nextCol<0){ nextCol=2; nextRow--; }
+}else{
+nextCol++;
+if(nextCol>2){ nextCol=0; nextRow++; }
+}
+}
+
+setTimeout(()=>{
+
 let next=document.querySelector(
-`[data-row='${row+1}'][data-col='${col}']`
+`[data-row='${nextRow}'][data-col='${nextCol}']`
 );
 
 if(next){
 next.focus();
 next.select?.();
 }
+
+},0);
 }
 
 /* ADD PERSON */
@@ -264,11 +312,14 @@ el.value=el.value
 .replace(/(\..*?)\..*/g,"$1");
 
 rows[row].price=el.value;
+
+ensureRow();
 calc();
 }
 
 function update(i,key,val){
 rows[i][key]=val;
+ensureRow();
 calc();
 }
 
@@ -336,7 +387,7 @@ data-row="${i}" data-col="0"
 value="${r.item}"
 placeholder="${r.placeholder}"
 oninput="update(${i},'item',this.value)"
-onkeydown="handleEnter(event,${i},0)">
+onkeydown="move(event,${i},0)">
 </td>
 
 <td>
@@ -344,7 +395,7 @@ onkeydown="handleEnter(event,${i},0)">
 data-row="${i}" data-col="1"
 value="${r.price}"
 oninput="handlePriceInput(${i},this)"
-onkeydown="handleEnter(event,${i},1)">
+onkeydown="move(event,${i},1)">
 </td>
 
 <td>
@@ -353,7 +404,7 @@ data-row="${i}" data-col="2"
 value="${r.people}"
 placeholder="${r.placeholder}"
 oninput="update(${i},'people',this.value)"
-onkeydown="handleEnter(event,${i},2)">
+onkeydown="move(event,${i},2)">
 </td>
 
 <td>${tapHTML}</td>
@@ -365,6 +416,8 @@ body.appendChild(tr);
 });
 
 }
+
+/* CALC */
 
 function calc(){
 
@@ -380,11 +433,15 @@ if(!isNaN(p)) subtotal+=p;
 summary.innerHTML=`Subtotal: $${subtotal.toFixed(2)}`;
 }
 
+/* CLEAR */
+
 function clearAll(){
 rows=[];
 venmoNames={};
 init();
 }
+
+/* START */
 
 init();
 calc();
