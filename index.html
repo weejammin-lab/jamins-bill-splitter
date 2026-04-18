@@ -1,5 +1,3 @@
-
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -97,7 +95,6 @@ cursor:pointer;
 border:1px solid #ccc;
 background:#e0e0e0;
 border-radius:7px;
-
 white-space:nowrap;
 overflow:hidden;
 text-overflow:ellipsis;
@@ -129,11 +126,6 @@ padding:4px;
 border:1px solid #ccc;
 padding:8px;
 margin-top:8px;
-}
-
-.venmo-input{
-width:120px;
-margin-left:6px;
 }
 
 .result{
@@ -241,7 +233,6 @@ calc();
 }
 
 function clearAll(){
-
 if(!confirm("Clear everything?")) return;
 
 rows=[];
@@ -252,7 +243,6 @@ init();
 }
 
 function renderPeopleBar(){
-
 let bar=document.getElementById("personBar");
 bar.innerHTML="";
 
@@ -266,7 +256,6 @@ ${n}
 }
 
 function handleAddPerson(e){
-
 if(e.key!=="Enter") return;
 
 let box=document.getElementById("addPersonBox");
@@ -282,7 +271,6 @@ calc();
 }
 
 function deletePerson(i){
-
 let removed=nameList[i];
 nameList.splice(i,1);
 
@@ -292,12 +280,6 @@ r.people=(r.selected||[]).join(", ");
 });
 
 renderPeopleBar();
-render();
-calc();
-}
-
-function addRow(){
-rows.push({item:"",price:"",people:"",selected:[]});
 render();
 calc();
 }
@@ -342,7 +324,6 @@ calc();
 }
 
 function render(){
-
 let body=document.getElementById("tableBody");
 body.innerHTML="";
 
@@ -383,6 +364,13 @@ function calc(){
 let subtotal=0;
 let people={};
 
+// get tax/tip inputs
+let taxVal=parseFloat(document.getElementById("taxValue").value)||0;
+let tipVal=parseFloat(document.getElementById("tipValue").value)||0;
+
+let taxMode=document.getElementById("taxMode").value;
+let tipMode=document.getElementById("tipMode").value;
+
 rows.forEach(r=>{
 
 if(r.price){
@@ -400,10 +388,20 @@ if(!people[p]) people[p]={total:0};
 people[p].total+=share;
 });
 }
-
 });
 
-summary.innerHTML=`Subtotal: $${subtotal.toFixed(2)}`;
+// calculate tax + tip
+let taxAmount = taxMode==="percent" ? subtotal*(taxVal/100) : taxVal;
+let tipAmount = tipMode==="percent" ? subtotal*(tipVal/100) : tipVal;
+
+let total = subtotal + taxAmount + tipAmount;
+
+summary.innerHTML=`
+Subtotal: $${subtotal.toFixed(2)}<br>
+Tax: $${taxAmount.toFixed(2)}<br>
+Tip: $${tipAmount.toFixed(2)}<br>
+Total: $${total.toFixed(2)}
+`;
 
 let div=document.getElementById("totals");
 div.innerHTML="";
