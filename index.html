@@ -79,7 +79,6 @@ min-height:100%;
 height:100%;
 }
 
-/* ADDED: grey placeholder styling */
 td textarea::placeholder{
 color:#aaa;
 }
@@ -454,6 +453,8 @@ onkeydown="if(event.key==='Enter'){nav(event,${i},0)}"
 oninput="update(${i},'item',this.value)">${r.item}</textarea></td>
 
 <td><textarea data-r="${i}" data-c="1"
+inputmode="decimal"
+pattern="[0-9]*"
 onkeydown="if(event.key==='Enter'){saveBill();nav(event,${i},1)}"
 onblur="saveBill()"
 oninput="handlePriceInput(${i},this)">${r.price}</textarea></td>
