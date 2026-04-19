@@ -240,10 +240,15 @@ let nameList=[...defaultNames];
 let rows=[];
 let venmoNames={...defaultVenmoMap};
 
+let isLocalUpdate=false;
+
 /* ---------------- LOAD ---------------- */
 
 function loadBill(){
 billRef.onSnapshot(doc=>{
+
+if(isLocalUpdate) return;
+
 const data=doc.data();
 if(!data) return;
 
@@ -265,6 +270,9 @@ calc();
 /* ---------------- SAVE ---------------- */
 
 function saveBill(){
+
+isLocalUpdate=true;
+
 billRef.set({
 rows,
 nameList,
@@ -273,7 +281,10 @@ taxValue:document.getElementById("taxValue").value,
 tipValue:document.getElementById("tipValue").value,
 taxMode:document.getElementById("taxMode").value,
 tipMode:document.getElementById("tipMode").value
+}).finally(()=>{
+setTimeout(()=>isLocalUpdate=false,300);
 });
+
 }
 
 /* ---------------- CORE ---------------- */
@@ -352,8 +363,6 @@ rows[i][key]=val;
 calc();
 }
 
-/* ---------------- PRICE INPUT (UPDATED) ---------------- */
-
 function handlePriceInput(row, el){
 
 el.value = el.value
@@ -365,8 +374,6 @@ rows[row].price = el.value;
 calc();
 
 }
-
-/* ---------------- ROW ACTIONS ---------------- */
 
 function toggleName(row,name){
 let r=rows[row];
