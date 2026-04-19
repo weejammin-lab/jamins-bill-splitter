@@ -79,10 +79,6 @@ min-height:100%;
 height:100%;
 }
 
-td textarea::placeholder{
-color:#aaa;
-}
-
 .tap-grid{
 display:grid;
 grid-template-columns:repeat(3,1fr);
@@ -351,19 +347,8 @@ calc();
 saveBill();
 }
 
-/* 🔧 FIXED SYNC LOGIC */
 function update(i,key,val){
-
 rows[i][key]=val;
-
-/* only sync typed PEOPLE column into selected */
-if(key === "people"){
-rows[i].selected = val
-.split(",")
-.map(p => p.trim())
-.filter(Boolean);
-}
-
 calc();
 }
 
@@ -377,6 +362,71 @@ rows[row].price = el.value;
 
 calc();
 
+}
+
+function toggleName(row,name){
+let r=rows[row];
+if(!r.selected) r.selected=[];
+let idx=r.selected.indexOf(name);
+
+if(idx>-1) r.selected.splice(idx,1);
+else r.selected.push(name);
+
+if(r.selected.length===nameList.length){
+r.people="EVERYONE";
+}else{
+r.people=r.selected.join(", ");
+}
+
+render();
+calc();
+saveBill();
+}
+
+function toggleEveryone(row){
+let r=rows[row];
+
+if(r.selected?.length===nameList.length){
+r.selected=[];
+r.people="";
+}else{
+r.selected=[...nameList];
+r.people="EVERYONE";
+}
+
+render();
+calc();
+saveBill();
+}
+
+function addRow(){
+rows.push({item:"",price:"",people:"",selected:[]});
+render();
+calc();
+saveBill();
+}
+
+/* NAV */
+function nav(e,row,col){
+e.preventDefault();
+
+let nextRow=row+1;
+
+if(nextRow>=rows.length){
+addRow();
+setTimeout(()=>{
+document.querySelector(`[data-r="${nextRow}"][data-c="${col}"]`)?.focus();
+},0);
+return;
+}
+
+setTimeout(()=>{
+let next=document.querySelector(`[data-r="${nextRow}"][data-c="${col}"]`);
+if(next){
+next.focus();
+next.select?.();
+}
+},0);
 }
 
 /* ---------------- RENDER ---------------- */
@@ -407,12 +457,10 @@ let tr=document.createElement("tr");
 
 tr.innerHTML=`
 <td><textarea data-r="${i}" data-c="0"
-placeholder="(optional)"
 onkeydown="if(event.key==='Enter'){nav(event,${i},0)}"
 oninput="update(${i},'item',this.value)">${r.item}</textarea></td>
 
 <td><textarea data-r="${i}" data-c="1"
-placeholder="0.00"
 onkeydown="if(event.key==='Enter'){saveBill();nav(event,${i},1)}"
 onblur="saveBill()"
 oninput="handlePriceInput(${i},this)">${r.price}</textarea></td>
@@ -486,6 +534,13 @@ let venmoId = venmoNames[p] || "";
 div.innerHTML+=`
 <div class="result">
 ${p} owes $${people[p].total.toFixed(2)}
+
+${venmoId ? `
+<button class="venmo-btn"
+onclick="window.open('https://venmo.com/?txn=request&recipients=${encodeURIComponent(venmoId)}&amount=${people[p].total.toFixed(2)}','_blank')">
+Request
+</button>` : ``}
+
 </div>`;
 });
 }
