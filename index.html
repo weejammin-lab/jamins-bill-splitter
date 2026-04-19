@@ -136,17 +136,6 @@ margin:4px 0;
 margin-left:6px;
 font-size:11px;
 }
-
-.venmo-input{
-width:120px;
-margin-left:6px;
-font-size:11px;
-padding:2px;
-}
-
-.venmo-input.default{
-color:#999;
-}
 </style>
 
 </head>
@@ -188,8 +177,8 @@ onkeydown="handleAddPerson(event)">
 <div class="tax-tip-wrap">
 <label>Tax</label>
 <select id="taxMode" onchange="calc()">
+<option value="amount" selected>$</option>
 <option value="percent">%</option>
-<option value="amount">$</option>
 </select>
 <input id="taxValue" class="tax-tip-input" oninput="calc()">
 </div>
@@ -197,8 +186,8 @@ onkeydown="handleAddPerson(event)">
 <div class="tax-tip-wrap">
 <label>Tip</label>
 <select id="tipMode" onchange="calc()">
+<option value="amount" selected>$</option>
 <option value="percent">%</option>
-<option value="amount">$</option>
 </select>
 <input id="tipValue" class="tax-tip-input" oninput="calc()">
 </div>
@@ -258,8 +247,8 @@ venmoNames=data.venmoNames||{};
 
 document.getElementById("taxValue").value=data.taxValue||"";
 document.getElementById("tipValue").value=data.tipValue||"";
-document.getElementById("taxMode").value=data.taxMode||"percent";
-document.getElementById("tipMode").value=data.tipMode||"percent";
+document.getElementById("taxMode").value=data.taxMode||"amount";
+document.getElementById("tipMode").value=data.tipMode||"amount";
 
 renderPeopleBar();
 render();
@@ -304,8 +293,8 @@ if(!confirm("Clear everything?")) return;
 
 document.getElementById("taxValue").value="";
 document.getElementById("tipValue").value="";
-document.getElementById("taxMode").value="percent";
-document.getElementById("tipMode").value="percent";
+document.getElementById("taxMode").value="amount";
+document.getElementById("tipMode").value="amount";
 
 rows=[];
 nameList=[...defaultNames];
@@ -540,15 +529,17 @@ div.innerHTML="";
 
 Object.keys(people).forEach(p=>{
 
-let venmo=venmoNames[p]||"";
+let venmoId = venmoNames[p] || "";
 
 div.innerHTML+=`
 <div class="result">
 ${p} owes $${people[p].total.toFixed(2)}
 
-<input class="venmo-input ${defaultVenmoMap[p]?'default':''}"
-value="${venmo}"
-oninput="venmoNames['${p}']=this.value;saveBill()">
+${venmoId ? `
+<button class="venmo-btn"
+onclick="window.open('https://venmo.com/?txn=request&recipients=${encodeURIComponent(venmoId)}&amount=${people[p].total.toFixed(2)}','_blank')">
+Request
+</button>` : ``}
 
 </div>`;
 });
