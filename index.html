@@ -240,6 +240,8 @@ let nameList=[...defaultNames];
 let rows=[];
 let venmoNames={...defaultVenmoMap};
 
+let saveTimer=null;
+
 /* ---------------- LOAD ---------------- */
 
 function loadBill(){
@@ -347,17 +349,26 @@ calc();
 saveBill();
 }
 
-/* 🔴 ONLY CHANGE IS HERE */
 function update(i,key,val){
 rows[i][key]=val;
 calc();
 }
 
 function handlePriceInput(row, el){
-el.value=el.value.replace(/[^0-9.]/g,"").replace(/(\..*?)\..*/g,"$1");
-rows[row].price=el.value;
+
+el.value = el.value
+.replace(/[^0-9.]/g,"")
+.replace(/(\..*?)\..*/g,"$1");
+
+rows[row].price = el.value;
+
 calc();
+
+clearTimeout(saveTimer);
+saveTimer=setTimeout(()=>{
 saveBill();
+},3000);
+
 }
 
 function toggleName(row,name){
