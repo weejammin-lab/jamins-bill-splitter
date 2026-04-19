@@ -351,8 +351,19 @@ calc();
 saveBill();
 }
 
+/* 🔧 FIXED SYNC LOGIC */
 function update(i,key,val){
+
 rows[i][key]=val;
+
+/* only sync typed PEOPLE column into selected */
+if(key === "people"){
+rows[i].selected = val
+.split(",")
+.map(p => p.trim())
+.filter(Boolean);
+}
+
 calc();
 }
 
