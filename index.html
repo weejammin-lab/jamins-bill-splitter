@@ -550,11 +550,6 @@ ${p} owes $${people[p].total.toFixed(2)}
 value="${venmo}"
 oninput="venmoNames['${p}']=this.value;saveBill()">
 
-<button class="venmo-btn"
-onclick="window.open('https://venmo.com/'+(venmoNames[p]||'')+'?txn=request&amount='+people[p].total.toFixed(2),'_blank')">
-Request
-</button>
-
 </div>`;
 });
 }
