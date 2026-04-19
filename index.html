@@ -223,7 +223,7 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const billRef = db.collection("bills").doc("main");
 
-/* ---------------- ORIGINAL DATA ---------------- */
+/* ---------------- DATA ---------------- */
 
 const defaultVenmoMap = {
 jamin:"jamin-chen",
@@ -240,7 +240,7 @@ let nameList=[...defaultNames];
 let rows=[];
 let venmoNames={...defaultVenmoMap};
 
-/* ---------------- FIREBASE LOAD ---------------- */
+/* ---------------- LOAD ---------------- */
 
 function loadBill(){
 billRef.onSnapshot(doc=>{
@@ -262,7 +262,7 @@ calc();
 });
 }
 
-/* ---------------- FIREBASE SAVE ---------------- */
+/* ---------------- SAVE ---------------- */
 
 function saveBill(){
 billRef.set({
@@ -276,7 +276,7 @@ tipMode:document.getElementById("tipMode").value
 });
 }
 
-/* ---------------- ORIGINAL FUNCTIONS (UNCHANGED LOGIC) ---------------- */
+/* ---------------- CORE ---------------- */
 
 function init(){
 rows=[];
@@ -291,7 +291,6 @@ calc();
 function clearAll(){
 if(!confirm("Clear everything?")) return;
 
-/* FIX: clear tax/tip fields */
 document.getElementById("taxValue").value="";
 document.getElementById("tipValue").value="";
 document.getElementById("taxMode").value="percent";
@@ -348,10 +347,10 @@ calc();
 saveBill();
 }
 
+/* 🔴 ONLY CHANGE IS HERE */
 function update(i,key,val){
 rows[i][key]=val;
 calc();
-saveBill();
 }
 
 function handlePriceInput(row, el){
@@ -403,9 +402,8 @@ calc();
 saveBill();
 }
 
-/* ENTER NAVIGATION (UNCHANGED) */
+/* NAV */
 function nav(e,row,col){
-
 e.preventDefault();
 
 let nextRow=row+1;
