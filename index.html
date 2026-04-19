@@ -240,8 +240,6 @@ let nameList=[...defaultNames];
 let rows=[];
 let venmoNames={...defaultVenmoMap};
 
-let saveTimer=null;
-
 /* ---------------- LOAD ---------------- */
 
 function loadBill(){
@@ -354,6 +352,8 @@ rows[i][key]=val;
 calc();
 }
 
+/* ---------------- PRICE INPUT (UPDATED) ---------------- */
+
 function handlePriceInput(row, el){
 
 el.value = el.value
@@ -364,12 +364,9 @@ rows[row].price = el.value;
 
 calc();
 
-clearTimeout(saveTimer);
-saveTimer=setTimeout(()=>{
-saveBill();
-},3000);
-
 }
+
+/* ---------------- ROW ACTIONS ---------------- */
 
 function toggleName(row,name){
 let r=rows[row];
@@ -468,7 +465,8 @@ onkeydown="if(event.key==='Enter'){nav(event,${i},0)}"
 oninput="update(${i},'item',this.value)">${r.item}</textarea></td>
 
 <td><textarea data-r="${i}" data-c="1"
-onkeydown="if(event.key==='Enter'){nav(event,${i},1)}"
+onkeydown="if(event.key==='Enter'){saveBill();nav(event,${i},1)}"
+onblur="saveBill()"
 oninput="handlePriceInput(${i},this)">${r.price}</textarea></td>
 
 <td><textarea data-r="${i}" data-c="2"
