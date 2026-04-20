@@ -18,6 +18,12 @@ margin:auto;
 padding:10px;
 }
 
+.top-row{
+display:flex;
+gap:8px;
+align-items:stretch;
+}
+
 #personBar{
 display:grid;
 grid-template-columns:repeat(3,1fr);
@@ -45,6 +51,21 @@ font-size:12px;
 width:140px;
 margin-top:6px;
 display:block;
+}
+
+.notes-box{
+flex:1;
+font-size:12px;
+font-family:Arial;
+padding:4px;
+border:1px solid #ccc;
+resize:none;
+height:64px;
+box-sizing:border-box;
+}
+
+.notes-box::placeholder{
+color:#aaa;
 }
 
 table{
@@ -75,7 +96,6 @@ border:1px solid #ddd;
 padding:3px;
 font-family:Arial;
 display:block;
-
 min-height:64px;
 height:auto;
 }
@@ -153,7 +173,16 @@ font-size:11px;
 
 <br><br>
 
+<div class="top-row">
+
 <div id="personBar"></div>
+
+<textarea class="notes-box"
+id="notesBox"
+placeholder="notes"
+oninput="saveNotes()"></textarea>
+
+</div>
 
 <input class="add-person-input"
 id="addPersonBox"
@@ -249,6 +278,8 @@ document.getElementById("tipValue").value=data.tipValue||"";
 document.getElementById("taxMode").value=data.taxMode||"amount";
 document.getElementById("tipMode").value=data.tipMode||"amount";
 
+document.getElementById("notesBox").value=data.notes||"";
+
 renderPeopleBar();
 render();
 calc();
@@ -266,11 +297,18 @@ venmoNames,
 taxValue:document.getElementById("taxValue").value,
 tipValue:document.getElementById("tipValue").value,
 taxMode:document.getElementById("taxMode").value,
-tipMode:document.getElementById("tipMode").value
+tipMode:document.getElementById("tipMode").value,
+notes:document.getElementById("notesBox").value
 }).finally(()=>{
 setTimeout(()=>isLocalUpdate=false,300);
 });
 
+}
+
+function saveNotes(){
+billRef.update({
+notes: document.getElementById("notesBox").value
+});
 }
 
 function init(){
@@ -290,6 +328,7 @@ document.getElementById("taxValue").value="";
 document.getElementById("tipValue").value="";
 document.getElementById("taxMode").value="amount";
 document.getElementById("tipMode").value="amount";
+document.getElementById("notesBox").value="";
 
 rows=[];
 nameList=[...defaultNames];
