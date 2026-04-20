@@ -150,7 +150,11 @@ padding:4px;
 border:1px solid #ccc;
 padding:8px;
 margin-top:8px;
+width:50%;
+max-width:260px;
+min-width:180px;
 }
+  
 .sum-table{
 font-family:monospace;
 width:100%;
@@ -585,7 +589,7 @@ summary.innerHTML=`
 </div>
 
 <div class="row">
-<div class="label">Tax (${taxPct.toFixed(3)}%)</div>
+<div class="label">Tax (${taxPct.toFixed(2)}%)</div>
 <div class="value">${taxAmount.toFixed(2)}</div>
 </div>
 
