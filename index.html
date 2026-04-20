@@ -151,7 +151,29 @@ border:1px solid #ccc;
 padding:8px;
 margin-top:8px;
 }
+.sum-table{
+font-family:monospace;
+width:100%;
+}
 
+.row{
+display:grid;
+grid-template-columns:1fr 90px;
+align-items:center;
+}
+
+.label{
+text-align:left;
+}
+
+.value{
+text-align:right;
+}
+
+.total .label,
+.total .value{
+font-weight:bold;
+}
 .result{
 font-weight:bold;
 margin:4px 0;
@@ -551,11 +573,34 @@ let ratio=subtotal?share/subtotal:0;
 people[p].total=share+(taxAmount*ratio)+(tipAmount*ratio);
 });
 
-summary.innerHTML=`Subtotal: $${subtotal.toFixed(2)}<br>
-Tax: $${taxAmount.toFixed(2)}<br>
-Tip: $${tipAmount.toFixed(2)}<br>
-Total: $${total.toFixed(2)}`;
+let taxPct = subtotal ? (taxAmount / subtotal * 100) : 0;
+let tipPct = subtotal ? (tipAmount / subtotal * 100) : 0;
 
+summary.innerHTML=`
+<div class="sum-table">
+
+<div class="row">
+<div class="label">Subtotal</div>
+<div class="value">${subtotal.toFixed(2)}</div>
+</div>
+
+<div class="row">
+<div class="label">Tax (${taxPct.toFixed(3)}%)</div>
+<div class="value">${taxAmount.toFixed(2)}</div>
+</div>
+
+<div class="row">
+<div class="label">Tip (${tipPct.toFixed(2)}%)</div>
+<div class="value">${tipAmount.toFixed(2)}</div>
+</div>
+
+<div class="row total">
+<div class="label">Total</div>
+<div class="value">${total.toFixed(2)}</div>
+</div>
+
+</div>
+`;
 let div=document.getElementById("totals");
 div.innerHTML="";
 
