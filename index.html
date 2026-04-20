@@ -17,10 +17,13 @@ max-width:550px;
 margin:auto;
 padding:10px;
 }
+
 .top-actions{
 display:flex;
 justify-content:flex-end;
+margin-bottom:2px;
 }
+
 .top-row{
 display:flex;
 gap:8px;
@@ -55,7 +58,8 @@ margin-left:4px;
 padding:4px;
 font-size:12px;
 width:140px;
-margin-top:6px;
+margin-top:2px;
+margin-bottom:4px;
 display:block;
 }
 
@@ -105,7 +109,7 @@ display:block;
 min-height:64px;
 height:auto;
 }
-  
+
 td:nth-child(2) textarea{
 text-align:center;
 font-variant-numeric: tabular-nums;
@@ -209,21 +213,16 @@ font-size:11px;
 
 <body>
 
-<h2>Bill Splitter</h2>
+<h2 style="margin-bottom:4px;">Bill Splitter</h2>
 
 <div class="top-actions">
   <button class="clear-btn" onclick="clearAll()">Clear All</button>
 </div>
 
-<br><br>
-
-<!-- ✅ MOVED INPUT HERE (best fix) -->
 <input class="add-person-input"
 id="addPersonBox"
 placeholder="type name + Enter"
 onkeydown="handleAddPerson(event)">
-
-<br>
 
 <div class="top-row">
 
@@ -235,8 +234,6 @@ placeholder="type notes here"
 oninput="saveNotes()"></textarea>
 
 </div>
-
-<br><br>
 
 <table>
 <thead>
@@ -250,7 +247,6 @@ oninput="saveNotes()"></textarea>
 <tbody id="tableBody"></tbody>
 </table>
 
-<br>
 <button onclick="addRow()">Add Row</button>
 
 <br><br>
