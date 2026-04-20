@@ -20,14 +20,23 @@ padding:10px;
 
 .top-actions{
 display:flex;
-justify-content:flex-end;
-margin-bottom:2px;
+justify-content:space-between;
+align-items:center;
+margin-bottom:4px;
+}
+
+.add-person-input{
+padding:4px;
+font-size:12px;
+width:140px;
+display:block;
 }
 
 .top-row{
 display:flex;
 gap:8px;
 align-items:stretch;
+margin-top:4px;
 }
 
 #personBar{
@@ -42,25 +51,13 @@ margin-bottom:4px;
 border:1px solid #ccc;
 padding:3px 6px;
 font-size:12px;
-display:flex;
-flex-direction:column;
-align-items:center;
-gap:2px;
+text-align:center;
 }
 
 .delete-person{
 color:red;
 cursor:pointer;
 margin-left:4px;
-}
-
-.add-person-input{
-padding:4px;
-font-size:12px;
-width:140px;
-margin-top:2px;
-margin-bottom:4px;
-display:block;
 }
 
 .notes-box{
@@ -169,7 +166,7 @@ width:30%;
 max-width:260px;
 min-width:140px;
 }
-  
+
 .sum-table{
 font-family:monospace;
 width:100%;
@@ -213,16 +210,16 @@ font-size:11px;
 
 <body>
 
-<h2 style="margin-bottom:4px;">Bill Splitter</h2>
+<h2>Bill Splitter</h2>
 
 <div class="top-actions">
+  <input class="add-person-input"
+  id="addPersonBox"
+  placeholder="type name + Enter"
+  onkeydown="handleAddPerson(event)">
+
   <button class="clear-btn" onclick="clearAll()">Clear All</button>
 </div>
-
-<input class="add-person-input"
-id="addPersonBox"
-placeholder="type name + Enter"
-onkeydown="handleAddPerson(event)">
 
 <div class="top-row">
 
@@ -234,6 +231,8 @@ placeholder="type notes here"
 oninput="saveNotes()"></textarea>
 
 </div>
+
+<br>
 
 <table>
 <thead>
@@ -247,6 +246,7 @@ oninput="saveNotes()"></textarea>
 <tbody id="tableBody"></tbody>
 </table>
 
+<br>
 <button onclick="addRow()">Add Row</button>
 
 <br><br>
