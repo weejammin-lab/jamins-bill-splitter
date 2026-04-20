@@ -510,6 +510,54 @@ next.select?.();
 },0);
 }
 
+function render(){
+
+let body=document.getElementById("tableBody");
+body.innerHTML="";
+
+rows.forEach((r,i)=>{
+
+let tapHTML=`
+<button class="name-btn everyone-btn ${r.selected?.length===nameList.length?'selected':''}"
+onclick="toggleEveryone(${i})">EVERYONE</button>
+
+<div class="tap-grid">
+`;
+
+nameList.forEach(n=>{
+tapHTML+=`
+<button class="name-btn ${r.selected?.includes(n)?'selected':''}"
+onclick="toggleName(${i},'${n}')">${n}</button>`;
+});
+
+tapHTML+=`</div>`;
+
+let tr=document.createElement("tr");
+
+tr.innerHTML=`
+<td><textarea data-r="${i}" data-c="0"
+placeholder="optional"
+onkeydown="if(event.key==='Enter'){nav(event,${i},0)}"
+oninput="update(${i},'item',this.value)">${r.item}</textarea></td>
+
+<td><textarea data-r="${i}" data-c="1"
+inputmode="decimal"
+pattern="[0-9]*"
+onkeydown="if(event.key==='Enter'){saveBill();nav(event,${i},1)}"
+onblur="saveBill()"
+oninput="handlePriceInput(${i},this)">${r.price}</textarea></td>
+
+<td>${tapHTML}</td>
+
+<td><textarea data-r="${i}" data-c="3"
+onkeydown="if(event.key==='Enter'){nav(event,${i},3)}"
+oninput="update(${i},'people',this.value)">${r.people}</textarea></td>
+`;
+
+body.appendChild(tr);
+});
+}
+
 function calc(){
 
 let subtotal=0;
@@ -544,9 +592,6 @@ let tipAmount=tipMode==="percent"?subtotal*(tipVal/100):tipVal;
 
 let total=subtotal+taxAmount+tipAmount;
 
-let taxPct = subtotal ? (taxAmount/subtotal)*100 : 0;
-let tipPct = subtotal ? (tipAmount/subtotal)*100 : 0;
-
 Object.keys(people).forEach(p=>{
 let share=people[p].subtotalShare||0;
 let ratio=subtotal?share/subtotal:0;
@@ -563,12 +608,12 @@ summary.innerHTML=`
 </div>
 
 <div class="row">
-<div class="label">Tax (${taxPct.toFixed(3)}%)</div>
+<div class="label">Tax</div>
 <div class="value">${taxAmount.toFixed(2)}</div>
 </div>
 
 <div class="row">
-<div class="label">Tip (${tipPct.toFixed(2)}%)</div>
+<div class="label">Tip</div>
 <div class="value">${tipAmount.toFixed(2)}</div>
 </div>
 
@@ -605,7 +650,6 @@ init();
 loadBill();
 
 </script>
-
 <br><br><br><br>
 </body>
 </html>
