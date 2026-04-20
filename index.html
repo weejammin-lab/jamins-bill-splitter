@@ -110,6 +110,7 @@ td:nth-child(2) textarea{
 text-align:center;
 font-variant-numeric: tabular-nums;
 }
+
 td textarea::placeholder{
 color:#aaa;
 }
@@ -192,6 +193,7 @@ white-space:nowrap;
 .total .value{
 font-weight:bold;
 }
+
 .result{
 font-weight:bold;
 margin:4px 0;
@@ -215,6 +217,14 @@ font-size:11px;
 
 <br><br>
 
+<!-- ✅ MOVED INPUT HERE (best fix) -->
+<input class="add-person-input"
+id="addPersonBox"
+placeholder="type name + Enter"
+onkeydown="handleAddPerson(event)">
+
+<br>
+
 <div class="top-row">
 
 <div id="personBar"></div>
@@ -225,11 +235,6 @@ placeholder="type notes here"
 oninput="saveNotes()"></textarea>
 
 </div>
-
-<input class="add-person-input"
-id="addPersonBox"
-placeholder="type name + Enter"
-onkeydown="handleAddPerson(event)">
 
 <br><br>
 
@@ -593,9 +598,6 @@ let ratio=subtotal?share/subtotal:0;
 people[p].total=share+(taxAmount*ratio)+(tipAmount*ratio);
 });
 
-let taxPct = subtotal ? (taxAmount / subtotal * 100) : 0;
-let tipPct = subtotal ? (tipAmount / subtotal * 100) : 0;
-
 summary.innerHTML=`
 <div class="sum-table">
 
@@ -605,12 +607,12 @@ summary.innerHTML=`
 </div>
 
 <div class="row">
-<div class="label">Tax (${taxPct.toFixed(2)}%)</div>
+<div class="label">Tax</div>
 <div class="value">${taxAmount.toFixed(2)}</div>
 </div>
 
 <div class="row">
-<div class="label">Tip (${tipPct.toFixed(2)}%)</div>
+<div class="label">Tip</div>
 <div class="value">${tipAmount.toFixed(2)}</div>
 </div>
 
@@ -621,6 +623,7 @@ summary.innerHTML=`
 
 </div>
 `;
+
 let div=document.getElementById("totals");
 div.innerHTML="";
 
