@@ -252,8 +252,9 @@ oninput="saveNotes()"></textarea>
 <tbody id="tableBody"></tbody>
 </table>
 
-<div style="margin:6px 0;">
-<button onclick="addRow()">Add Row</button>
+<div style="margin:6px 0; display:flex; gap:6px;">
+  <button onclick="addRow()">Add Row</button>
+  <button onclick="add5Rows()">Add 5 Rows</button>
 </div>
 
 <div class="tax-tip-wrap">
@@ -488,7 +489,16 @@ render();
 calc();
 saveBill();
 }
-
+  
+function add5Rows(){
+for(let i=0;i<5;i++){
+rows.push({item:"",price:"",people:"",selected:[]});
+}
+render();
+calc();
+saveBill();
+}
+  
 function nav(e,row,col){
 e.preventDefault();
 
