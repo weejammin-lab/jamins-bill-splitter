@@ -94,8 +94,10 @@ vertical-align:stretch;
 
 th:nth-child(1), td:nth-child(1){ width:18%; }
 th:nth-child(2), td:nth-child(2){ width:12%; }
-th:nth-child(3), td:nth-child(3){ width:22%; }
-th:nth-child(4), td:nth-child(4){ width:48%; }
+
+/* swapped widths */
+th:nth-child(3), td:nth-child(3){ width:48%; }
+th:nth-child(4), td:nth-child(4){ width:22%; }
 
 td textarea{
 width:100%;
@@ -243,8 +245,8 @@ oninput="saveNotes()"></textarea>
 <tr>
 <th>Item</th>
 <th>Price ($)</th>
-<th>People involved</th>
 <th>Tap Names</th>
+<th>People involved</th>
 </tr>
 </thead>
 <tbody id="tableBody"></tbody>
@@ -545,11 +547,11 @@ onkeydown="if(event.key==='Enter'){saveBill();nav(event,${i},1)}"
 onblur="saveBill()"
 oninput="handlePriceInput(${i},this)">${r.price}</textarea></td>
 
-<td><textarea data-r="${i}" data-c="2"
-onkeydown="if(event.key==='Enter'){nav(event,${i},2)}"
-oninput="update(${i},'people',this.value)">${r.people}</textarea></td>
-
 <td>${tapHTML}</td>
+
+<td><textarea data-r="${i}" data-c="3"
+onkeydown="if(event.key==='Enter'){nav(event,${i},3)}"
+oninput="update(${i},'people',this.value)">${r.people}</textarea></td>
 `;
 
 body.appendChild(tr);
