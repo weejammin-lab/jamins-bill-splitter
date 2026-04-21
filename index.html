@@ -298,6 +298,7 @@ oninput="saveNotes()"></textarea>
 <div style="margin:6px 0; display:flex; gap:6px;">
   <button onclick="addRow()">Add Row</button>
   <button onclick="add5Rows()">Add 5 Rows</button>
+  <button onclick="deleteLastRow()">Delete Row</button>
 </div>
 
 <div class="tax-tip-wrap">
@@ -561,6 +562,18 @@ rows.push({item:"",price:"",people:"",selected:[],locked:false});
 render();
 calc();
 saveBill();
+}
+  
+function deleteLastRow(){
+
+if(rows.length === 0) return;
+
+rows.pop();
+
+render();
+calc();
+saveBill();
+
 }
   
 function nav(e,row,col){
