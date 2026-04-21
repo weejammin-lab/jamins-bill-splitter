@@ -18,6 +18,39 @@ margin:auto;
 padding:10px;
 }
 
+/* NEW — lock column styling */
+
+.lock-cell{
+display:flex;
+flex-direction:column;
+align-items:center;
+justify-content:center;
+gap:2px;
+font-size:11px;
+}
+
+.lock-btn{
+border:1px solid #ccc;
+background:#e0e0e0;
+border-radius:7px;
+cursor:pointer;
+padding:2px;
+width:26px;
+height:26px;
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:14px;
+}
+
+.lock-btn.locked{
+background:#ffd6d6;
+}
+
+.locked-row{
+background:#fff4f4;
+}
+
 .top-actions{
 display:flex;
 justify-content:space-between;
@@ -92,12 +125,13 @@ padding:3px;
 vertical-align:stretch;
 }
 
-th:nth-child(1), td:nth-child(1){ width:17%; }
-th:nth-child(2), td:nth-child(2){ width:13%; }
+/* UPDATED column widths */
 
-/* swapped widths */
-th:nth-child(3), td:nth-child(3){ width:47%; }
-th:nth-child(4), td:nth-child(4){ width:23%; }
+th:nth-child(1), td:nth-child(1){ width:7%; }
+th:nth-child(2), td:nth-child(2){ width:17%; }
+th:nth-child(3), td:nth-child(3){ width:13%; }
+th:nth-child(4), td:nth-child(4){ width:47%; }
+th:nth-child(5), td:nth-child(5){ width:23%; }
 
 td textarea{
 width:100%;
@@ -113,7 +147,7 @@ min-height:64px;
 height:auto;
 }
 
-td:nth-child(2) textarea{
+td:nth-child(3) textarea{
 text-align:center;
 font-variant-numeric: tabular-nums;
 }
@@ -145,6 +179,11 @@ text-overflow:ellipsis;
 .name-btn.selected{
 background:#7dff8a;
 border-color:#2ecc71;
+}
+
+.name-btn:disabled{
+opacity:0.5;
+cursor:not-allowed;
 }
 
 .everyone-btn{
@@ -219,12 +258,12 @@ font-size:11px;
 <h2>Bill Splitter</h2>
 
 <div class="top-actions">
-  <input class="add-person-input"
-  id="addPersonBox"
-  placeholder="type name + Enter"
-  onkeydown="handleAddPerson(event)">
+<input class="add-person-input"
+id="addPersonBox"
+placeholder="type name + Enter"
+onkeydown="handleAddPerson(event)">
 
-  <button class="clear-btn" onclick="clearAll()">Clear All</button>
+<button class="clear-btn" onclick="clearAll()">Clear All</button>
 </div>
 
 <div class="top-row">
@@ -243,18 +282,23 @@ oninput="saveNotes()"></textarea>
 <table>
 <thead>
 <tr>
+
+<th>#</th>
 <th>Item</th>
 <th>Price ($)</th>
 <th>People Involved (Tap Names)</th>
 <th>Type Names</th>
+
 </tr>
 </thead>
+
 <tbody id="tableBody"></tbody>
+
 </table>
 
 <div style="margin:6px 0; display:flex; gap:6px;">
-  <button onclick="addRow()">Add Row</button>
-  <button onclick="add5Rows()">Add 5 Rows</button>
+<button onclick="addRow()">Add Row</button>
+<button onclick="add5Rows()">Add 5 Rows</button>
 </div>
 
 <div class="tax-tip-wrap">
@@ -280,246 +324,48 @@ oninput="saveNotes()"></textarea>
 
 <script>
 
-const firebaseConfig = {
-apiKey: "AIzaSyB6rIAq2loPyngSITMCwKVZZwGrwzs6Kmk",
-authDomain: "jamins-bill-splitter.firebaseapp.com",
-projectId: "jamins-bill-splitter",
-storageBucket: "jamins-bill-splitter.firebasestorage.app",
-messagingSenderId: "139094691642",
-appId: "1:139094691642:web:fa1f61dcfae8d085094a03"
-};
+/* 🔹 only new additions below */
 
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
-const billRef = db.collection("bills").doc("main");
+function toggleLock(row){
 
-const defaultVenmoMap = {
-jamin:"jamin-chen",
-jack:"jack-bao",
-cliff:"clifford-chao",
-howard:"braveclaw",
-willie:"willie-zeng",
-lin:"linlin221"
-  
-};
+rows[row].locked = !rows[row].locked;
 
-let defaultNames=["jamin","jack","cliff","willie","howard","lin"];
-
-let nameList=[...defaultNames];
-let rows=[];
-let venmoNames={...defaultVenmoMap};
-
-let isLocalUpdate=false;
-
-function loadBill(){
-billRef.onSnapshot(doc=>{
-
-if(isLocalUpdate) return;
-
-const data=doc.data();
-if(!data) return;
-
-rows=data.rows||[];
-nameList=data.nameList||[];
-venmoNames=data.venmoNames||{};
-
-document.getElementById("taxValue").value=data.taxValue||"";
-document.getElementById("tipValue").value=data.tipValue||"";
-document.getElementById("taxMode").value=data.taxMode||"amount";
-document.getElementById("tipMode").value=data.tipMode||"amount";
-
-document.getElementById("notesBox").value=data.notes||"";
-
-renderPeopleBar();
 render();
-calc();
-});
-}
-
-function saveBill(){
-
-isLocalUpdate=true;
-
-billRef.set({
-rows,
-nameList,
-venmoNames,
-taxValue:document.getElementById("taxValue").value,
-tipValue:document.getElementById("tipValue").value,
-taxMode:document.getElementById("taxMode").value,
-tipMode:document.getElementById("tipMode").value,
-notes:document.getElementById("notesBox").value
-}).finally(()=>{
-setTimeout(()=>isLocalUpdate=false,300);
-});
-
-}
-
-function saveNotes(){
-billRef.update({
-notes: document.getElementById("notesBox").value
-});
-}
-
-function init(){
-rows=[];
-for(let i=0;i<8;i++){
-rows.push({item:"",price:"",people:"",selected:[]});
-}
-renderPeopleBar();
-render();
-calc();
-}
-
-function clearAll(){
-if(!confirm("Clear everything?")) return;
-
-document.getElementById("taxValue").value="";
-document.getElementById("tipValue").value="";
-document.getElementById("taxMode").value="amount";
-document.getElementById("tipMode").value="amount";
-document.getElementById("notesBox").value="";
-
-rows=[];
-nameList=[...defaultNames];
-venmoNames={...defaultVenmoMap};
-
-init();
 saveBill();
-}
-
-function renderPeopleBar(){
-let bar=document.getElementById("personBar");
-bar.innerHTML="";
-nameList.forEach((n,i)=>{
-bar.innerHTML+=`
-<span class="person-tag">
-${n}
-<span class="delete-person" onclick="deletePerson(${i})">✖</span>
-</span>`;
-});
-}
-
-function handleAddPerson(e){
-if(e.key!=="Enter") return;
-
-let box=document.getElementById("addPersonBox");
-let name=box.value.trim();
-if(!name) return;
-
-nameList.push(name);
-box.value="";
-
-renderPeopleBar();
-render();
-calc();
-saveBill();
-}
-
-function deletePerson(i){
-let removed=nameList[i];
-nameList.splice(i,1);
-
-rows.forEach(r=>{
-r.selected=(r.selected||[]).filter(p=>p!==removed);
-r.people=(r.selected||[]).join(", ");
-});
-
-renderPeopleBar();
-render();
-calc();
-saveBill();
-}
-
-function update(i,key,val){
-rows[i][key]=val;
-calc();
-}
-
-function handlePriceInput(row, el){
-
-el.value = el.value
-.replace(/[^0-9.]/g,"")
-.replace(/(\..*?)\..*/g,"$1");
-
-rows[row].price = el.value;
-
-calc();
 
 }
 
-function toggleName(row,name){
-let r=rows[row];
-if(!r.selected) r.selected=[];
-let idx=r.selected.indexOf(name);
-
-if(idx>-1) r.selected.splice(idx,1);
-else r.selected.push(name);
-
-if(r.selected.length===nameList.length){
-r.people="EVERYONE";
-}else{
-r.people=r.selected.join(", ");
-}
-
-render();
-calc();
-saveBill();
-}
-
-function toggleEveryone(row){
-let r=rows[row];
-
-if(r.selected?.length===nameList.length){
-r.selected=[];
-r.people="";
-}else{
-r.selected=[...nameList];
-r.people="EVERYONE";
-}
-
-render();
-calc();
-saveBill();
-}
+/* MODIFY existing row creation */
 
 function addRow(){
-rows.push({item:"",price:"",people:"",selected:[]});
+rows.push({
+item:"",
+price:"",
+people:"",
+selected:[],
+locked:false
+});
 render();
 calc();
 saveBill();
 }
-  
+
 function add5Rows(){
 for(let i=0;i<5;i++){
-rows.push({item:"",price:"",people:"",selected:[]});
+rows.push({
+item:"",
+price:"",
+people:"",
+selected:[],
+locked:false
+});
 }
 render();
 calc();
 saveBill();
 }
-  
-function nav(e,row,col){
-e.preventDefault();
 
-let nextRow=row+1;
-
-if(nextRow>=rows.length){
-addRow();
-setTimeout(()=>{
-document.querySelector(`[data-r="${nextRow}"][data-c="${col}"]`)?.focus();
-},0);
-return;
-}
-
-setTimeout(()=>{
-let next=document.querySelector(`[data-r="${nextRow}"][data-c="${col}"]`);
-if(next){
-next.focus();
-next.select?.();
-}
-},0);
-}
+/* MODIFY render() */
 
 function render(){
 
@@ -528,16 +374,18 @@ body.innerHTML="";
 
 rows.forEach((r,i)=>{
 
-let tapHTML=`
-<button class="name-btn everyone-btn ${r.selected?.length===nameList.length?'selected':''}"
+if(r.locked===undefined) r.locked=false;
+
+let tapHTML=`<button class="name-btn everyone-btn ${r.selected?.length===nameList.length?'selected':''}"
+${r.locked?"disabled":""}
 onclick="toggleEveryone(${i})">EVERYONE</button>
 
-<div class="tap-grid">
-`;
+<div class="tap-grid">`;
 
 nameList.forEach(n=>{
 tapHTML+=`
 <button class="name-btn ${r.selected?.includes(n)?'selected':''}"
+${r.locked?"disabled":""}
 onclick="toggleName(${i},'${n}')">${n}</button>`;
 });
 
@@ -545,125 +393,68 @@ tapHTML+=`</div>`;
 
 let tr=document.createElement("tr");
 
+if(r.locked) tr.classList.add("locked-row");
+
 tr.innerHTML=`
-<td><textarea data-r="${i}" data-c="0"
+
+<td class="lock-cell">
+
+<div>${i+1}</div>
+
+<button class="lock-btn ${r.locked?"locked":""}"
+onclick="toggleLock(${i})">
+
+${r.locked?"🔒":"🔓"}
+
+</button>
+
+</td>
+
+<td>
+
+<textarea
+${r.locked?"disabled":""}
+data-r="${i}" data-c="0"
 placeholder="optional"
 onkeydown="if(event.key==='Enter'){nav(event,${i},0)}"
-oninput="update(${i},'item',this.value)">${r.item}</textarea></td>
+oninput="update(${i},'item',this.value)">${r.item}</textarea>
 
-<td><textarea data-r="${i}" data-c="1"
+</td>
+
+<td>
+
+<textarea
+${r.locked?"disabled":""}
+data-r="${i}" data-c="1"
 inputmode="decimal"
 pattern="[0-9]*"
 onkeydown="if(event.key==='Enter'){saveBill();nav(event,${i},1)}"
 onblur="saveBill()"
-oninput="handlePriceInput(${i},this)">${r.price}</textarea></td>
+oninput="handlePriceInput(${i},this)">${r.price}</textarea>
+
+</td>
 
 <td>${tapHTML}</td>
 
-<td><textarea data-r="${i}" data-c="3"
+<td>
+
+<textarea
+${r.locked?"disabled":""}
+data-r="${i}" data-c="3"
 onkeydown="if(event.key==='Enter'){nav(event,${i},3)}"
-oninput="update(${i},'people',this.value)">${r.people}</textarea></td>
+oninput="update(${i},'people',this.value)">${r.people}</textarea>
+
+</td>
+
 `;
 
 body.appendChild(tr);
+
 });
+
 }
-
-function calc(){
-
-let subtotal=0;
-let people={};
-
-let taxVal=parseFloat(document.getElementById("taxValue").value)||0;
-let tipVal=parseFloat(document.getElementById("tipValue").value)||0;
-
-let taxMode=document.getElementById("taxMode").value;
-let tipMode=document.getElementById("tipMode").value;
-
-rows.forEach(r=>{
-if(r.price){
-let price=parseFloat(r.price);
-if(!isNaN(price)) subtotal+=price;
-
-let list=r.people==="EVERYONE"
-? nameList
-: (r.people||"").split(",").map(p=>p.trim()).filter(Boolean);
-
-let share=price/list.length||0;
-
-list.forEach(p=>{
-if(!people[p]) people[p]={subtotalShare:0};
-people[p].subtotalShare+=share;
-});
-}
-});
-
-let taxAmount=taxMode==="percent"?subtotal*(taxVal/100):taxVal;
-let tipAmount=tipMode==="percent"?subtotal*(tipVal/100):tipVal;
-
-let total=subtotal+taxAmount+tipAmount;
-
-Object.keys(people).forEach(p=>{
-let share=people[p].subtotalShare||0;
-let ratio=subtotal?share/subtotal:0;
-
-people[p].total=share+(taxAmount*ratio)+(tipAmount*ratio);
-});
-
-let taxPct = subtotal ? (taxAmount / subtotal * 100) : 0;
-let tipPct = subtotal ? (tipAmount / subtotal * 100) : 0;
-
-summary.innerHTML=`
-<div class="sum-table">
-
-<div class="row">
-<div class="label">Subtotal</div>
-<div class="value">${subtotal.toFixed(2)}</div>
-</div>
-
-<div class="row">
-<div class="label">Tax (${taxPct.toFixed(2)}%)</div>
-<div class="value">${taxAmount.toFixed(2)}</div>
-</div>
-
-<div class="row">
-<div class="label">Tip (${tipPct.toFixed(2)}%)</div>
-<div class="value">${tipAmount.toFixed(2)}</div>
-</div>
-
-<div class="row total">
-<div class="label">Total</div>
-<div class="value">${total.toFixed(2)}</div>
-</div>
-
-</div>
-`;
-
-let div=document.getElementById("totals");
-div.innerHTML="";
-
-Object.keys(people).forEach(p=>{
-
-let venmoId = venmoNames[p] || "";
-
-div.innerHTML+=`
-<div class="result">
-${p} owes $${people[p].total.toFixed(2)}
-
-${venmoId ? `
-<button class="venmo-btn"
-onclick="window.open('https://venmo.com/?txn=request&recipients=${encodeURIComponent(venmoId)}&amount=${people[p].total.toFixed(2)}','_blank')">
-Request
-</button>` : ``}
-
-</div>`;
-});
-}
-
-init();
-loadBill();
 
 </script>
-<br><br><br><br>
+
 </body>
 </html>
