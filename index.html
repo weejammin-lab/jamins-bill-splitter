@@ -272,6 +272,7 @@ oninput="saveNotes()"></textarea>
 <br>
 
 <table>
+<thead>
 <tr>
 <th>#</th>
 <th>Item</th>
@@ -280,6 +281,7 @@ oninput="saveNotes()"></textarea>
 <th>Type Names</th>
 </tr>
 </thead>
+
 <tbody id="tableBody"></tbody>
 </table>
 
@@ -395,8 +397,7 @@ notes: document.getElementById("notesBox").value
 function init(){
 rows=[];
 for(let i=0;i<8;i++){
-rows.push({item:"",price:"",people:"",selected:[],locked:false}
-}
+rows.push({item:"",price:"",people:"",selected:[],locked:false});
 renderPeopleBar();
 render();
 calc();
@@ -456,17 +457,19 @@ r.selected=(r.selected||[]).filter(p=>p!==removed);
 r.people=(r.selected||[]).join(", ");
 });
   
-function toggleLock(row){
-rows[row].locked = !rows[row].locked;
-render();
-saveBill();
-}
+
 renderPeopleBar();
 render();
 calc();
 saveBill();
 }
-
+  
+function toggleLock(row){
+rows[row].locked = !rows[row].locked;
+render();
+saveBill();
+}
+  
 function update(i,key,val){
 
 if(rows[i].locked) return;
@@ -531,7 +534,7 @@ saveBill();
 }
 
 function addRow(){
-rows.push({item:"",price:"",people:"",selected:[],locked:false}
+rows.push({item:"",price:"",people:"",selected:[],locked:false});
 render();
 calc();
 saveBill();
@@ -539,8 +542,7 @@ saveBill();
   
 function add5Rows(){
 for(let i=0;i<5;i++){
-rows.push({item:"",price:"",people:"",selected:[],locked:false}
-}
+rows.push({item:"",price:"",people:"",selected:[],locked:false});
 render();
 calc();
 saveBill();
