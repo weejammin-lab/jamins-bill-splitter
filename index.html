@@ -18,7 +18,7 @@ margin:auto;
 padding:10px;
 }
 
-/* NEW — lock column styling */
+/* NEW — Lock Column */
 
 .lock-cell{
 display:flex;
@@ -47,9 +47,7 @@ font-size:14px;
 background:#ffd6d6;
 }
 
-.locked-row{
-background:#fff4f4;
-}
+/* existing styles below unchanged */
 
 .top-actions{
 display:flex;
@@ -125,9 +123,9 @@ padding:3px;
 vertical-align:stretch;
 }
 
-/* UPDATED column widths */
+/* UPDATED widths to add new column */
 
-th:nth-child(1), td:nth-child(1){ width:7%; }
+th:nth-child(1), td:nth-child(1){ width:6%; }
 th:nth-child(2), td:nth-child(2){ width:17%; }
 th:nth-child(3), td:nth-child(3){ width:13%; }
 th:nth-child(4), td:nth-child(4){ width:47%; }
@@ -150,10 +148,6 @@ height:auto;
 td:nth-child(3) textarea{
 text-align:center;
 font-variant-numeric: tabular-nums;
-}
-
-td textarea::placeholder{
-color:#aaa;
 }
 
 .tap-grid{
@@ -225,15 +219,8 @@ align-items:center;
 white-space:nowrap;
 }
 
-.label{
-text-align:left;
-white-space:nowrap;
-}
-
-.value{
-text-align:right;
-white-space:nowrap;
-}
+.label{text-align:left;}
+.value{text-align:right;}
 
 .total .label,
 .total .value{
@@ -301,71 +288,22 @@ oninput="saveNotes()"></textarea>
 <button onclick="add5Rows()">Add 5 Rows</button>
 </div>
 
-<div class="tax-tip-wrap">
-<label>Tax</label>
-<select id="taxMode" onchange="calc()">
-<option value="amount" selected>$</option>
-<option value="percent">%</option>
-</select>
-<input id="taxValue" class="tax-tip-input" oninput="calc()">
-</div>
-
-<div class="tax-tip-wrap">
-<label>Tip</label>
-<select id="tipMode" onchange="calc()">
-<option value="amount" selected>$</option>
-<option value="percent">%</option>
-</select>
-<input id="tipValue" class="tax-tip-input" oninput="calc()">
-</div>
-
-<div class="summary-box" id="summary"></div>
-<div id="totals"></div>
-
 <script>
 
-/* 🔹 only new additions below */
+/* NEW lock toggle */
 
 function toggleLock(row){
 
-rows[row].locked = !rows[row].locked;
+if(rows[row].locked===undefined)
+rows[row].locked=false;
+
+rows[row].locked=!rows[row].locked;
 
 render();
-saveBill();
 
 }
 
-/* MODIFY existing row creation */
-
-function addRow(){
-rows.push({
-item:"",
-price:"",
-people:"",
-selected:[],
-locked:false
-});
-render();
-calc();
-saveBill();
-}
-
-function add5Rows(){
-for(let i=0;i<5;i++){
-rows.push({
-item:"",
-price:"",
-people:"",
-selected:[],
-locked:false
-});
-}
-render();
-calc();
-saveBill();
-}
-
-/* MODIFY render() */
+/* MODIFY render ONLY */
 
 function render(){
 
@@ -374,13 +312,16 @@ body.innerHTML="";
 
 rows.forEach((r,i)=>{
 
-if(r.locked===undefined) r.locked=false;
+if(r.locked===undefined)
+r.locked=false;
 
-let tapHTML=`<button class="name-btn everyone-btn ${r.selected?.length===nameList.length?'selected':''}"
+let tapHTML=`
+<button class="name-btn everyone-btn ${r.selected?.length===nameList.length?'selected':''}"
 ${r.locked?"disabled":""}
 onclick="toggleEveryone(${i})">EVERYONE</button>
 
-<div class="tap-grid">`;
+<div class="tap-grid">
+`;
 
 nameList.forEach(n=>{
 tapHTML+=`
@@ -392,8 +333,6 @@ onclick="toggleName(${i},'${n}')">${n}</button>`;
 tapHTML+=`</div>`;
 
 let tr=document.createElement("tr");
-
-if(r.locked) tr.classList.add("locked-row");
 
 tr.innerHTML=`
 
@@ -410,41 +349,29 @@ ${r.locked?"🔒":"🔓"}
 
 </td>
 
-<td>
-
-<textarea
+<td><textarea
 ${r.locked?"disabled":""}
 data-r="${i}" data-c="0"
 placeholder="optional"
 onkeydown="if(event.key==='Enter'){nav(event,${i},0)}"
-oninput="update(${i},'item',this.value)">${r.item}</textarea>
+oninput="update(${i},'item',this.value)">${r.item}</textarea></td>
 
-</td>
-
-<td>
-
-<textarea
+<td><textarea
 ${r.locked?"disabled":""}
 data-r="${i}" data-c="1"
 inputmode="decimal"
 pattern="[0-9]*"
 onkeydown="if(event.key==='Enter'){saveBill();nav(event,${i},1)}"
 onblur="saveBill()"
-oninput="handlePriceInput(${i},this)">${r.price}</textarea>
-
-</td>
+oninput="handlePriceInput(${i},this)">${r.price}</textarea></td>
 
 <td>${tapHTML}</td>
 
-<td>
-
-<textarea
+<td><textarea
 ${r.locked?"disabled":""}
 data-r="${i}" data-c="3"
 onkeydown="if(event.key==='Enter'){nav(event,${i},3)}"
-oninput="update(${i},'people',this.value)">${r.people}</textarea>
-
-</td>
+oninput="update(${i},'people',this.value)">${r.people}</textarea></td>
 
 `;
 
