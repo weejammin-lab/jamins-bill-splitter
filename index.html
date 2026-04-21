@@ -296,10 +296,9 @@ oninput="saveNotes()"></textarea>
 </table>
 
 <div style="margin:6px 0; display:flex; gap:6px; align-items:center;">
-  <button onclick="deleteLastRow()">Delete Row</button>
-  <button onclick="addRow()">Add Row</button>
+  <button onclick="addRow()">Add 1 Row</button>
   <button onclick="add5Rows()">Add 5 Rows</button>
-
+  <button onclick="deleteLastRow()">Delete Last Row</button>
   <span id="deleteMsg" style="color:red; font-size:11px;"></span>
 </div>
 
@@ -568,24 +567,28 @@ saveBill();
   
 function deleteLastRow(){
 
-let msg = document.getElementById("deleteMsg");
-msg.textContent = "";
+const msg = document.getElementById("deleteMsg");
+if(msg) msg.textContent = "";
 
-// find last row index
-for(let i = rows.length - 1; i >= 0; i--){
+// safety check
+if(!rows || rows.length === 0) return;
 
-  if(!rows[i].locked){
-    rows.splice(i, 1);
+// find last row
+let lastIndex = rows.length - 1;
 
-    render();
-    calc();
-    saveBill();
-    return;
-  }
+// if last row is locked, don't delete
+if(rows[lastIndex].locked){
+if(msg) msg.textContent = "Last row is locked";
+return;
 }
 
-// if we got here → no unlocked rows found
-msg.textContent = "Last row is locked";
+// delete last row
+rows.pop();
+
+// update UI
+render();
+calc();
+saveBill();
 
 }
   
