@@ -396,8 +396,11 @@ notes: document.getElementById("notesBox").value
 
 function init(){
 rows=[];
+
 for(let i=0;i<8;i++){
 rows.push({item:"",price:"",people:"",selected:[],locked:false});
+}
+
 renderPeopleBar();
 render();
 calc();
@@ -543,6 +546,8 @@ saveBill();
 function add5Rows(){
 for(let i=0;i<5;i++){
 rows.push({item:"",price:"",people:"",selected:[],locked:false});
+}
+
 render();
 calc();
 saveBill();
