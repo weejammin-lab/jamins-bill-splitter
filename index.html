@@ -295,10 +295,12 @@ oninput="saveNotes()"></textarea>
 <tbody id="tableBody"></tbody>
 </table>
 
-<div style="margin:6px 0; display:flex; gap:6px;">
+<div style="margin:6px 0; display:flex; gap:6px; align-items:center;">
+  <button onclick="deleteLastRow()">Delete Row</button>
   <button onclick="addRow()">Add Row</button>
   <button onclick="add5Rows()">Add 5 Rows</button>
-  <button onclick="deleteLastRow()">Delete Row</button>
+
+  <span id="deleteMsg" style="color:red; font-size:11px;"></span>
 </div>
 
 <div class="tax-tip-wrap">
@@ -566,13 +568,24 @@ saveBill();
   
 function deleteLastRow(){
 
-if(rows.length === 0) return;
+let msg = document.getElementById("deleteMsg");
+msg.textContent = "";
 
-rows.pop();
+// find last row index
+for(let i = rows.length - 1; i >= 0; i--){
 
-render();
-calc();
-saveBill();
+  if(!rows[i].locked){
+    rows.splice(i, 1);
+
+    render();
+    calc();
+    saveBill();
+    return;
+  }
+}
+
+// if we got here → no unlocked rows found
+msg.textContent = "Last row is locked";
 
 }
   
