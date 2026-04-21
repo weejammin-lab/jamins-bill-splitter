@@ -18,7 +18,7 @@ margin:auto;
 padding:10px;
 }
 
-/* NEW — Lock Column */
+/* NEW — lock column */
 
 .lock-cell{
 display:flex;
@@ -47,7 +47,7 @@ font-size:14px;
 background:#ffd6d6;
 }
 
-/* existing styles below unchanged */
+/* original styles below */
 
 .top-actions{
 display:flex;
@@ -123,7 +123,7 @@ padding:3px;
 vertical-align:stretch;
 }
 
-/* UPDATED widths to add new column */
+/* UPDATED widths */
 
 th:nth-child(1), td:nth-child(1){ width:6%; }
 th:nth-child(2), td:nth-child(2){ width:17%; }
@@ -219,8 +219,15 @@ align-items:center;
 white-space:nowrap;
 }
 
-.label{text-align:left;}
-.value{text-align:right;}
+.label{
+text-align:left;
+white-space:nowrap;
+}
+
+.value{
+text-align:right;
+white-space:nowrap;
+}
 
 .total .label,
 .total .value{
@@ -237,151 +244,3 @@ margin-left:6px;
 font-size:11px;
 }
 </style>
-
-</head>
-
-<body>
-
-<h2>Bill Splitter</h2>
-
-<div class="top-actions">
-<input class="add-person-input"
-id="addPersonBox"
-placeholder="type name + Enter"
-onkeydown="handleAddPerson(event)">
-
-<button class="clear-btn" onclick="clearAll()">Clear All</button>
-</div>
-
-<div class="top-row">
-
-<div id="personBar"></div>
-
-<textarea class="notes-box"
-id="notesBox"
-placeholder="type notes here"
-oninput="saveNotes()"></textarea>
-
-</div>
-
-<br>
-
-<table>
-<thead>
-<tr>
-
-<th>#</th>
-<th>Item</th>
-<th>Price ($)</th>
-<th>People Involved (Tap Names)</th>
-<th>Type Names</th>
-
-</tr>
-</thead>
-
-<tbody id="tableBody"></tbody>
-
-</table>
-
-<div style="margin:6px 0; display:flex; gap:6px;">
-<button onclick="addRow()">Add Row</button>
-<button onclick="add5Rows()">Add 5 Rows</button>
-</div>
-
-<script>
-
-/* NEW lock toggle */
-
-function toggleLock(row){
-
-if(rows[row].locked===undefined)
-rows[row].locked=false;
-
-rows[row].locked=!rows[row].locked;
-
-render();
-
-}
-
-/* MODIFY render ONLY */
-
-function render(){
-
-let body=document.getElementById("tableBody");
-body.innerHTML="";
-
-rows.forEach((r,i)=>{
-
-if(r.locked===undefined)
-r.locked=false;
-
-let tapHTML=`
-<button class="name-btn everyone-btn ${r.selected?.length===nameList.length?'selected':''}"
-${r.locked?"disabled":""}
-onclick="toggleEveryone(${i})">EVERYONE</button>
-
-<div class="tap-grid">
-`;
-
-nameList.forEach(n=>{
-tapHTML+=`
-<button class="name-btn ${r.selected?.includes(n)?'selected':''}"
-${r.locked?"disabled":""}
-onclick="toggleName(${i},'${n}')">${n}</button>`;
-});
-
-tapHTML+=`</div>`;
-
-let tr=document.createElement("tr");
-
-tr.innerHTML=`
-
-<td class="lock-cell">
-
-<div>${i+1}</div>
-
-<button class="lock-btn ${r.locked?"locked":""}"
-onclick="toggleLock(${i})">
-
-${r.locked?"🔒":"🔓"}
-
-</button>
-
-</td>
-
-<td><textarea
-${r.locked?"disabled":""}
-data-r="${i}" data-c="0"
-placeholder="optional"
-onkeydown="if(event.key==='Enter'){nav(event,${i},0)}"
-oninput="update(${i},'item',this.value)">${r.item}</textarea></td>
-
-<td><textarea
-${r.locked?"disabled":""}
-data-r="${i}" data-c="1"
-inputmode="decimal"
-pattern="[0-9]*"
-onkeydown="if(event.key==='Enter'){saveBill();nav(event,${i},1)}"
-onblur="saveBill()"
-oninput="handlePriceInput(${i},this)">${r.price}</textarea></td>
-
-<td>${tapHTML}</td>
-
-<td><textarea
-${r.locked?"disabled":""}
-data-r="${i}" data-c="3"
-onkeydown="if(event.key==='Enter'){nav(event,${i},3)}"
-oninput="update(${i},'people',this.value)">${r.people}</textarea></td>
-
-`;
-
-body.appendChild(tr);
-
-});
-
-}
-
-</script>
-
-</body>
-</html>
