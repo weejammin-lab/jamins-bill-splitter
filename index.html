@@ -452,9 +452,11 @@ if(e.key!=="Enter") return;
 
 let box=document.getElementById("addPersonBox");
 let name=box.value.trim();
+let key = name.toLowerCase();
 if(!name) return;
 
 nameList.push(name);
+venmoNames[key] = venmoNames[key] || "";
 box.value="";
 
 renderPeopleBar();
@@ -773,7 +775,7 @@ div.innerHTML="";
 
 Object.keys(people).forEach(p=>{
 
-let venmoId = venmoNames[p] || "";
+let venmoId = venmoNames[p.toLowerCase()] || "";
 
 div.innerHTML+=`
 <div class="result">
