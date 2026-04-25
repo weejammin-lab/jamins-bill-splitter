@@ -70,7 +70,7 @@ margin-bottom:4px;
 .add-person-input{
 padding:4px;
 font-size:12px;
-width:140px;
+width:112px;
 display:block;
 }
 
@@ -79,6 +79,26 @@ display:flex;
 gap:8px;
 align-items:stretch;
 margin-top:4px;
+}
+
+/* Row 1: name input + upload receipt + thumbnail */
+.action-row-1{
+display:flex;
+gap:6px;
+align-items:center;
+margin-bottom:4px;
+}
+
+/* Row 2: load dropdown + save bill (pinned right) */
+.action-row-2{
+display:flex;
+align-items:center;
+gap:6px;
+margin-bottom:4px;
+}
+
+.action-row-2 .spacer{
+flex:1;
 }
 
 #personBar{
@@ -298,47 +318,44 @@ font-size:11px;
 <body>
 
 <div class="header-row">
-
   <h2 style="margin:0;">Bill Splitter</h2>
-
   <div class="header-right">
-    <button onclick="saveNewBill()">Save Bill</button>
     <button class="clear-btn" onclick="clearAll()">Clear All</button>
   </div>
+</div>
+
+<!-- Row 1: name input + upload receipt + thumbnail -->
+<div class="action-row-1">
+
+  <input class="add-person-input"
+  id="addPersonBox"
+  placeholder="type name + Enter"
+  onkeydown="handleAddPerson(event)">
+
+  <input type="file"
+  id="receiptUpload"
+  accept="image/*"
+  style="display:none"
+  onchange="handleReceiptUpload(event)">
+
+  <button onclick="document.getElementById('receiptUpload').click()">
+    Upload Receipt
+  </button>
+
+  <div id="receiptPreviewContainer"></div>
 
 </div>
 
-<div class="top-actions">
+<!-- Row 2: load dropdown (left) + save bill (right) -->
+<div class="action-row-2">
 
-  <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+  <select id="billDropdown" onchange="loadSavedBill(this.value)" style="font-size:12px; padding:4px; max-width:200px;">
+    <option value="">-- load a saved bill --</option>
+  </select>
 
-    <!-- Add Person Box -->
-    <input class="add-person-input"
-    id="addPersonBox"
-    placeholder="type name + Enter"
-    onkeydown="handleAddPerson(event)">
+  <div class="spacer"></div>
 
-    <!-- Hidden file input -->
-    <input type="file"
-    id="receiptUpload"
-    accept="image/*"
-    style="display:none"
-    onchange="handleReceiptUpload(event)">
-
-    <!-- Upload button -->
-    <button onclick="document.getElementById('receiptUpload').click()">
-      Upload Receipt
-    </button>
-
-    <!-- Thumbnail placeholder -->
-    <div id="receiptPreviewContainer"></div>
-
-    <!-- Load saved bill dropdown -->
-    <select id="billDropdown" onchange="loadSavedBill(this.value)" style="font-size:12px; padding:4px; max-width:160px;">
-      <option value="">-- load a saved bill --</option>
-    </select>
-
-  </div>
+  <button onclick="saveNewBill()">Save Bill</button>
 
 </div>
 
@@ -411,7 +428,7 @@ appId: "1:139094691642:web:fa1f61dcfae8d085094a03"
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const billRef = db.collection("bills").doc("main");
-const storage = firebase.storage();  
+const storage = firebase.storage();
 
 const defaultVenmoMap = {
 jamin:"jamin-chen",
@@ -427,6 +444,7 @@ maria:"mariapdiaz",
 paarus:"paarus-ali",
 anna:"anna-claire-choi",
 michelle:"michelletran9",
+  mich:"michelletran9",
 victoria:"victoriabao",
 vic:"victoriabao",
 };
@@ -437,9 +455,13 @@ let nameList=[...defaultNames];
 let rows=[];
 let venmoNames={...defaultVenmoMap};
 
-let receiptUrl="";  
+let receiptUrl="";
 let isLocalUpdate=false;
 let lastSavedReceiptUrl = null;
+
+// tracks which savedBill doc is currently loaded (null = none)
+let currentLoadedBillId = null;
+let currentLoadedBillTitle = null;
 
 function safeReceiptUrl(){
 return (receiptUrl && receiptUrl.length > 5) ? receiptUrl : null;
@@ -448,17 +470,14 @@ return (receiptUrl && receiptUrl.length > 5) ? receiptUrl : null;
 function getCurrentReceiptUrl(){
 return receiptUrl || null;
 }
-  
+
 function showReceiptThumbnail(url){
 if (!url) return;
-
 const container = document.getElementById("receiptPreviewContainer");
 container.innerHTML = "";
-
 const img = document.createElement("img");
 img.src = url;
 img.className = "receipt-thumb";
-
 img.onclick = function(){
   const overlay = document.createElement("div");
   overlay.className = "receipt-overlay";
@@ -468,13 +487,11 @@ img.onclick = function(){
   overlay.onclick = () => overlay.remove();
   document.body.appendChild(overlay);
 };
-
 container.appendChild(img);
 }
-  
+
 function loadBill(){
 billRef.onSnapshot(doc=>{
-
 const data=doc.data();
 if(!data) return;
 
@@ -502,7 +519,7 @@ render();
 calc();
 });
 }
-  
+
 async function handleReceiptUpload(event){
   const file = event.target.files[0];
   if(!file) return;
@@ -551,15 +568,8 @@ notes:document.getElementById("notesBox").value
 });
 }
 
-async function saveNewBill(){
-  const title = prompt("Enter a title for this bill:");
-  if(!title || !title.trim()) return;
-
-  saveBill();
-
-  const billData = {
-    title: title.trim(),
-    savedAt: Date.now(),
+function getCurrentBillData(){
+  return {
     rows,
     nameList,
     venmoNames,
@@ -570,10 +580,50 @@ async function saveNewBill(){
     tipMode: document.getElementById("tipMode").value,
     notes: document.getElementById("notesBox").value
   };
+}
 
-  await db.collection("savedBills").add(billData);
+async function saveNewBill(){
+  // if a saved bill is currently loaded, ask to overwrite
+  if(currentLoadedBillId){
+    const overwrite = confirm(`Overwrite "${currentLoadedBillTitle}" with current changes?`);
+    if(overwrite){
+      // overwrite existing doc
+      await db.collection("savedBills").doc(currentLoadedBillId).update({
+        ...getCurrentBillData(),
+        savedAt: Date.now()
+      });
+      alert(`"${currentLoadedBillTitle}" updated!`);
+      loadSavedBillsList();
+      return;
+    }
+    // user said no — fall through to save as new
+  }
+
+  // save as new bill
+  const title = prompt("Enter a title for this bill:");
+  if(!title || !title.trim()) return;
+
+  saveBill();
+
+  const billData = {
+    title: title.trim(),
+    savedAt: Date.now(),
+    ...getCurrentBillData()
+  };
+
+  const docRef = await db.collection("savedBills").add(billData);
+
+  // set as currently loaded bill
+  currentLoadedBillId = docRef.id;
+  currentLoadedBillTitle = title.trim();
+
   alert(`"${title.trim()}" saved!`);
   loadSavedBillsList();
+
+  // show the new bill selected in dropdown
+  setTimeout(()=>{
+    document.getElementById("billDropdown").value = docRef.id;
+  }, 300);
 }
 
 async function loadSavedBillsList(){
@@ -583,6 +633,7 @@ async function loadSavedBillsList(){
     .get();
 
   const dropdown = document.getElementById("billDropdown");
+  const currentVal = dropdown.value;
   dropdown.innerHTML = `<option value="">-- load a saved bill --</option>`;
 
   snapshot.forEach(doc => {
@@ -593,6 +644,11 @@ async function loadSavedBillsList(){
     opt.textContent = `${d.title} (${date})`;
     dropdown.appendChild(opt);
   });
+
+  // restore selection if still valid
+  if(currentVal){
+    dropdown.value = currentVal;
+  }
 }
 
 async function loadSavedBill(id){
@@ -603,6 +659,10 @@ async function loadSavedBill(id){
   const doc = await db.collection("savedBills").doc(id).get();
   const data = doc.data();
   if(!data) return;
+
+  // track which bill is loaded
+  currentLoadedBillId = id;
+  currentLoadedBillTitle = data.title;
 
   rows = data.rows || [];
   nameList = data.nameList || [];
@@ -622,8 +682,8 @@ async function loadSavedBill(id){
     document.getElementById("receiptPreviewContainer").innerHTML = "";
   }
 
-  // keep the selected bill name showing in the dropdown (don't reset)
-  // the onchange already set the value, so nothing needed here
+  // keep selected bill name in dropdown
+  document.getElementById("billDropdown").value = id;
 
   renderPeopleBar();
   render();
@@ -655,10 +715,14 @@ document.getElementById("taxMode").value="amount";
 document.getElementById("tipMode").value="amount";
 document.getElementById("notesBox").value="";
 
-// clear receipt
 receiptUrl = "";
 lastSavedReceiptUrl = "";
 document.getElementById("receiptPreviewContainer").innerHTML = "";
+
+// reset loaded bill tracking
+currentLoadedBillId = null;
+currentLoadedBillTitle = null;
+document.getElementById("billDropdown").value = "";
 
 rows=[];
 nameList=[...defaultNames];
@@ -682,16 +746,13 @@ ${n}
 
 function handleAddPerson(e){
 if(e.key!=="Enter") return;
-
 let box=document.getElementById("addPersonBox");
 let name=box.value.trim();
 let key = name.toLowerCase();
 if(!name) return;
-
 nameList.push(name);
 venmoNames[key] = venmoNames[key] || "";
 box.value="";
-
 renderPeopleBar();
 render();
 calc();
@@ -701,24 +762,22 @@ saveBill();
 function deletePerson(i){
 let removed=nameList[i];
 nameList.splice(i,1);
-
 rows.forEach(r=>{
 r.selected=(r.selected||[]).filter(p=>p!==removed);
 r.people=(r.selected||[]).join(", ");
 });
-
 renderPeopleBar();
 render();
 calc();
 saveBill();
 }
-  
+
 function toggleLock(row){
 rows[row].locked = !rows[row].locked;
 render();
 saveBill();
 }
-  
+
 function update(i,key,val){
 if(rows[i].locked) return;
 rows[i][key]=val;
@@ -730,11 +789,9 @@ if(rows[row].locked){
 el.value = rows[row].price;
 return;
 }
-
 el.value = el.value
 .replace(/[^0-9.]/g,"")
 .replace(/(\..*?)\..*/g,"$1");
-
 rows[row].price = el.value;
 calc();
 }
@@ -744,16 +801,13 @@ if(rows[row].locked) return;
 let r=rows[row];
 if(!r.selected) r.selected=[];
 let idx=r.selected.indexOf(name);
-
 if(idx>-1) r.selected.splice(idx,1);
 else r.selected.push(name);
-
 if(r.selected.length===nameList.length){
 r.people="EVERYONE";
 }else{
 r.people=r.selected.join(", ");
 }
-
 render();
 calc();
 saveBill();
@@ -762,7 +816,6 @@ saveBill();
 function toggleEveryone(row){
 if(rows[row].locked) return;
 let r=rows[row];
-
 if(r.selected?.length===nameList.length){
 r.selected=[];
 r.people="";
@@ -770,7 +823,6 @@ r.people="";
 r.selected=[...nameList];
 r.people="EVERYONE";
 }
-
 render();
 calc();
 saveBill();
@@ -782,7 +834,7 @@ render();
 calc();
 saveBill();
 }
-  
+
 function add5Rows(){
 for(let i=0;i<5;i++){
 rows.push({item:"",price:"",people:"",selected:[],locked:false});
@@ -791,31 +843,25 @@ render();
 calc();
 saveBill();
 }
-  
+
 function deleteLastRow(){
 const msg = document.getElementById("deleteMsg");
 if(msg) msg.textContent = "";
-
 if(!rows || rows.length === 0) return;
-
 let lastIndex = rows.length - 1;
-
 if(rows[lastIndex].locked){
 if(msg) msg.textContent = "Unlock last row to delete";
 return;
 }
-
 rows.pop();
 render();
 calc();
 saveBill();
 }
-  
+
 function nav(e,row,col){
 e.preventDefault();
-
 let nextRow=row+1;
-
 if(nextRow>=rows.length){
 addRow();
 setTimeout(()=>{
@@ -823,7 +869,6 @@ document.querySelector(`[data-r="${nextRow}"][data-c="${col}"]`)?.focus();
 },0);
 return;
 }
-
 setTimeout(()=>{
 let next=document.querySelector(`[data-r="${nextRow}"][data-c="${col}"]`);
 if(next){
@@ -836,27 +881,22 @@ next.select?.();
 function render(){
 let body=document.getElementById("tableBody");
 body.innerHTML="";
-
 rows.forEach((r,i)=>{
-
 let tapHTML=`
 <button class="name-btn everyone-btn ${r.selected?.length===nameList.length?'selected':''}"
 onclick="toggleEveryone(${i})">EVERYONE</button>
 <div class="tap-grid">
 `;
-
 nameList.forEach(n=>{
 tapHTML+=`
 <button class="name-btn ${r.selected?.includes(n)?'selected':''}"
 onclick="toggleName(${i},'${n}')">${n}</button>`;
 });
-
 tapHTML+=`</div>`;
 
 let isLocked = r.locked;
 let lockIcon = isLocked ? "🔒" : "🔓";
 let lockClass = isLocked ? "locked" : "unlocked";
-
 let tr=document.createElement("tr");
 if(isLocked) tr.classList.add("locked-row");
 
@@ -889,18 +929,15 @@ onkeydown="if(event.key==='Enter'){nav(event,${i},3)}"
 oninput="update(${i},'people',this.value)">${r.people}</textarea>
 </td>
 `;
-
 body.appendChild(tr);
 });
 }
-  
+
 function calc(){
 let subtotal=0;
 let people={};
-
 let taxVal=parseFloat(document.getElementById("taxValue").value)||0;
 let tipVal=parseFloat(document.getElementById("tipValue").value)||0;
-
 let taxMode=document.getElementById("taxMode").value;
 let tipMode=document.getElementById("tipMode").value;
 
@@ -908,13 +945,10 @@ rows.forEach(r=>{
 if(r.price){
 let price=parseFloat(r.price);
 if(!isNaN(price)) subtotal+=price;
-
 let list=r.people==="EVERYONE"
 ? nameList
 : (r.people||"").split(",").map(p=>p.trim()).filter(Boolean);
-
 let share=price/list.length||0;
-
 list.forEach(p=>{
 if(!people[p]) people[p]={subtotalShare:0};
 people[p].subtotalShare+=share;
@@ -937,39 +971,21 @@ let tipPct = subtotal ? (tipAmount / subtotal * 100) : 0;
 
 summary.innerHTML=`
 <div class="sum-table">
-<div class="row">
-<div class="label">Subtotal</div>
-<div class="value">${subtotal.toFixed(2)}</div>
-</div>
-<div class="row">
-<div class="label">Tax (${taxPct.toFixed(2)}%)</div>
-<div class="value">${taxAmount.toFixed(2)}</div>
-</div>
-<div class="row">
-<div class="label">Tip (${tipPct.toFixed(2)}%)</div>
-<div class="value">${tipAmount.toFixed(2)}</div>
-</div>
-<div class="row total">
-<div class="label">Total</div>
-<div class="value">${total.toFixed(2)}</div>
-</div>
+<div class="row"><div class="label">Subtotal</div><div class="value">${subtotal.toFixed(2)}</div></div>
+<div class="row"><div class="label">Tax (${taxPct.toFixed(2)}%)</div><div class="value">${taxAmount.toFixed(2)}</div></div>
+<div class="row"><div class="label">Tip (${tipPct.toFixed(2)}%)</div><div class="value">${tipAmount.toFixed(2)}</div></div>
+<div class="row total"><div class="label">Total</div><div class="value">${total.toFixed(2)}</div></div>
 </div>
 `;
 
 let div=document.getElementById("totals");
 div.innerHTML="";
-
 Object.keys(people).forEach(p=>{
 let venmoId = venmoNames[p.toLowerCase()] || "";
-
 div.innerHTML+=`
 <div class="result">
 ${p} owes $${people[p].total.toFixed(2)}
-${venmoId ? `
-<button class="venmo-btn"
-onclick="window.open('https://venmo.com/?txn=request&recipients=${encodeURIComponent(venmoId)}&amount=${people[p].total.toFixed(2)}','_blank')">
-Request
-</button>` : ``}
+${venmoId ? `<button class="venmo-btn" onclick="window.open('https://venmo.com/?txn=request&recipients=${encodeURIComponent(venmoId)}&amount=${people[p].total.toFixed(2)}','_blank')">Request</button>` : ``}
 </div>`;
 });
 }
