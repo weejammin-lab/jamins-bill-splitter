@@ -18,6 +18,13 @@ margin:auto;
 padding:10px;
 }
   
+.header-row{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:6px;
+}
+  
 .receipt-thumb{
 width:36px;
 height:36px;
@@ -266,7 +273,16 @@ font-size:11px;
 
 <body>
 
-<h2>Bill Splitter</h2>
+<div class="header-row">
+
+<h2 style="margin:0;">Bill Splitter</h2>
+
+<button class="clear-btn"
+onclick="clearAll()">
+Clear All
+</button>
+
+</div>
 
 <div class="top-actions">
 
@@ -295,7 +311,6 @@ font-size:11px;
 
   </div>
 
-  <button class="clear-btn" onclick="clearAll()">Clear All</button>
 
 </div>
 
