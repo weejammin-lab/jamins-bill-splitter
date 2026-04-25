@@ -421,7 +421,55 @@ render();
 calc();
 });
 }
+  
+function handleReceiptUpload(event){
 
+const file = event.target.files[0];
+if(!file) return;
+
+const reader = new FileReader();
+
+reader.onload = function(e){
+
+const container =
+document.getElementById("receiptPreviewContainer");
+
+/* show only 1 thumbnail */
+
+container.innerHTML = "";
+
+/* create image */
+
+const img = document.createElement("img");
+
+img.src = e.target.result;
+
+img.className = "receipt-thumb";
+
+/* click → open full image */
+
+img.onclick = function(){
+
+const win = window.open("");
+
+win.document.write(
+`<img src="${img.src}" style="width:100%">`
+);
+
+};
+
+container.appendChild(img);
+
+};
+
+reader.readAsDataURL(file);
+
+/* allow re-upload */
+
+event.target.value = "";
+
+}
+  
 function saveBill(){
 
 isLocalUpdate=true;
