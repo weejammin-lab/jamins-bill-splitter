@@ -905,7 +905,7 @@ async function toggleArchive(){
 
   } else {
     // ARCHIVE
-    const confirmed = confirm(`Archive "${currentLoadedBillTitle}"?\n\nArchived bills cannot be edited. You can still view them or use Save As to make an editable copy.`);
+    const confirmed = confirm(`Archive "${currentLoadedBillTitle}"?\n\nArchived Bills can't be edited but can still be viewed.`);
     if(!confirmed) return;
 
     rows.forEach(r => r.locked = true);
