@@ -413,8 +413,11 @@ let rows=[];
 let venmoNames={...defaultVenmoMap};
 
 let receiptUrl="";  
-
 let isLocalUpdate=false;
+
+function getCurrentReceiptUrl(){
+return receiptUrl || null;
+}
   
 function showReceiptThumbnail(url){
 if (!url) return;
@@ -513,15 +516,15 @@ billRef.set({
 rows,
 nameList,
 venmoNames,
-receiptUrl, // <-- ALWAYS trust memory version
+receiptUrl: getCurrentReceiptUrl(),
 taxValue:document.getElementById("taxValue").value,
 tipValue:document.getElementById("tipValue").value,
 taxMode:document.getElementById("taxMode").value,
 tipMode:document.getElementById("tipMode").value,
 notes:document.getElementById("notesBox").value
-}).finally(()=>{
+}, { merge: true });
+
 setTimeout(()=>isLocalUpdate=false,300);
-});
 
 }
 
