@@ -415,6 +415,10 @@ let venmoNames={...defaultVenmoMap};
 let receiptUrl="";  
 let isLocalUpdate=false;
 
+function safeReceiptUrl(){
+return (receiptUrl && receiptUrl.length > 5) ? receiptUrl : null;
+}
+
 function getCurrentReceiptUrl(){
 return receiptUrl || null;
 }
@@ -490,6 +494,9 @@ receiptUrl = url;
 showReceiptThumbnail(url);
 
 // ✅ ONLY update ONE field safely
+receiptUrl = url;
+showReceiptThumbnail(url);
+
 billRef.set({
   receiptUrl: url
 }, { merge: true });
@@ -508,7 +515,9 @@ billRef.set({
 rows,
 nameList,
 venmoNames,
-receiptUrl: receiptUrl,   // ✅ ONLY this
+
+receiptUrl: safeReceiptUrl() ?? undefined,  // ✅ FIXED
+
 taxValue:document.getElementById("taxValue").value,
 tipValue:document.getElementById("tipValue").value,
 taxMode:document.getElementById("taxMode").value,
