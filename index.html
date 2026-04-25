@@ -449,7 +449,8 @@ venmoNames=data.venmoNames||{};
 
 receiptUrl = data.receiptUrl || "";
 
-if(receiptUrl){
+if(data.receiptUrl){
+receiptUrl = data.receiptUrl;
 showReceiptThumbnail(receiptUrl);
 }
 
@@ -493,13 +494,6 @@ event.target.value = "";
 
 
 
-reader.readAsDataURL(file);
-
-/* allow re-upload */
-
-event.target.value = "";
-
-}
   
 function saveBill(){
 
