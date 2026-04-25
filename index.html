@@ -477,32 +477,20 @@ calc();
 }
   
 async function handleReceiptUpload(event){
+  const file = event.target.files[0];
+  if(!file) return;
 
-console.log("UPLOAD FUNCTION TRIGGERED");
+  const storageRef = storage.ref().child(`receipts/${Date.now()}_receipt.jpg`);
+  await storageRef.put(file);
+  const url = await storageRef.getDownloadURL();
 
-const file = event.target.files[0];
-if(!file) return;
+  receiptUrl = url;
+  lastSavedReceiptUrl = url;
 
-const storageRef =
-storage.ref().child(`receipts/${Date.now()}_receipt.jpg`);
+  showReceiptThumbnail(url);
 
-await storageRef.put(file);
-
-const url = await storageRef.getDownloadURL();
-
-receiptUrl = url;
-
-showReceiptThumbnail(url);
-
-// ✅ ONLY update ONE field safely
-receiptUrl = url;
-showReceiptThumbnail(url);
-
-billRef.set({
-  receiptUrl: url
-}, { merge: true });
-
-event.target.value = "";
+  billRef.set({ receiptUrl: url }, { merge: true });
+  event.target.value = "";
 }
 
 
