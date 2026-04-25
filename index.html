@@ -45,6 +45,24 @@ justify-content:space-between;
 align-items:center;
 margin-bottom:6px;
 }
+
+.save-bar{
+display:flex;
+gap:6px;
+align-items:center;
+margin-bottom:6px;
+}
+
+.save-bar select{
+font-size:12px;
+padding:4px;
+max-width:200px;
+}
+
+.save-bar button{
+font-size:12px;
+padding:4px 8px;
+}
   
 .receipt-thumb{
 width:36px;
@@ -305,6 +323,13 @@ Clear All
 
 </div>
 
+<div class="save-bar">
+  <button onclick="saveNewBill()">Save Bill</button>
+  <select id="billDropdown" onchange="loadSavedBill(this.value)">
+    <option value="">-- load a saved bill --</option>
+  </select>
+</div>
+
 <div class="top-actions">
 
   <div style="display:flex; gap:6px; align-items:center;">
@@ -478,14 +503,14 @@ billRef.onSnapshot(doc=>{
 const data=doc.data();
 if(!data) return;
 
-// ✅ ALWAYS update receipt URL regardless of isLocalUpdate
+// ALWAYS update receipt URL regardless of isLocalUpdate
 if(data.receiptUrl && data.receiptUrl.length > 5){
   receiptUrl = data.receiptUrl;
   lastSavedReceiptUrl = data.receiptUrl;
   showReceiptThumbnail(data.receiptUrl);
 }
 
-if(isLocalUpdate) return;  // ← moved to AFTER receipt url is saved
+if(isLocalUpdate) return;
 
 rows=data.rows||[];
 nameList=data.nameList||[];
@@ -528,14 +553,10 @@ async function handleReceiptUpload(event){
   event.target.value = "";
 }
 
-
-
-  
 function saveBill(){
 if(!billLoaded) return;
 isLocalUpdate=true;
 
-// 🚨 BLOCK EMPTY OR RESET OVERWRITES
 if (!receiptUrl || receiptUrl.length < 5) {
 receiptUrl = lastSavedReceiptUrl || "";
 }
@@ -553,7 +574,6 @@ tipMode:document.getElementById("tipMode").value,
 notes:document.getElementById("notesBox").value
 }).then(()=>{
 
-// store last known good value AFTER successful save
 if (receiptUrl && receiptUrl.length > 5) {
 lastSavedReceiptUrl = receiptUrl;
 }
@@ -564,7 +584,87 @@ setTimeout(()=>isLocalUpdate=false,300);
 
 }
 
-  
+async function saveNewBill(){
+  const title = prompt("Enter a title for this bill:");
+  if(!title || !title.trim()) return;
+
+  // auto-save current first
+  saveBill();
+
+  const billData = {
+    title: title.trim(),
+    savedAt: Date.now(),
+    rows,
+    nameList,
+    venmoNames,
+    receiptUrl: receiptUrl || "",
+    taxValue: document.getElementById("taxValue").value,
+    tipValue: document.getElementById("tipValue").value,
+    taxMode: document.getElementById("taxMode").value,
+    tipMode: document.getElementById("tipMode").value,
+    notes: document.getElementById("notesBox").value
+  };
+
+  await db.collection("savedBills").add(billData);
+  alert(`"${title.trim()}" saved!`);
+  loadSavedBillsList();
+}
+
+async function loadSavedBillsList(){
+  const snapshot = await db.collection("savedBills")
+    .orderBy("savedAt", "desc")
+    .limit(10)
+    .get();
+
+  const dropdown = document.getElementById("billDropdown");
+  dropdown.innerHTML = `<option value="">-- load a saved bill --</option>`;
+
+  snapshot.forEach(doc => {
+    const d = doc.data();
+    const date = new Date(d.savedAt).toLocaleDateString();
+    const opt = document.createElement("option");
+    opt.value = doc.id;
+    opt.textContent = `${d.title} (${date})`;
+    dropdown.appendChild(opt);
+  });
+}
+
+async function loadSavedBill(id){
+  if(!id) return;
+
+  // auto-save current bill first
+  saveBill();
+
+  const doc = await db.collection("savedBills").doc(id).get();
+  const data = doc.data();
+  if(!data) return;
+
+  rows = data.rows || [];
+  nameList = data.nameList || [];
+  venmoNames = data.venmoNames || {};
+  receiptUrl = data.receiptUrl || "";
+  lastSavedReceiptUrl = receiptUrl;
+
+  document.getElementById("taxValue").value = data.taxValue || "";
+  document.getElementById("tipValue").value = data.tipValue || "";
+  document.getElementById("taxMode").value = data.taxMode || "amount";
+  document.getElementById("tipMode").value = data.tipMode || "amount";
+  document.getElementById("notesBox").value = data.notes || "";
+
+  if(receiptUrl){
+    showReceiptThumbnail(receiptUrl);
+  } else {
+    document.getElementById("receiptPreviewContainer").innerHTML = "";
+  }
+
+  // reset dropdown back to placeholder
+  document.getElementById("billDropdown").value = "";
+
+  renderPeopleBar();
+  render();
+  calc();
+}
+
 function saveNotes(){
 billRef.update({
 notes: document.getElementById("notesBox").value
@@ -737,22 +837,17 @@ function deleteLastRow(){
 const msg = document.getElementById("deleteMsg");
 if(msg) msg.textContent = "";
 
-// safety check
 if(!rows || rows.length === 0) return;
 
-// find last row
 let lastIndex = rows.length - 1;
 
-// if last row is locked, don't delete
 if(rows[lastIndex].locked){
 if(msg) msg.textContent = "Unlock last row to delete";
 return;
 }
 
-// delete last row
 rows.pop();
 
-// update UI
 render();
 calc();
 saveBill();
@@ -803,22 +898,18 @@ onclick="toggleName(${i},'${n}')">${n}</button>`;
 
 tapHTML+=`</div>`;
 
-/* lock visuals */
 let isLocked = r.locked;
 let lockIcon = isLocked ? "🔒" : "🔓";
 let lockClass = isLocked ? "locked" : "unlocked";
 
-/* row */
 let tr=document.createElement("tr");
 
-/* grey row when locked */
 if(isLocked){
 tr.classList.add("locked-row");
 }
 
 tr.innerHTML=`
 
-<!-- LEFT COLUMN (NEW) -->
 <td class="lock-cell">
 <div>${i+1}</div>
 
@@ -828,7 +919,6 @@ ${lockIcon}
 </button>
 </td>
 
-<!-- ITEM -->
 <td>
 <textarea data-r="${i}" data-c="0"
 placeholder="optional"
@@ -837,7 +927,6 @@ onkeydown="if(event.key==='Enter'){nav(event,${i},0)}"
 oninput="update(${i},'item',this.value)">${r.item}</textarea>
 </td>
 
-<!-- PRICE -->
 <td>
 <textarea data-r="${i}" data-c="1"
 inputmode="decimal"
@@ -848,10 +937,8 @@ onblur="saveBill()"
 oninput="handlePriceInput(${i},this)">${r.price}</textarea>
 </td>
 
-<!-- PEOPLE -->
 <td>${tapHTML}</td>
 
-<!-- TYPE / NOTES -->
 <td>
 <textarea data-r="${i}" data-c="3"
 ${isLocked ? "disabled" : ""}
@@ -958,6 +1045,7 @@ Request
 
 init();
 loadBill();
+loadSavedBillsList();
 
 </script>
 <br><br><br><br>
