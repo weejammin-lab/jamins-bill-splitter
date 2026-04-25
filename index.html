@@ -449,9 +449,12 @@ venmoNames=data.venmoNames||{};
 
 receiptUrl = data.receiptUrl || "";
 
-if(data.receiptUrl){
-receiptUrl = data.receiptUrl;
-showReceiptThumbnail(receiptUrl);
+receiptUrl = data.receiptUrl || "";
+
+if (receiptUrl) {
+  setTimeout(() => {
+    showReceiptThumbnail(receiptUrl);
+  }, 0);
 }
 
 document.getElementById("taxValue").value=data.taxValue||"";
