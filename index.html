@@ -80,7 +80,6 @@ border:none;
 padding:0;
 }
 
-/* Row 1: name input | dropdown */
 .action-row{
 display:flex;
 gap:6px;
@@ -89,7 +88,6 @@ margin-bottom:4px;
 flex-wrap:nowrap;
 }
 
-/* Row 2: save / save as */
 .save-row{
 display:flex;
 gap:6px;
@@ -385,6 +383,16 @@ border:1px solid #ffc107;
 border-radius:4px;
 }
 
+.unarchive-btn{
+font-size:11px;
+padding:3px 8px;
+cursor:pointer;
+background:#d4edda;
+border:1px solid #28a745;
+border-radius:4px;
+color:#155724;
+}
+
 .delete-btn{
 font-size:11px;
 padding:3px 8px;
@@ -393,14 +401,6 @@ background:#ffe0e0;
 border:1px solid #ff5c5c;
 border-radius:4px;
 color:#cc0000;
-}
-
-/* archived overlay for inputs */
-.archived-mode input,
-.archived-mode textarea,
-.archived-mode button:not(.venmo-btn):not(.save-bill-btn[data-saveas]):not(#newBillBtn){
-pointer-events:none;
-opacity:0.6;
 }
 </style>
 
@@ -440,7 +440,7 @@ opacity:0.6;
   </div>
 </div>
 
-<!-- ROW 3: archived label (if applicable) | Save | Save As -->
+<!-- ROW 3: archived label | Save | Save As -->
 <div class="save-row">
   <span id="archivedLabel" class="archived-label" style="display:none;">⛔ ARCHIVED</span>
   <div class="right-actions">
@@ -504,8 +504,8 @@ oninput="saveNotes(); markDirty()"></textarea>
 <div id="totals"></div>
 
 <!-- Archive / Delete row -->
-<div class="bill-actions-row">
-  <button class="archive-btn" onclick="archiveBill()">Archive Bill</button>
+<div class="bill-actions-row" id="billActionsRow" style="display:none;">
+  <button id="archiveToggleBtn" class="archive-btn" onclick="toggleArchive()">Archive Bill</button>
   <button class="delete-btn" onclick="deleteBill()">Delete Bill</button>
 </div>
 
@@ -556,11 +556,7 @@ let currentLoadedBillId = null;
 let currentLoadedBillTitle = null;
 let isArchived = false;
 let isDirty = false;
-
-// snapshot of state when a bill is loaded — used to detect real changes
 let loadedSnapshot = null;
-
-// tracks when the first data was entered on a new bill
 let newBillFirstInputDate = null;
 
 function formatDate(ts){
@@ -586,11 +582,9 @@ function snapshotState(){
 
 function markDirty(){
   if(currentLoadedBillId){
-    // only dirty if state actually differs from what was loaded
     const changed = snapshotState() !== loadedSnapshot;
     isDirty = changed;
   } else {
-    // new bill — track first input date
     if(!newBillFirstInputDate && hasContent()){
       newBillFirstInputDate = Date.now();
     }
@@ -602,17 +596,11 @@ function markDirty(){
 function updateSaveButtonState(){
   const btn = document.getElementById("saveBillBtn");
   if(!btn) return;
+  btn.textContent = "Save";
   if(currentLoadedBillId){
-    btn.textContent = "Save";
     btn.disabled = !isDirty || isArchived;
   } else {
-    btn.textContent = "Save";
     btn.disabled = false;
-  }
-  // Save As always enabled unless new bill with no content
-  const saveAsBtn = document.querySelector("button[data-saveas]");
-  if(saveAsBtn){
-    saveAsBtn.disabled = isArchived ? false : false; // always enabled
   }
 }
 
@@ -620,27 +608,23 @@ function updateArchivedUI(){
   const label = document.getElementById("archivedLabel");
   label.style.display = isArchived ? "inline" : "none";
 
-  const body = document.body;
-  if(isArchived){
-    body.classList.add("archived-mode");
-  } else {
-    body.classList.remove("archived-mode");
+  const archiveBtn = document.getElementById("archiveToggleBtn");
+  if(archiveBtn){
+    if(isArchived){
+      archiveBtn.textContent = "Unarchive Bill";
+      archiveBtn.className = "unarchive-btn";
+    } else {
+      archiveBtn.textContent = "Archive Bill";
+      archiveBtn.className = "archive-btn";
+    }
   }
 
-  // in archived mode: lock all interactive elements except allowed ones
-  const allBtns = document.querySelectorAll("button:not(#newBillBtn):not(.venmo-btn):not([data-saveas])");
-  const allInputs = document.querySelectorAll("input:not(#receiptUpload), textarea, select:not(#billDropdown)");
+  // show/hide bill actions row only when a bill is loaded
+  const actionsRow = document.getElementById("billActionsRow");
+  if(actionsRow){
+    actionsRow.style.display = currentLoadedBillId ? "flex" : "none";
+  }
 
-  allBtns.forEach(b => {
-    if(isArchived) b.setAttribute("disabled","");
-    else b.removeAttribute("disabled");
-  });
-  allInputs.forEach(el => {
-    if(isArchived) el.setAttribute("disabled","");
-    else el.removeAttribute("disabled");
-  });
-
-  // re-apply save button state
   updateSaveButtonState();
 }
 
@@ -653,17 +637,13 @@ function hasContent(){
 }
 
 async function checkUnsavedBill(){
-  // Case 1: loaded bill with real changes
   if(currentLoadedBillId && isDirty){
-    const save = confirm("There are changes to this current bill which have not been saved. Do you want to save these changes before proceeding?");
-    if(save){
-      await saveNewBill();
-    }
+    const save = confirm("There are unsaved changes to this bill. Save before continuing?");
+    if(save) await saveNewBill();
     return true;
   }
-  // Case 2: new bill with content
   if(!currentLoadedBillId && hasContent()){
-    const save = confirm("There are unsaved changes. Do you want to save this bill before proceeding?");
+    const save = confirm("There are unsaved changes. Save this bill before continuing?");
     if(save){
       const title = prompt("Enter a title for this bill:");
       if(!title || !title.trim()) return false;
@@ -825,7 +805,6 @@ async function saveNewBill(){
   if(isArchived) return;
 
   if(currentLoadedBillId){
-    // UPDATE — no date change
     await db.collection("savedBills").doc(currentLoadedBillId).update({
       ...getCurrentBillData()
     });
@@ -858,6 +837,7 @@ async function saveNewBill(){
     await loadSavedBillsList();
     document.getElementById("billDropdown").value = docRef.id;
     updateSaveButtonState();
+    updateArchivedUI();
   }
 }
 
@@ -889,51 +869,65 @@ async function saveAsBill(){
   updateArchivedUI();
 }
 
-async function archiveBill(){
-  // if it's a new unsaved bill, save it first
+async function toggleArchive(){
   if(!currentLoadedBillId){
-    const save = confirm("This bill needs to be saved before archiving. Save now?");
-    if(!save) return;
-    const title = prompt("Enter a title for this bill:");
-    if(!title || !title.trim()) return;
-    const billData = {
-      title: title.trim(),
-      savedAt: newBillFirstInputDate || Date.now(),
-      ...getCurrentBillData(),
-      archived: false
-    };
-    const docRef = await db.collection("savedBills").add(billData);
-    currentLoadedBillId = docRef.id;
-    currentLoadedBillTitle = title.trim();
-    newBillFirstInputDate = null;
-    await loadSavedBillsList();
-    document.getElementById("billDropdown").value = docRef.id;
+    alert("Save this bill first before archiving.");
+    return;
   }
 
-  const confirm2 = confirm(`⚠️ Archive "${currentLoadedBillTitle}"?\n\nArchived bills cannot be changed or deleted. You can still view them or use Save As to make an editable copy.`);
-  if(!confirm2) return;
+  if(isArchived){
+    // UNARCHIVE — prompt for password
+    const pw = prompt("Enter password to unarchive:");
+    if(!pw) return;
+    if(pw.trim().toLowerCase() !== "unarchive"){
+      alert("Incorrect password.");
+      return;
+    }
 
-  // lock all rows
-  rows.forEach(r => r.locked = true);
-  // remove empty rows
-  rows = rows.filter(r => r.price || r.item || (r.selected && r.selected.length));
+    // unlock all rows
+    rows.forEach(r => r.locked = false);
 
-  await db.collection("savedBills").doc(currentLoadedBillId).update({
-    ...getCurrentBillData(),
-    rows,
-    archived: true
-  });
+    await db.collection("savedBills").doc(currentLoadedBillId).update({
+      archived: false,
+      rows
+    });
 
-  isArchived = true;
-  isDirty = false;
-  loadedSnapshot = snapshotState();
+    isArchived = false;
+    isDirty = false;
+    loadedSnapshot = snapshotState();
 
-  await loadSavedBillsList();
-  document.getElementById("billDropdown").value = currentLoadedBillId;
+    await loadSavedBillsList();
+    document.getElementById("billDropdown").value = currentLoadedBillId;
 
-  updateArchivedUI();
-  render();
-  alert(`"${currentLoadedBillTitle}" has been archived.`);
+    updateArchivedUI();
+    render();
+    alert(`"${currentLoadedBillTitle}" has been unarchived.`);
+
+  } else {
+    // ARCHIVE
+    const confirmed = confirm(`Archive "${currentLoadedBillTitle}"?\n\nArchived bills cannot be edited. You can still view them or use Save As to make an editable copy.`);
+    if(!confirmed) return;
+
+    rows.forEach(r => r.locked = true);
+    rows = rows.filter(r => r.price || r.item || (r.selected && r.selected.length));
+
+    await db.collection("savedBills").doc(currentLoadedBillId).update({
+      ...getCurrentBillData(),
+      rows,
+      archived: true
+    });
+
+    isArchived = true;
+    isDirty = false;
+    loadedSnapshot = snapshotState();
+
+    await loadSavedBillsList();
+    document.getElementById("billDropdown").value = currentLoadedBillId;
+
+    updateArchivedUI();
+    render();
+    alert(`"${currentLoadedBillTitle}" has been archived.`);
+  }
 }
 
 async function deleteBill(){
@@ -951,8 +945,6 @@ async function deleteBill(){
   if(!confirmed) return;
 
   await db.collection("savedBills").doc(currentLoadedBillId).delete();
-
-  // treat as new bill
   doNewBill();
 }
 
@@ -963,7 +955,7 @@ const snapshot = await db.collection("savedBills")
   .get();
 
 const dropdown = document.getElementById("billDropdown");
-const currentVal = dropdown.value;
+const currentVal = currentLoadedBillId || "";
 
 dropdown.innerHTML = "";
 
@@ -1031,7 +1023,6 @@ if(receiptUrl){
   document.getElementById("receiptPreviewContainer").innerHTML = "";
 }
 
-// take snapshot AFTER loading
 loadedSnapshot = snapshotState();
 
 await loadSavedBillsList();
@@ -1082,7 +1073,7 @@ rows=[];
 nameList=[...defaultNames];
 venmoNames={...defaultVenmoMap};
 
-// rebuild dropdown with placeholder
+// fully rebuild dropdown with placeholder showing
 loadSavedBillsList();
 
 updateSaveButtonState();
