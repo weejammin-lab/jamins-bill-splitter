@@ -417,6 +417,7 @@ let receiptUrl="";
 let isLocalUpdate=false;
   
 function showReceiptThumbnail(url){
+if (!url) return;
 
 const container =
 document.getElementById("receiptPreviewContainer");
