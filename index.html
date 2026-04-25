@@ -485,15 +485,14 @@ const url = await storageRef.getDownloadURL();
 
 receiptUrl = url;
 
-// show immediately
 showReceiptThumbnail(url);
 
-// FORCE SAVE AND WAIT
+/* 🔥 IMPORTANT: force save immediately */
 await billRef.set({
 rows,
 nameList,
 venmoNames,
-receiptUrl: url,
+receiptUrl: url,   // <-- THIS IS THE KEY FIX
 taxValue:document.getElementById("taxValue").value,
 tipValue:document.getElementById("tipValue").value,
 taxMode:document.getElementById("taxMode").value,
