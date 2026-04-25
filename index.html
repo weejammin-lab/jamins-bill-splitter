@@ -407,7 +407,7 @@ freddy:"freddy-dai",
 };
 
 let defaultNames=["jamin","jack","cliff","willie","howard","lin"];
-let billLoaded
+let billLoaded = false
 let nameList=[...defaultNames];
 let rows=[];
 let venmoNames={...defaultVenmoMap};
@@ -447,21 +447,21 @@ container.appendChild(img);
 function loadBill(){
 billRef.onSnapshot(doc=>{
 
-if(isLocalUpdate) return;
-
 const data=doc.data();
 if(!data) return;
+
+// ✅ ALWAYS update receipt URL regardless of isLocalUpdate
+if(data.receiptUrl && data.receiptUrl.length > 5){
+  receiptUrl = data.receiptUrl;
+  lastSavedReceiptUrl = data.receiptUrl;
+  showReceiptThumbnail(data.receiptUrl);
+}
+
+if(isLocalUpdate) return;  // ← moved to AFTER receipt url is saved
 
 rows=data.rows||[];
 nameList=data.nameList||[];
 venmoNames=data.venmoNames||{};
-
-receiptUrl = data.receiptUrl || "";
-lastSavedReceiptUrl = receiptUrl;
-
-if (receiptUrl) {
-showReceiptThumbnail(receiptUrl);
-}
 
 document.getElementById("taxValue").value=data.taxValue||"";
 document.getElementById("tipValue").value=data.tipValue||"";
@@ -470,8 +470,7 @@ document.getElementById("tipMode").value=data.tipMode||"amount";
 
 document.getElementById("notesBox").value=data.notes||"";
 
-billLoaded = true;  // ← added here
-
+billLoaded = true;
 renderPeopleBar();
 render();
 calc();
