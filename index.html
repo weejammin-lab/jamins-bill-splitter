@@ -452,7 +452,7 @@ rows=data.rows||[];
 nameList=data.nameList||[];
 venmoNames=data.venmoNames||{};
 
-if (data.receiptUrl && data.receiptUrl.length > 5) {
+if (typeof data.receiptUrl === "string" && data.receiptUrl.trim() !== "") {
 receiptUrl = data.receiptUrl;
 showReceiptThumbnail(receiptUrl);
 }
@@ -503,30 +503,25 @@ function saveBill(){
 
 isLocalUpdate=true;
 
-billRef.get().then(doc=>{
-
-const data = doc.data() || {};
-
 billRef.set({
 rows,
 nameList,
 venmoNames,
 
-// 🚨 NEVER allow blank overwrite
-receiptUrl: data.receiptUrl || receiptUrl || "",
-
+// 🚨 ONLY trust Firestore, never local empty overwrite
 taxValue:document.getElementById("taxValue").value,
 tipValue:document.getElementById("tipValue").value,
 taxMode:document.getElementById("taxMode").value,
 tipMode:document.getElementById("tipMode").value,
 notes:document.getElementById("notesBox").value
+
 }).finally(()=>{
 setTimeout(()=>isLocalUpdate=false,300);
 });
 
-});
-
 }
+
+  
 function saveNotes(){
 billRef.update({
 notes: document.getElementById("notesBox").value
