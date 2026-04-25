@@ -88,7 +88,6 @@ border:none;
 padding:0;
 }
 
-/* Row 2: name input + people label | load dropdown + save */
 .action-row{
 display:flex;
 gap:6px;
@@ -138,6 +137,11 @@ cursor:pointer;
 flex-shrink:0;
 }
 
+.upload-btn:disabled{
+opacity:0.4;
+cursor:not-allowed;
+}
+
 #billDropdown{
 font-size:12px;
 padding:4px;
@@ -157,6 +161,22 @@ opacity:0.75;
 cursor:not-allowed;
 }
 
+#newBillBtn{
+font-size:14px;
+font-weight:bold;
+padding:5px 10px;
+background:#6c5ce7;
+color:white;
+border:none;
+border-radius:5px;
+cursor:pointer;
+flex-shrink:0;
+}
+
+#newBillBtn:hover{
+background:#5a4bd1;
+}
+
 .archived-label{
 color:red;
 font-size:11px;
@@ -164,7 +184,6 @@ font-weight:bold;
 flex-shrink:0;
 }
 
-/* archived label row */
 .archived-row{
 display:flex;
 justify-content:flex-end;
@@ -425,6 +444,18 @@ border:1px solid #ff5c5c;
 border-radius:4px;
 color:#cc0000;
 }
+
+/* archived dimming */
+.archived-dim{
+opacity:0.4;
+pointer-events:none;
+}
+
+.row-btn-disabled{
+opacity:0.4;
+cursor:not-allowed;
+pointer-events:none;
+}
 </style>
 
 </head>
@@ -441,7 +472,7 @@ color:#cc0000;
       accept="image/*"
       style="display:none"
       onchange="handleReceiptUpload(event)">
-    <button class="upload-btn" onclick="document.getElementById('receiptUpload').click()">
+    <button class="upload-btn" id="uploadReceiptBtn" onclick="document.getElementById('receiptUpload').click()">
       Upload Receipt
     </button>
     <div id="receiptPreviewContainer"></div>
@@ -504,9 +535,9 @@ oninput="saveNotes(); markDirty()"></textarea>
 </table>
 
 <div style="margin:6px 0; display:flex; gap:6px; align-items:center;">
-  <button onclick="addRow()">Add 1 Row</button>
-  <button onclick="add5Rows()">Add 5 Rows</button>
-  <button onclick="deleteLastRow()">Delete Last Row</button>
+  <button id="addRowBtn" onclick="addRow()">Add 1 Row</button>
+  <button id="add5RowsBtn" onclick="add5Rows()">Add 5 Rows</button>
+  <button id="deleteLastRowBtn" onclick="deleteLastRow()">Delete Last Row</button>
   <span id="deleteMsg" style="color:red; font-size:11px;"></span>
 </div>
 
@@ -516,7 +547,10 @@ oninput="saveNotes(); markDirty()"></textarea>
 <option value="amount" selected>$</option>
 <option value="percent">%</option>
 </select>
-<input id="taxValue" class="tax-tip-input" oninput="calc(); markDirty()">
+<input id="taxValue" class="tax-tip-input"
+  inputmode="decimal"
+  onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('tipValue').focus();}"
+  oninput="calc(); markDirty()">
 </div>
 
 <div class="tax-tip-wrap">
@@ -525,7 +559,9 @@ oninput="saveNotes(); markDirty()"></textarea>
 <option value="amount" selected>$</option>
 <option value="percent">%</option>
 </select>
-<input id="tipValue" class="tax-tip-input" oninput="calc(); markDirty()">
+<input id="tipValue" class="tax-tip-input"
+  inputmode="decimal"
+  oninput="calc(); markDirty()">
 </div>
 
 <div class="summary-box" id="summary"></div>
@@ -608,15 +644,31 @@ function snapshotState(){
   });
 }
 
+function defaultSnapshot(){
+  // what state looks like on a brand new bill
+  return JSON.stringify({
+    rows: Array(8).fill(null).map(()=>({item:"",price:"",people:"",selected:[],locked:false})),
+    nameList: [...defaultNames],
+    receiptUrl: "",
+    taxValue: "",
+    tipValue: "",
+    taxMode: "amount",
+    tipMode: "amount",
+    notes: ""
+  });
+}
+
 function markDirty(){
   if(currentLoadedBillId){
     const changed = snapshotState() !== loadedSnapshot;
     isDirty = changed;
   } else {
-    if(!newBillFirstInputDate && hasContent()){
+    // new bill: dirty if anything differs from default state
+    const current = snapshotState();
+    isDirty = current !== defaultSnapshot();
+    if(isDirty && !newBillFirstInputDate){
       newBillFirstInputDate = Date.now();
     }
-    isDirty = hasContent();
   }
   updateSaveButtonState();
 }
@@ -652,17 +704,46 @@ function updateArchivedUI(){
     actionsRow.style.display = currentLoadedBillId ? "flex" : "none";
   }
 
-  // disable notes, tax, tip inputs when archived
+  // elements to disable/dim when archived
   const notesBox = document.getElementById("notesBox");
   const taxValue = document.getElementById("taxValue");
   const tipValue = document.getElementById("tipValue");
   const taxMode = document.getElementById("taxMode");
   const tipMode = document.getElementById("tipMode");
+  const uploadBtn = document.getElementById("uploadReceiptBtn");
+  const addRowBtn = document.getElementById("addRowBtn");
+  const add5RowsBtn = document.getElementById("add5RowsBtn");
+  const deleteLastRowBtn = document.getElementById("deleteLastRowBtn");
+  const personBar = document.getElementById("personBar");
+  const summaryBox = document.getElementById("summary");
+  const totalsBox = document.getElementById("totals");
 
   [notesBox, taxValue, tipValue, taxMode, tipMode].forEach(el => {
-    if(isArchived) el.setAttribute("disabled", "");
-    else el.removeAttribute("disabled");
+    if(isArchived){
+      el.setAttribute("disabled","");
+      el.style.opacity = "0.4";
+    } else {
+      el.removeAttribute("disabled");
+      el.style.opacity = "";
+    }
   });
+
+  [uploadBtn, addRowBtn, add5RowsBtn, deleteLastRowBtn].forEach(btn => {
+    if(btn){
+      if(isArchived){
+        btn.disabled = true;
+        btn.classList.add("row-btn-disabled");
+      } else {
+        btn.disabled = false;
+        btn.classList.remove("row-btn-disabled");
+      }
+    }
+  });
+
+  // dim person bar and summary
+  if(personBar) personBar.style.opacity = isArchived ? "0.4" : "";
+  if(summaryBox) summaryBox.style.opacity = isArchived ? "0.4" : "";
+  if(totalsBox) totalsBox.style.opacity = isArchived ? "0.4" : "";
 
   updateSaveButtonState();
 }
@@ -672,7 +753,9 @@ function hasContent(){
   const hasTax = !!document.getElementById("taxValue").value;
   const hasTip = !!document.getElementById("tipValue").value;
   const hasNotes = !!document.getElementById("notesBox").value;
-  return hasRows || hasTax || hasTip || hasNotes || !!receiptUrl;
+  const hasReceipt = !!receiptUrl;
+  const hasCustomNames = JSON.stringify(nameList) !== JSON.stringify(defaultNames);
+  return hasRows || hasTax || hasTip || hasNotes || hasReceipt || hasCustomNames;
 }
 
 async function checkUnsavedBill(){
@@ -967,6 +1050,7 @@ const currentVal = currentLoadedBillId || "";
 
 dropdown.innerHTML = "";
 
+// only show placeholder if no bill is currently loaded
 if(!currentLoadedBillId){
   const placeholder = document.createElement("option");
   placeholder.value = "";
@@ -983,7 +1067,7 @@ snapshot.forEach(doc => {
   opt.value = doc.id;
   const archivedTag = d.archived ? " 🔒" : "";
   opt.textContent = `${d.title} (${formatDate(d.savedAt)})${archivedTag}`;
-  if(d.archived) opt.style.color = "#aaa";
+  // do NOT grey out actual saved bills, only placeholder is greyed
   dropdown.appendChild(opt);
 });
 
@@ -1083,7 +1167,6 @@ nameList=[...defaultNames];
 venmoNames={...defaultVenmoMap};
 
 loadSavedBillsList();
-
 updateSaveButtonState();
 updateArchivedUI();
 init();
