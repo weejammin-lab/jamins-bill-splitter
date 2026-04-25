@@ -439,6 +439,7 @@ window.open(url, "_blank");
 container.appendChild(img);
 
 }
+  
 function loadBill(){
 billRef.onSnapshot(doc=>{
 
@@ -451,12 +452,7 @@ rows=data.rows||[];
 nameList=data.nameList||[];
 venmoNames=data.venmoNames||{};
 
-if (data.receiptUrl !== undefined && data.receiptUrl !== "") {
-receiptUrl = data.receiptUrl;
-showReceiptThumbnail(receiptUrl);
-}
-
-if (data.receiptUrl) {
+if (data.receiptUrl && data.receiptUrl.length > 5) {
 receiptUrl = data.receiptUrl;
 showReceiptThumbnail(receiptUrl);
 }
@@ -492,18 +488,10 @@ receiptUrl = url;
 
 showReceiptThumbnail(url);
 
-/* 🔥 IMPORTANT: force save immediately */
-await billRef.set({
-rows,
-nameList,
-venmoNames,
-receiptUrl: url,   // <-- THIS IS THE KEY FIX
-taxValue:document.getElementById("taxValue").value,
-tipValue:document.getElementById("tipValue").value,
-taxMode:document.getElementById("taxMode").value,
-tipMode:document.getElementById("tipMode").value,
-notes:document.getElementById("notesBox").value
-});
+// ✅ ONLY update ONE field safely
+billRef.set({
+  receiptUrl: url
+}, { merge: true });
 
 event.target.value = "";
 }
@@ -515,11 +503,18 @@ function saveBill(){
 
 isLocalUpdate=true;
 
+billRef.get().then(doc=>{
+
+const data = doc.data() || {};
+
 billRef.set({
 rows,
 nameList,
 venmoNames,
-receiptUrl: receiptUrl || null,
+
+// 🚨 NEVER allow blank overwrite
+receiptUrl: data.receiptUrl || receiptUrl || "",
+
 taxValue:document.getElementById("taxValue").value,
 tipValue:document.getElementById("tipValue").value,
 taxMode:document.getElementById("taxMode").value,
@@ -529,8 +524,9 @@ notes:document.getElementById("notesBox").value
 setTimeout(()=>isLocalUpdate=false,300);
 });
 
-}
+});
 
+}
 function saveNotes(){
 billRef.update({
 notes: document.getElementById("notesBox").value
