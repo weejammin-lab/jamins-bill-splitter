@@ -19,7 +19,6 @@ margin:auto;
 padding:10px;
 }
 
-
 .receipt-overlay{
 position:fixed;
 top:0;left:0;
@@ -46,22 +45,10 @@ align-items:center;
 margin-bottom:6px;
 }
 
-.save-bar{
+.header-right{
 display:flex;
 gap:6px;
 align-items:center;
-margin-bottom:6px;
-}
-
-.save-bar select{
-font-size:12px;
-padding:4px;
-max-width:200px;
-}
-
-.save-bar button{
-font-size:12px;
-padding:4px 8px;
 }
   
 .receipt-thumb{
@@ -222,13 +209,11 @@ background:#ffb3b3;
 border-color:#ff5c5c;
 }
 
-/* greyed out unlocked icon */
 .lock-btn.unlocked{
 filter: grayscale(100%);
 opacity:0.5;
 }
 
-/* locked row look */
 tr.locked-row td{
 background:#f3f3f3;
 opacity:0.65;
@@ -314,25 +299,18 @@ font-size:11px;
 
 <div class="header-row">
 
-<h2 style="margin:0;">Bill Splitter</h2>
+  <h2 style="margin:0;">Bill Splitter</h2>
 
-<button class="clear-btn"
-onclick="clearAll()">
-Clear All
-</button>
+  <div class="header-right">
+    <button onclick="saveNewBill()">Save Bill</button>
+    <button class="clear-btn" onclick="clearAll()">Clear All</button>
+  </div>
 
-</div>
-
-<div class="save-bar">
-  <button onclick="saveNewBill()">Save Bill</button>
-  <select id="billDropdown" onchange="loadSavedBill(this.value)">
-    <option value="">-- load a saved bill --</option>
-  </select>
 </div>
 
 <div class="top-actions">
 
-  <div style="display:flex; gap:6px; align-items:center;">
+  <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
 
     <!-- Add Person Box -->
     <input class="add-person-input"
@@ -355,8 +333,12 @@ Clear All
     <!-- Thumbnail placeholder -->
     <div id="receiptPreviewContainer"></div>
 
-  </div>
+    <!-- Load saved bill dropdown -->
+    <select id="billDropdown" onchange="loadSavedBill(this.value)" style="font-size:12px; padding:4px; max-width:160px;">
+      <option value="">-- load a saved bill --</option>
+    </select>
 
+  </div>
 
 </div>
 
@@ -438,21 +420,19 @@ cliff:"clifford-chao",
 howard:"braveclaw",
 willie:"willie-zeng",
 lin:"linlin221",
-
 freddy:"freddy-dai",
-  viv:"vivian-bang",
-    vivian:"vivian-bang",
-  maria:"mariapdiaz",
-  paarus:"paarus-ali",
-  anna:"anna-claire-choi",
-  michelle:"michelletran9",
-  victoria:"victoriabao",
-  vic:"victoriabao",
-  
+viv:"vivian-bang",
+vivian:"vivian-bang",
+maria:"mariapdiaz",
+paarus:"paarus-ali",
+anna:"anna-claire-choi",
+michelle:"michelletran9",
+victoria:"victoriabao",
+vic:"victoriabao",
 };
 
 let defaultNames=["jamin","jack","cliff","willie","howard","lin"];
-let billLoaded = false
+let billLoaded = false;
 let nameList=[...defaultNames];
 let rows=[];
 let venmoNames={...defaultVenmoMap};
@@ -460,6 +440,7 @@ let venmoNames={...defaultVenmoMap};
 let receiptUrl="";  
 let isLocalUpdate=false;
 let lastSavedReceiptUrl = null;
+
 function safeReceiptUrl(){
 return (receiptUrl && receiptUrl.length > 5) ? receiptUrl : null;
 }
@@ -471,30 +452,24 @@ return receiptUrl || null;
 function showReceiptThumbnail(url){
 if (!url) return;
 
-const container =
-document.getElementById("receiptPreviewContainer");
-
+const container = document.getElementById("receiptPreviewContainer");
 container.innerHTML = "";
 
 const img = document.createElement("img");
-
 img.src = url;
 img.className = "receipt-thumb";
 
 img.onclick = function(){
   const overlay = document.createElement("div");
   overlay.className = "receipt-overlay";
-
   const full = document.createElement("img");
   full.src = url;
-
   overlay.appendChild(full);
   overlay.onclick = () => overlay.remove();
   document.body.appendChild(overlay);
 };
 
 container.appendChild(img);
-
 }
   
 function loadBill(){
@@ -503,7 +478,6 @@ billRef.onSnapshot(doc=>{
 const data=doc.data();
 if(!data) return;
 
-// ALWAYS update receipt URL regardless of isLocalUpdate
 if(data.receiptUrl && data.receiptUrl.length > 5){
   receiptUrl = data.receiptUrl;
   lastSavedReceiptUrl = data.receiptUrl;
@@ -520,7 +494,6 @@ document.getElementById("taxValue").value=data.taxValue||"";
 document.getElementById("tipValue").value=data.tipValue||"";
 document.getElementById("taxMode").value=data.taxMode||"amount";
 document.getElementById("tipMode").value=data.tipMode||"amount";
-
 document.getElementById("notesBox").value=data.notes||"";
 
 billLoaded = true;
@@ -546,9 +519,7 @@ async function handleReceiptUpload(event){
 
   receiptUrl = url;
   lastSavedReceiptUrl = url;
-
   showReceiptThumbnail(url);
-
   billRef.set({ receiptUrl: url }, { merge: true });
   event.target.value = "";
 }
@@ -558,7 +529,7 @@ if(!billLoaded) return;
 isLocalUpdate=true;
 
 if (!receiptUrl || receiptUrl.length < 5) {
-receiptUrl = lastSavedReceiptUrl || "";
+  receiptUrl = lastSavedReceiptUrl || "";
 }
 
 billRef.set({
@@ -566,29 +537,24 @@ rows,
 nameList,
 venmoNames,
 receiptUrl: receiptUrl,
-
 taxValue:document.getElementById("taxValue").value,
 tipValue:document.getElementById("tipValue").value,
 taxMode:document.getElementById("taxMode").value,
 tipMode:document.getElementById("tipMode").value,
 notes:document.getElementById("notesBox").value
 }).then(()=>{
-
-if (receiptUrl && receiptUrl.length > 5) {
-lastSavedReceiptUrl = receiptUrl;
-}
-
+  if (receiptUrl && receiptUrl.length > 5) {
+    lastSavedReceiptUrl = receiptUrl;
+  }
 }).finally(()=>{
-setTimeout(()=>isLocalUpdate=false,300);
+  setTimeout(()=>isLocalUpdate=false,300);
 });
-
 }
 
 async function saveNewBill(){
   const title = prompt("Enter a title for this bill:");
   if(!title || !title.trim()) return;
 
-  // auto-save current first
   saveBill();
 
   const billData = {
@@ -632,7 +598,6 @@ async function loadSavedBillsList(){
 async function loadSavedBill(id){
   if(!id) return;
 
-  // auto-save current bill first
   saveBill();
 
   const doc = await db.collection("savedBills").doc(id).get();
@@ -657,8 +622,8 @@ async function loadSavedBill(id){
     document.getElementById("receiptPreviewContainer").innerHTML = "";
   }
 
-  // reset dropdown back to placeholder
-  document.getElementById("billDropdown").value = "";
+  // keep the selected bill name showing in the dropdown (don't reset)
+  // the onchange already set the value, so nothing needed here
 
   renderPeopleBar();
   render();
@@ -673,11 +638,9 @@ notes: document.getElementById("notesBox").value
 
 function init(){
 rows=[];
-
 for(let i=0;i<8;i++){
 rows.push({item:"",price:"",people:"",selected:[],locked:false});
 }
-
 renderPeopleBar();
 render();
 calc();
@@ -691,6 +654,11 @@ document.getElementById("tipValue").value="";
 document.getElementById("taxMode").value="amount";
 document.getElementById("tipMode").value="amount";
 document.getElementById("notesBox").value="";
+
+// clear receipt
+receiptUrl = "";
+lastSavedReceiptUrl = "";
+document.getElementById("receiptPreviewContainer").innerHTML = "";
 
 rows=[];
 nameList=[...defaultNames];
@@ -738,7 +706,6 @@ rows.forEach(r=>{
 r.selected=(r.selected||[]).filter(p=>p!==removed);
 r.people=(r.selected||[]).join(", ");
 });
-  
 
 renderPeopleBar();
 render();
@@ -753,16 +720,12 @@ saveBill();
 }
   
 function update(i,key,val){
-
 if(rows[i].locked) return;
-
 rows[i][key]=val;
 calc();
-
 }
 
 function handlePriceInput(row, el){
-
 if(rows[row].locked){
 el.value = rows[row].price;
 return;
@@ -773,13 +736,11 @@ el.value = el.value
 .replace(/(\..*?)\..*/g,"$1");
 
 rows[row].price = el.value;
-
 calc();
-
 }
 
 function toggleName(row,name){
-  if(rows[row].locked) return;
+if(rows[row].locked) return;
 let r=rows[row];
 if(!r.selected) r.selected=[];
 let idx=r.selected.indexOf(name);
@@ -799,7 +760,7 @@ saveBill();
 }
 
 function toggleEveryone(row){
-  if(rows[row].locked) return;
+if(rows[row].locked) return;
 let r=rows[row];
 
 if(r.selected?.length===nameList.length){
@@ -826,14 +787,12 @@ function add5Rows(){
 for(let i=0;i<5;i++){
 rows.push({item:"",price:"",people:"",selected:[],locked:false});
 }
-
 render();
 calc();
 saveBill();
 }
   
 function deleteLastRow(){
-
 const msg = document.getElementById("deleteMsg");
 if(msg) msg.textContent = "";
 
@@ -847,11 +806,9 @@ return;
 }
 
 rows.pop();
-
 render();
 calc();
 saveBill();
-
 }
   
 function nav(e,row,col){
@@ -877,7 +834,6 @@ next.select?.();
 }
 
 function render(){
-
 let body=document.getElementById("tableBody");
 body.innerHTML="";
 
@@ -886,7 +842,6 @@ rows.forEach((r,i)=>{
 let tapHTML=`
 <button class="name-btn everyone-btn ${r.selected?.length===nameList.length?'selected':''}"
 onclick="toggleEveryone(${i})">EVERYONE</button>
-
 <div class="tap-grid">
 `;
 
@@ -903,22 +858,13 @@ let lockIcon = isLocked ? "🔒" : "🔓";
 let lockClass = isLocked ? "locked" : "unlocked";
 
 let tr=document.createElement("tr");
-
-if(isLocked){
-tr.classList.add("locked-row");
-}
+if(isLocked) tr.classList.add("locked-row");
 
 tr.innerHTML=`
-
 <td class="lock-cell">
 <div>${i+1}</div>
-
-<button class="lock-btn ${lockClass}"
-onclick="toggleLock(${i})">
-${lockIcon}
-</button>
+<button class="lock-btn ${lockClass}" onclick="toggleLock(${i})">${lockIcon}</button>
 </td>
-
 <td>
 <textarea data-r="${i}" data-c="0"
 placeholder="optional"
@@ -926,7 +872,6 @@ ${isLocked ? "disabled" : ""}
 onkeydown="if(event.key==='Enter'){nav(event,${i},0)}"
 oninput="update(${i},'item',this.value)">${r.item}</textarea>
 </td>
-
 <td>
 <textarea data-r="${i}" data-c="1"
 inputmode="decimal"
@@ -936,16 +881,13 @@ onkeydown="if(event.key==='Enter'){saveBill();nav(event,${i},1)}"
 onblur="saveBill()"
 oninput="handlePriceInput(${i},this)">${r.price}</textarea>
 </td>
-
 <td>${tapHTML}</td>
-
 <td>
 <textarea data-r="${i}" data-c="3"
 ${isLocked ? "disabled" : ""}
 onkeydown="if(event.key==='Enter'){nav(event,${i},3)}"
 oninput="update(${i},'people',this.value)">${r.people}</textarea>
 </td>
-
 `;
 
 body.appendChild(tr);
@@ -953,7 +895,6 @@ body.appendChild(tr);
 }
   
 function calc(){
-
 let subtotal=0;
 let people={};
 
@@ -983,13 +924,11 @@ people[p].subtotalShare+=share;
 
 let taxAmount=taxMode==="percent"?subtotal*(taxVal/100):taxVal;
 let tipAmount=tipMode==="percent"?subtotal*(tipVal/100):tipVal;
-
 let total=subtotal+taxAmount+tipAmount;
 
 Object.keys(people).forEach(p=>{
 let share=people[p].subtotalShare||0;
 let ratio=subtotal?share/subtotal:0;
-
 people[p].total=share+(taxAmount*ratio)+(tipAmount*ratio);
 });
 
@@ -998,27 +937,22 @@ let tipPct = subtotal ? (tipAmount / subtotal * 100) : 0;
 
 summary.innerHTML=`
 <div class="sum-table">
-
 <div class="row">
 <div class="label">Subtotal</div>
 <div class="value">${subtotal.toFixed(2)}</div>
 </div>
-
 <div class="row">
 <div class="label">Tax (${taxPct.toFixed(2)}%)</div>
 <div class="value">${taxAmount.toFixed(2)}</div>
 </div>
-
 <div class="row">
 <div class="label">Tip (${tipPct.toFixed(2)}%)</div>
 <div class="value">${tipAmount.toFixed(2)}</div>
 </div>
-
 <div class="row total">
 <div class="label">Total</div>
 <div class="value">${total.toFixed(2)}</div>
 </div>
-
 </div>
 `;
 
@@ -1026,19 +960,16 @@ let div=document.getElementById("totals");
 div.innerHTML="";
 
 Object.keys(people).forEach(p=>{
-
 let venmoId = venmoNames[p.toLowerCase()] || "";
 
 div.innerHTML+=`
 <div class="result">
 ${p} owes $${people[p].total.toFixed(2)}
-
 ${venmoId ? `
 <button class="venmo-btn"
 onclick="window.open('https://venmo.com/?txn=request&recipients=${encodeURIComponent(venmoId)}&amount=${people[p].total.toFixed(2)}','_blank')">
 Request
 </button>` : ``}
-
 </div>`;
 });
 }
