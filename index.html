@@ -407,7 +407,7 @@ freddy:"freddy-dai",
 };
 
 let defaultNames=["jamin","jack","cliff","willie","howard","lin"];
-
+let billLoaded
 let nameList=[...defaultNames];
 let rows=[];
 let venmoNames={...defaultVenmoMap};
@@ -470,6 +470,8 @@ document.getElementById("tipMode").value=data.tipMode||"amount";
 
 document.getElementById("notesBox").value=data.notes||"";
 
+billLoaded = true;  // ← added here
+
 renderPeopleBar();
 render();
 calc();
@@ -497,7 +499,7 @@ async function handleReceiptUpload(event){
 
   
 function saveBill(){
-
+if(!billLoaded) return;
 isLocalUpdate=true;
 
 // 🚨 BLOCK EMPTY OR RESET OVERWRITES
