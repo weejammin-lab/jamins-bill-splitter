@@ -263,20 +263,26 @@ font-size:11px;
 
   <div style="display:flex; gap:6px; align-items:center;">
 
+    <!-- Add Person Box -->
     <input class="add-person-input"
     id="addPersonBox"
     placeholder="type name + Enter"
     onkeydown="handleAddPerson(event)">
 
+    <!-- Hidden file input -->
     <input type="file"
     id="receiptUpload"
     accept="image/*"
     style="display:none"
     onchange="handleReceiptUpload(event)">
 
+    <!-- Upload button -->
     <button onclick="document.getElementById('receiptUpload').click()">
-    Upload Receipt
+      Upload Receipt
     </button>
+
+    <!-- Thumbnail placeholder -->
+    <div id="receiptPreviewContainer"></div>
 
   </div>
 
