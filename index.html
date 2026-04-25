@@ -468,6 +468,7 @@ calc();
 }
   
 async function handleReceiptUpload(event){
+  console.log("UPLOAD FUNCTION TRIGGERED");
 
 const file = event.target.files[0];
 if(!file) return;
