@@ -450,10 +450,9 @@ venmoNames=data.venmoNames||{};
 
 receiptUrl = data.receiptUrl || "";
 
-if (receiptUrl && receiptUrl !== "") {
-setTimeout(() => {
+if (data.receiptUrl) {
+receiptUrl = data.receiptUrl;
 showReceiptThumbnail(receiptUrl);
-}, 0);
 }
 
 document.getElementById("taxValue").value=data.taxValue||"";
@@ -510,15 +509,11 @@ function saveBill(){
 
 isLocalUpdate=true;
 
-billRef.get().then(doc=>{
-
-const data = doc.data() || {};
-
 billRef.set({
 rows,
 nameList,
 venmoNames,
-receiptUrl: receiptUrl || data.receiptUrl || "",
+receiptUrl, // <-- ALWAYS trust memory version
 taxValue:document.getElementById("taxValue").value,
 tipValue:document.getElementById("tipValue").value,
 taxMode:document.getElementById("taxMode").value,
@@ -526,8 +521,6 @@ tipMode:document.getElementById("tipMode").value,
 notes:document.getElementById("notesBox").value
 }).finally(()=>{
 setTimeout(()=>isLocalUpdate=false,300);
-});
-
 });
 
 }
