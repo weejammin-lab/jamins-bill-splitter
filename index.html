@@ -508,7 +508,10 @@ removeBtn.onclick = function(){
   receiptUrl = "";
   lastSavedReceiptUrl = "";
   container.innerHTML = "";
-  billRef.set({ receiptUrl: "" }, { merge: true });
+  billRef.set({ 
+    receiptUrl: "",
+    notes: document.getElementById("notesBox").value  // ← add this
+  }, { merge: true });
 };
 
 wrap.appendChild(img);
@@ -563,7 +566,10 @@ const url = await storageRef.getDownloadURL();
 receiptUrl = url;
 lastSavedReceiptUrl = url;
 showReceiptThumbnail(url);
-billRef.set({ receiptUrl: url }, { merge: true });
+billRef.set({ 
+  receiptUrl: url,
+  notes: document.getElementById("notesBox").value  // ← add this
+}, { merge: true });
 event.target.value = "";
 }
 
