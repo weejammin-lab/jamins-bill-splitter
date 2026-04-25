@@ -43,12 +43,14 @@ display:flex;
 justify-content:space-between;
 align-items:center;
 margin-bottom:6px;
+gap:10px;
 }
 
 .header-right{
 display:flex;
 gap:6px;
 align-items:center;
+flex-shrink:0;
 }
 
 .receipt-thumb{
@@ -78,7 +80,17 @@ border:none;
 padding:0;
 }
 
+/* Row 1: name input | dropdown */
 .action-row{
+display:flex;
+gap:6px;
+align-items:center;
+margin-bottom:4px;
+flex-wrap:nowrap;
+}
+
+/* Row 2: save / save as */
+.save-row{
 display:flex;
 gap:6px;
 align-items:center;
@@ -116,7 +128,7 @@ flex-shrink:0;
 #billDropdown{
 font-size:12px;
 padding:4px;
-width:175px;
+width:192px;
 flex-shrink:0;
 }
 
@@ -130,6 +142,13 @@ flex-shrink:0;
 .save-bill-btn:disabled{
 opacity:0.4;
 cursor:not-allowed;
+}
+
+.archived-label{
+color:red;
+font-size:11px;
+font-weight:bold;
+flex-shrink:0;
 }
 
 .top-row{
@@ -349,42 +368,85 @@ margin:4px 0;
 margin-left:6px;
 font-size:11px;
 }
+
+.bill-actions-row{
+display:flex;
+justify-content:flex-end;
+gap:6px;
+margin-top:12px;
+}
+
+.archive-btn{
+font-size:11px;
+padding:3px 8px;
+cursor:pointer;
+background:#fff3cd;
+border:1px solid #ffc107;
+border-radius:4px;
+}
+
+.delete-btn{
+font-size:11px;
+padding:3px 8px;
+cursor:pointer;
+background:#ffe0e0;
+border:1px solid #ff5c5c;
+border-radius:4px;
+color:#cc0000;
+}
+
+/* archived overlay for inputs */
+.archived-mode input,
+.archived-mode textarea,
+.archived-mode button:not(.venmo-btn):not(.save-bill-btn[data-saveas]):not(#newBillBtn){
+pointer-events:none;
+opacity:0.6;
+}
 </style>
 
 </head>
 
 <body>
 
+<!-- ROW 1: title | upload receipt | thumbnail | New Bill -->
 <div class="header-row">
-  <h2 style="margin:0;">Bill Splitter</h2>
+  <h2 style="margin:0;flex-shrink:0;">Bill Splitter</h2>
+
   <div class="header-right">
-    <button onclick="clearAll()">New Bill</button>
+    <input type="file"
+      id="receiptUpload"
+      accept="image/*"
+      style="display:none"
+      onchange="handleReceiptUpload(event)">
+    <button class="upload-btn" onclick="document.getElementById('receiptUpload').click()">
+      Upload Receipt
+    </button>
+    <div id="receiptPreviewContainer"></div>
+    <button id="newBillBtn" onclick="clearAll()">New Bill</button>
   </div>
 </div>
 
+<!-- ROW 2: name input | load dropdown -->
 <div class="action-row">
   <input class="add-person-input"
     id="addPersonBox"
     placeholder="type name + Enter"
     onkeydown="handleAddPerson(event)">
-  <input type="file"
-    id="receiptUpload"
-    accept="image/*"
-    style="display:none"
-    onchange="handleReceiptUpload(event)">
-  <button class="upload-btn" onclick="document.getElementById('receiptUpload').click()">
-    Upload Receipt
-  </button>
-  <div id="receiptPreviewContainer"></div>
 
   <div class="right-actions">
     <select id="billDropdown" onchange="loadSavedBill(this.value)">
       <option value="" disabled selected style="color:#aaa;">-- load a saved bill --</option>
     </select>
-    <button class="save-bill-btn" id="saveBillBtn" onclick="saveNewBill()">Save</button>
-    <button class="save-bill-btn" onclick="saveAsBill()">Save As</button>
   </div>
+</div>
 
+<!-- ROW 3: archived label (if applicable) | Save | Save As -->
+<div class="save-row">
+  <span id="archivedLabel" class="archived-label" style="display:none;">⛔ ARCHIVED</span>
+  <div class="right-actions">
+    <button class="save-bill-btn" id="saveBillBtn" onclick="saveNewBill()">Save</button>
+    <button class="save-bill-btn" data-saveas onclick="saveAsBill()">Save As</button>
+  </div>
 </div>
 
 <div class="top-row">
@@ -393,7 +455,7 @@ font-size:11px;
 
 <textarea class="notes-box"
 id="notesBox"
-placeholder="type notes here"
+placeholder="type any notes here&#10;- this is a live shared site so anything that you're looking at is also what someone else is looking at"
 oninput="saveNotes(); markDirty()"></textarea>
 
 </div>
@@ -441,6 +503,12 @@ oninput="saveNotes(); markDirty()"></textarea>
 <div class="summary-box" id="summary"></div>
 <div id="totals"></div>
 
+<!-- Archive / Delete row -->
+<div class="bill-actions-row">
+  <button class="archive-btn" onclick="archiveBill()">Archive Bill</button>
+  <button class="delete-btn" onclick="deleteBill()">Delete Bill</button>
+</div>
+
 <script>
 
 const firebaseConfig = {
@@ -486,7 +554,14 @@ let isLocalUpdate=false;
 let lastSavedReceiptUrl = null;
 let currentLoadedBillId = null;
 let currentLoadedBillTitle = null;
-let isDirty = false; // tracks whether changes were made since last load/save
+let isArchived = false;
+let isDirty = false;
+
+// snapshot of state when a bill is loaded — used to detect real changes
+let loadedSnapshot = null;
+
+// tracks when the first data was entered on a new bill
+let newBillFirstInputDate = null;
 
 function formatDate(ts){
   const d = new Date(ts);
@@ -496,9 +571,31 @@ function formatDate(ts){
   return `${mm}/${dd}/${yy}`;
 }
 
+function snapshotState(){
+  return JSON.stringify({
+    rows,
+    nameList,
+    receiptUrl,
+    taxValue: document.getElementById("taxValue").value,
+    tipValue: document.getElementById("tipValue").value,
+    taxMode: document.getElementById("taxMode").value,
+    tipMode: document.getElementById("tipMode").value,
+    notes: document.getElementById("notesBox").value
+  });
+}
+
 function markDirty(){
-  if(!currentLoadedBillId) return; // only matters for loaded bills
-  isDirty = true;
+  if(currentLoadedBillId){
+    // only dirty if state actually differs from what was loaded
+    const changed = snapshotState() !== loadedSnapshot;
+    isDirty = changed;
+  } else {
+    // new bill — track first input date
+    if(!newBillFirstInputDate && hasContent()){
+      newBillFirstInputDate = Date.now();
+    }
+    isDirty = hasContent();
+  }
   updateSaveButtonState();
 }
 
@@ -506,41 +603,81 @@ function updateSaveButtonState(){
   const btn = document.getElementById("saveBillBtn");
   if(!btn) return;
   if(currentLoadedBillId){
-    // loaded bill: Save is greyed out until changes are made
     btn.textContent = "Save";
-    btn.disabled = !isDirty;
+    btn.disabled = !isDirty || isArchived;
   } else {
-    // new bill: Save always enabled
     btn.textContent = "Save";
     btn.disabled = false;
   }
+  // Save As always enabled unless new bill with no content
+  const saveAsBtn = document.querySelector("button[data-saveas]");
+  if(saveAsBtn){
+    saveAsBtn.disabled = isArchived ? false : false; // always enabled
+  }
+}
+
+function updateArchivedUI(){
+  const label = document.getElementById("archivedLabel");
+  label.style.display = isArchived ? "inline" : "none";
+
+  const body = document.body;
+  if(isArchived){
+    body.classList.add("archived-mode");
+  } else {
+    body.classList.remove("archived-mode");
+  }
+
+  // in archived mode: lock all interactive elements except allowed ones
+  const allBtns = document.querySelectorAll("button:not(#newBillBtn):not(.venmo-btn):not([data-saveas])");
+  const allInputs = document.querySelectorAll("input:not(#receiptUpload), textarea, select:not(#billDropdown)");
+
+  allBtns.forEach(b => {
+    if(isArchived) b.setAttribute("disabled","");
+    else b.removeAttribute("disabled");
+  });
+  allInputs.forEach(el => {
+    if(isArchived) el.setAttribute("disabled","");
+    else el.removeAttribute("disabled");
+  });
+
+  // re-apply save button state
+  updateSaveButtonState();
 }
 
 function hasContent(){
-  return rows.some(r => r.price || r.item) ||
-    document.getElementById("taxValue").value ||
-    document.getElementById("tipValue").value ||
-    document.getElementById("notesBox").value ||
-    receiptUrl;
+  const hasRows = rows.some(r => r.price || r.item);
+  const hasTax = !!document.getElementById("taxValue").value;
+  const hasTip = !!document.getElementById("tipValue").value;
+  const hasNotes = !!document.getElementById("notesBox").value;
+  return hasRows || hasTax || hasTip || hasNotes || !!receiptUrl;
 }
 
 async function checkUnsavedBill(){
-  if(currentLoadedBillId) return true;
-  if(!hasContent()) return true;
-
-  const save = confirm("Save current bill before continuing?");
-  if(save){
-    const title = prompt("Enter a title for this bill:");
-    if(!title || !title.trim()) return false;
-    const billData = {
-      title: title.trim(),
-      savedAt: Date.now(),
-      ...getCurrentBillData()
-    };
-    const docRef = await db.collection("savedBills").add(billData);
-    currentLoadedBillId = docRef.id;
-    currentLoadedBillTitle = title.trim();
-    await loadSavedBillsList();
+  // Case 1: loaded bill with real changes
+  if(currentLoadedBillId && isDirty){
+    const save = confirm("There are changes to this current bill which have not been saved. Do you want to save these changes before proceeding?");
+    if(save){
+      await saveNewBill();
+    }
+    return true;
+  }
+  // Case 2: new bill with content
+  if(!currentLoadedBillId && hasContent()){
+    const save = confirm("There are unsaved changes. Do you want to save this bill before proceeding?");
+    if(save){
+      const title = prompt("Enter a title for this bill:");
+      if(!title || !title.trim()) return false;
+      const billData = {
+        title: title.trim(),
+        savedAt: newBillFirstInputDate || Date.now(),
+        ...getCurrentBillData()
+      };
+      const docRef = await db.collection("savedBills").add(billData);
+      currentLoadedBillId = docRef.id;
+      currentLoadedBillTitle = title.trim();
+      await loadSavedBillsList();
+    }
+    return true;
   }
   return true;
 }
@@ -571,6 +708,7 @@ removeBtn.className = "remove-receipt";
 removeBtn.textContent = "✕";
 removeBtn.title = "Remove receipt";
 removeBtn.onclick = function(){
+  if(isArchived) return;
   receiptUrl = "";
   lastSavedReceiptUrl = "";
   container.innerHTML = "";
@@ -617,6 +755,7 @@ calc();
 }
 
 async function handleReceiptUpload(event){
+if(isArchived) return;
 const file = event.target.files[0];
 if(!file) return;
 
@@ -683,19 +822,20 @@ return {
 }
 
 async function saveNewBill(){
+  if(isArchived) return;
+
   if(currentLoadedBillId){
-    // UPDATE mode — overwrite existing doc, do NOT update savedAt
+    // UPDATE — no date change
     await db.collection("savedBills").doc(currentLoadedBillId).update({
       ...getCurrentBillData()
-      // no savedAt update — preserve original date
     });
     isDirty = false;
+    loadedSnapshot = snapshotState();
     updateSaveButtonState();
     alert(`"${currentLoadedBillTitle}" saved!`);
     await loadSavedBillsList();
     document.getElementById("billDropdown").value = currentLoadedBillId;
   } else {
-    // SAVE NEW mode
     const title = prompt("Enter a title for this bill:");
     if(!title || !title.trim()) return;
 
@@ -703,7 +843,7 @@ async function saveNewBill(){
 
     const billData = {
       title: title.trim(),
-      savedAt: Date.now(),
+      savedAt: newBillFirstInputDate || Date.now(),
       ...getCurrentBillData()
     };
 
@@ -711,6 +851,8 @@ async function saveNewBill(){
     currentLoadedBillId = docRef.id;
     currentLoadedBillTitle = title.trim();
     isDirty = false;
+    loadedSnapshot = snapshotState();
+    newBillFirstInputDate = null;
 
     alert(`"${title.trim()}" saved!`);
     await loadSavedBillsList();
@@ -720,7 +862,6 @@ async function saveNewBill(){
 }
 
 async function saveAsBill(){
-  // always save as a brand new doc with new title and new date
   const title = prompt("Enter a title for this bill:");
   if(!title || !title.trim()) return;
 
@@ -729,18 +870,90 @@ async function saveAsBill(){
   const billData = {
     title: title.trim(),
     savedAt: Date.now(),
-    ...getCurrentBillData()
+    ...getCurrentBillData(),
+    archived: false
   };
 
   const docRef = await db.collection("savedBills").add(billData);
   currentLoadedBillId = docRef.id;
   currentLoadedBillTitle = title.trim();
   isDirty = false;
+  isArchived = false;
+  loadedSnapshot = snapshotState();
+  newBillFirstInputDate = null;
 
   alert(`"${title.trim()}" saved!`);
   await loadSavedBillsList();
   document.getElementById("billDropdown").value = docRef.id;
   updateSaveButtonState();
+  updateArchivedUI();
+}
+
+async function archiveBill(){
+  // if it's a new unsaved bill, save it first
+  if(!currentLoadedBillId){
+    const save = confirm("This bill needs to be saved before archiving. Save now?");
+    if(!save) return;
+    const title = prompt("Enter a title for this bill:");
+    if(!title || !title.trim()) return;
+    const billData = {
+      title: title.trim(),
+      savedAt: newBillFirstInputDate || Date.now(),
+      ...getCurrentBillData(),
+      archived: false
+    };
+    const docRef = await db.collection("savedBills").add(billData);
+    currentLoadedBillId = docRef.id;
+    currentLoadedBillTitle = title.trim();
+    newBillFirstInputDate = null;
+    await loadSavedBillsList();
+    document.getElementById("billDropdown").value = docRef.id;
+  }
+
+  const confirm2 = confirm(`⚠️ Archive "${currentLoadedBillTitle}"?\n\nArchived bills cannot be changed or deleted. You can still view them or use Save As to make an editable copy.`);
+  if(!confirm2) return;
+
+  // lock all rows
+  rows.forEach(r => r.locked = true);
+  // remove empty rows
+  rows = rows.filter(r => r.price || r.item || (r.selected && r.selected.length));
+
+  await db.collection("savedBills").doc(currentLoadedBillId).update({
+    ...getCurrentBillData(),
+    rows,
+    archived: true
+  });
+
+  isArchived = true;
+  isDirty = false;
+  loadedSnapshot = snapshotState();
+
+  await loadSavedBillsList();
+  document.getElementById("billDropdown").value = currentLoadedBillId;
+
+  updateArchivedUI();
+  render();
+  alert(`"${currentLoadedBillTitle}" has been archived.`);
+}
+
+async function deleteBill(){
+  if(isArchived){
+    alert("Archived bills cannot be deleted.");
+    return;
+  }
+
+  if(!currentLoadedBillId){
+    alert("This bill hasn't been saved yet — nothing to delete.");
+    return;
+  }
+
+  const confirmed = confirm(`Delete "${currentLoadedBillTitle}"? This cannot be undone.`);
+  if(!confirmed) return;
+
+  await db.collection("savedBills").doc(currentLoadedBillId).delete();
+
+  // treat as new bill
+  doNewBill();
 }
 
 async function loadSavedBillsList(){
@@ -752,10 +965,8 @@ const snapshot = await db.collection("savedBills")
 const dropdown = document.getElementById("billDropdown");
 const currentVal = dropdown.value;
 
-// rebuild options — no placeholder option, just the saved bills
 dropdown.innerHTML = "";
 
-// only add placeholder if nothing is currently loaded
 if(!currentLoadedBillId){
   const placeholder = document.createElement("option");
   placeholder.value = "";
@@ -770,11 +981,12 @@ snapshot.forEach(doc => {
   const d = doc.data();
   const opt = document.createElement("option");
   opt.value = doc.id;
-  opt.textContent = `${d.title} (${formatDate(d.savedAt)})`;
+  const archivedTag = d.archived ? " 🔒" : "";
+  opt.textContent = `${d.title} (${formatDate(d.savedAt)})${archivedTag}`;
+  if(d.archived) opt.style.color = "#aaa";
   dropdown.appendChild(opt);
 });
 
-// restore selection
 if(currentVal){
   dropdown.value = currentVal;
 }
@@ -797,7 +1009,9 @@ if(!data) return;
 
 currentLoadedBillId = id;
 currentLoadedBillTitle = data.title;
+isArchived = data.archived || false;
 isDirty = false;
+newBillFirstInputDate = null;
 
 rows = data.rows || [];
 nameList = data.nameList || [];
@@ -817,13 +1031,14 @@ if(receiptUrl){
   document.getElementById("receiptPreviewContainer").innerHTML = "";
 }
 
-document.getElementById("billDropdown").value = id;
+// take snapshot AFTER loading
+loadedSnapshot = snapshotState();
 
-// rebuild dropdown without placeholder now that a bill is loaded
 await loadSavedBillsList();
 document.getElementById("billDropdown").value = id;
 
 updateSaveButtonState();
+updateArchivedUI();
 renderPeopleBar();
 render();
 calc();
@@ -845,12 +1060,7 @@ render();
 calc();
 }
 
-async function clearAll(){
-const proceed = await checkUnsavedBill();
-if(!proceed) return;
-
-if(!confirm("Start a new bill?")) return;
-
+function doNewBill(){
 document.getElementById("taxValue").value="";
 document.getElementById("tipValue").value="";
 document.getElementById("taxMode").value="amount";
@@ -863,18 +1073,28 @@ document.getElementById("receiptPreviewContainer").innerHTML = "";
 
 currentLoadedBillId = null;
 currentLoadedBillTitle = null;
+isArchived = false;
 isDirty = false;
-
-// rebuild dropdown with placeholder visible again
-await loadSavedBillsList();
+loadedSnapshot = null;
+newBillFirstInputDate = null;
 
 rows=[];
 nameList=[...defaultNames];
 venmoNames={...defaultVenmoMap};
 
+// rebuild dropdown with placeholder
+loadSavedBillsList();
+
 updateSaveButtonState();
+updateArchivedUI();
 init();
 saveBill();
+}
+
+async function clearAll(){
+const proceed = await checkUnsavedBill();
+if(!proceed) return;
+doNewBill();
 }
 
 function renderPeopleBar(){
@@ -890,6 +1110,7 @@ ${n}
 }
 
 function handleAddPerson(e){
+if(isArchived) return;
 if(e.key!=="Enter") return;
 let box=document.getElementById("addPersonBox");
 let name=box.value.trim();
@@ -906,6 +1127,7 @@ markDirty();
 }
 
 function deletePerson(i){
+if(isArchived) return;
 let removed=nameList[i];
 nameList.splice(i,1);
 rows.forEach(r=>{
@@ -920,6 +1142,7 @@ markDirty();
 }
 
 function toggleLock(row){
+if(isArchived) return;
 rows[row].locked = !rows[row].locked;
 render();
 saveBill();
@@ -927,14 +1150,14 @@ markDirty();
 }
 
 function update(i,key,val){
-if(rows[i].locked) return;
+if(isArchived || rows[i].locked) return;
 rows[i][key]=val;
 calc();
 markDirty();
 }
 
 function handlePriceInput(row, el){
-if(rows[row].locked){
+if(isArchived || rows[row].locked){
 el.value = rows[row].price;
 return;
 }
@@ -947,7 +1170,7 @@ markDirty();
 }
 
 function toggleName(row,name){
-if(rows[row].locked) return;
+if(isArchived || rows[row].locked) return;
 let r=rows[row];
 if(!r.selected) r.selected=[];
 let idx=r.selected.indexOf(name);
@@ -965,7 +1188,7 @@ markDirty();
 }
 
 function toggleEveryone(row){
-if(rows[row].locked) return;
+if(isArchived || rows[row].locked) return;
 let r=rows[row];
 if(r.selected?.length===nameList.length){
 r.selected=[];
@@ -981,6 +1204,7 @@ markDirty();
 }
 
 function addRow(){
+if(isArchived) return;
 rows.push({item:"",price:"",people:"",selected:[],locked:false});
 render();
 calc();
@@ -988,6 +1212,7 @@ saveBill();
 }
 
 function add5Rows(){
+if(isArchived) return;
 for(let i=0;i<5;i++){
 rows.push({item:"",price:"",people:"",selected:[],locked:false});
 }
@@ -997,6 +1222,7 @@ saveBill();
 }
 
 function deleteLastRow(){
+if(isArchived) return;
 const msg = document.getElementById("deleteMsg");
 if(msg) msg.textContent = "";
 if(!rows || rows.length === 0) return;
@@ -1046,7 +1272,7 @@ onclick="toggleName(${i},'${n}')">${n}</button>`;
 });
 tapHTML+=`</div>`;
 
-let isLocked = r.locked;
+let isLocked = r.locked || isArchived;
 let lockIcon = isLocked ? "🔒" : "🔓";
 let lockClass = isLocked ? "locked" : "unlocked";
 let tr=document.createElement("tr");
