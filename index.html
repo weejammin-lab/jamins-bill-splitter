@@ -509,6 +509,12 @@ async function handleReceiptUpload(event){
   const file = event.target.files[0];
   if(!file) return;
 
+  if(file.size > 10 * 1024 * 1024){
+    alert("Image too large. Please upload a photo under 10MB. idk how much space $0.10/month gets me lololol");
+    event.target.value = "";
+    return;
+  }
+
   const storageRef = storage.ref().child(`receipts/${Date.now()}_receipt.jpg`);
   await storageRef.put(file);
   const url = await storageRef.getDownloadURL();
