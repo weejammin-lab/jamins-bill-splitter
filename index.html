@@ -4,6 +4,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -383,6 +384,7 @@ appId: "1:139094691642:web:fa1f61dcfae8d085094a03"
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const billRef = db.collection("bills").doc("main");
+const storage = firebase.storage();  
 
 const defaultVenmoMap = {
 jamin:"jamin-chen",
@@ -410,8 +412,29 @@ let nameList=[...defaultNames];
 let rows=[];
 let venmoNames={...defaultVenmoMap};
 
-let isLocalUpdate=false;
+let receiptUrl="";  
 
+let isLocalUpdate=false;
+  
+function showReceiptThumbnail(url){
+
+const container =
+document.getElementById("receiptPreviewContainer");
+
+container.innerHTML = "";
+
+const img = document.createElement("img");
+
+img.src = url;
+img.className = "receipt-thumb";
+
+img.onclick = function(){
+window.open(url, "_blank");
+};
+
+container.appendChild(img);
+
+}
 function loadBill(){
 billRef.onSnapshot(doc=>{
 
@@ -423,6 +446,12 @@ if(!data) return;
 rows=data.rows||[];
 nameList=data.nameList||[];
 venmoNames=data.venmoNames||{};
+
+receiptUrl = data.receiptUrl || "";
+
+if(receiptUrl){
+showReceiptThumbnail(receiptUrl);
+}
 
 document.getElementById("taxValue").value=data.taxValue||"";
 document.getElementById("tipValue").value=data.tipValue||"";
@@ -437,45 +466,32 @@ calc();
 });
 }
   
-function handleReceiptUpload(event){
+async function handleReceiptUpload(event){
 
 const file = event.target.files[0];
 if(!file) return;
 
-const reader = new FileReader();
+/* upload to Firebase Storage */
+const storageRef =
+storage.ref().child("receipts/main_receipt.jpg");
 
-reader.onload = function(e){
+await storageRef.put(file);
 
-const container =
-document.getElementById("receiptPreviewContainer");
+/* get URL */
+receiptUrl = await storageRef.getDownloadURL();
 
-/* show only 1 thumbnail */
+/* show thumbnail */
+showReceiptThumbnail(receiptUrl);
 
-container.innerHTML = "";
+/* save so it persists */
+saveBill();
 
-/* create image */
+/* reset input */
+event.target.value = "";
 
-const img = document.createElement("img");
+}
 
-img.src = e.target.result;
 
-img.className = "receipt-thumb";
-
-/* click → open full image */
-
-img.onclick = function(){
-
-const win = window.open("");
-
-win.document.write(
-`<img src="${img.src}" style="width:100%">`
-);
-
-};
-
-container.appendChild(img);
-
-};
 
 reader.readAsDataURL(file);
 
@@ -493,6 +509,7 @@ billRef.set({
 rows,
 nameList,
 venmoNames,
+receiptUrl,  
 taxValue:document.getElementById("taxValue").value,
 tipValue:document.getElementById("tipValue").value,
 taxMode:document.getElementById("taxMode").value,
