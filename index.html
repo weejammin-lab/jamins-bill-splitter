@@ -87,6 +87,14 @@ margin-bottom:4px;
 flex-wrap:nowrap;
 }
 
+.right-actions{
+display:flex;
+gap:6px;
+align-items:center;
+margin-left:auto;
+flex-shrink:0;
+}
+  
 .add-person-input{
 padding:4px;
 font-size:12px;
@@ -353,29 +361,26 @@ font-size:11px;
 
 <!-- Single action row: name input | upload | thumbnail | dropdown | save bill -->
 <div class="action-row">
-
   <input class="add-person-input"
     id="addPersonBox"
     placeholder="type name + Enter"
     onkeydown="handleAddPerson(event)">
-
   <input type="file"
     id="receiptUpload"
     accept="image/*"
     style="display:none"
     onchange="handleReceiptUpload(event)">
-
   <button class="upload-btn" onclick="document.getElementById('receiptUpload').click()">
     Upload Receipt
   </button>
-
   <div id="receiptPreviewContainer"></div>
 
-  <select id="billDropdown" onchange="loadSavedBill(this.value)">
-    <option value="">-- load a saved bill --</option>
-  </select>
-
-  <button class="save-bill-btn" onclick="saveNewBill()">Save Bill</button>
+  <div class="right-actions">
+    <select id="billDropdown" onchange="loadSavedBill(this.value)">
+      <option value="">-- load a saved bill --</option>
+    </select>
+    <button class="save-bill-btn" onclick="saveNewBill()">Save Bill</button>
+  </div>
 
 </div>
 
