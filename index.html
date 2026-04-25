@@ -260,12 +260,28 @@ font-size:11px;
 <h2>Bill Splitter</h2>
 
 <div class="top-actions">
-  <input class="add-person-input"
-  id="addPersonBox"
-  placeholder="type name + Enter"
-  onkeydown="handleAddPerson(event)">
+
+  <div style="display:flex; gap:6px; align-items:center;">
+
+    <input class="add-person-input"
+    id="addPersonBox"
+    placeholder="type name + Enter"
+    onkeydown="handleAddPerson(event)">
+
+    <input type="file"
+    id="receiptUpload"
+    accept="image/*"
+    style="display:none"
+    onchange="handleReceiptUpload(event)">
+
+    <button onclick="document.getElementById('receiptUpload').click()">
+    Upload Receipt
+    </button>
+
+  </div>
 
   <button class="clear-btn" onclick="clearAll()">Clear All</button>
+
 </div>
 
 <div class="top-row">
