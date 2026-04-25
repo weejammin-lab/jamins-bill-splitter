@@ -354,11 +354,11 @@ font-size:11px;
 <div class="header-row">
   <h2 style="margin:0;">Bill Splitter</h2>
   <div class="header-right">
-    <button onclick="clearAll()">Clear All</button>
+    <button onclick="clearAll()">New Bill</button>
   </div>
 </div>
 
-<!-- Single action row: name input | upload | thumbnail | dropdown | save bill -->
+<!-- Single action row: name input | upload | thumbnail | dropdown | save | save as -->
 <div class="action-row">
   <input class="add-person-input"
     id="addPersonBox"
@@ -378,7 +378,8 @@ font-size:11px;
     <select id="billDropdown" onchange="loadSavedBill(this.value)">
       <option value="">-- load a saved bill --</option>
     </select>
-    <button class="save-bill-btn" id="saveBillBtn" onclick="saveNewBill()">Save Bill</button>
+    <button class="save-bill-btn" id="saveBillBtn" onclick="saveNewBill()">Save</button>
+    <button class="save-bill-btn" onclick="saveAsBill()">Save As</button>
   </div>
 
 </div>
@@ -483,10 +484,18 @@ let lastSavedReceiptUrl = null;
 let currentLoadedBillId = null;
 let currentLoadedBillTitle = null;
 
+function formatDate(ts){
+  const d = new Date(ts);
+  const mm = d.getMonth()+1;
+  const dd = d.getDate();
+  const yy = String(d.getFullYear()).slice(-2);
+  return `${mm}/${dd}/${yy}`;
+}
+
 function updateSaveButtonLabel(){
   const btn = document.getElementById("saveBillBtn");
   if(!btn) return;
-  btn.textContent = currentLoadedBillId ? "Update Bill" : "Save Bill";
+  btn.textContent = currentLoadedBillId ? "Update" : "Save";
 }
 
 function hasContent(){
@@ -498,15 +507,13 @@ function hasContent(){
 }
 
 async function checkUnsavedBill(){
-  // if a saved bill is loaded, no prompt needed
   if(currentLoadedBillId) return true;
-  // if no content, no prompt needed
   if(!hasContent()) return true;
 
   const save = confirm("Save current bill before continuing?");
   if(save){
     const title = prompt("Enter a title for this bill:");
-    if(!title || !title.trim()) return false; // user cancelled, don't proceed
+    if(!title || !title.trim()) return false;
     const billData = {
       title: title.trim(),
       savedAt: Date.now(),
@@ -689,6 +696,29 @@ async function saveNewBill(){
   }
 }
 
+async function saveAsBill(){
+  // always prompt for a new title and save as a brand new doc
+  const title = prompt("Enter a title for this bill:");
+  if(!title || !title.trim()) return;
+
+  saveBill();
+
+  const billData = {
+    title: title.trim(),
+    savedAt: Date.now(),
+    ...getCurrentBillData()
+  };
+
+  const docRef = await db.collection("savedBills").add(billData);
+  currentLoadedBillId = docRef.id;
+  currentLoadedBillTitle = title.trim();
+
+  alert(`"${title.trim()}" saved!`);
+  await loadSavedBillsList();
+  document.getElementById("billDropdown").value = docRef.id;
+  updateSaveButtonLabel();
+}
+
 async function loadSavedBillsList(){
 const snapshot = await db.collection("savedBills")
   .orderBy("savedAt", "desc")
@@ -701,10 +731,9 @@ dropdown.innerHTML = `<option value="">-- load a saved bill --</option>`;
 
 snapshot.forEach(doc => {
   const d = doc.data();
-  const date = new Date(d.savedAt).toLocaleDateString();
   const opt = document.createElement("option");
   opt.value = doc.id;
-  opt.textContent = `${d.title} (${date})`;
+  opt.textContent = `${d.title} (${formatDate(d.savedAt)})`;
   dropdown.appendChild(opt);
 });
 
@@ -718,7 +747,6 @@ if(!id) return;
 
 const proceed = await checkUnsavedBill();
 if(!proceed){
-  // restore dropdown to previous value
   document.getElementById("billDropdown").value = currentLoadedBillId || "";
   return;
 }
@@ -777,7 +805,7 @@ async function clearAll(){
 const proceed = await checkUnsavedBill();
 if(!proceed) return;
 
-if(!confirm("Clear everything?")) return;
+if(!confirm("Start a new bill?")) return;
 
 document.getElementById("taxValue").value="";
 document.getElementById("tipValue").value="";
