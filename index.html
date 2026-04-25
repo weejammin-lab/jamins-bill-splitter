@@ -450,12 +450,10 @@ venmoNames=data.venmoNames||{};
 
 receiptUrl = data.receiptUrl || "";
 
-receiptUrl = data.receiptUrl || "";
-
-if (receiptUrl) {
-  setTimeout(() => {
-    showReceiptThumbnail(receiptUrl);
-  }, 0);
+if (receiptUrl && receiptUrl !== "") {
+setTimeout(() => {
+showReceiptThumbnail(receiptUrl);
+}, 0);
 }
 
 document.getElementById("taxValue").value=data.taxValue||"";
