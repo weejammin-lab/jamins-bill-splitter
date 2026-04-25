@@ -451,7 +451,10 @@ rows=data.rows||[];
 nameList=data.nameList||[];
 venmoNames=data.venmoNames||{};
 
-receiptUrl = data.receiptUrl || "";
+if (data.receiptUrl !== undefined && data.receiptUrl !== "") {
+receiptUrl = data.receiptUrl;
+showReceiptThumbnail(receiptUrl);
+}
 
 if (data.receiptUrl) {
 receiptUrl = data.receiptUrl;
@@ -516,15 +519,15 @@ billRef.set({
 rows,
 nameList,
 venmoNames,
-receiptUrl: getCurrentReceiptUrl(),
+receiptUrl: receiptUrl || null,
 taxValue:document.getElementById("taxValue").value,
 tipValue:document.getElementById("tipValue").value,
 taxMode:document.getElementById("taxMode").value,
 tipMode:document.getElementById("tipMode").value,
 notes:document.getElementById("notesBox").value
-}, { merge: true });
-
+}).finally(()=>{
 setTimeout(()=>isLocalUpdate=false,300);
+});
 
 }
 
