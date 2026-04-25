@@ -414,7 +414,7 @@ let venmoNames={...defaultVenmoMap};
 
 let receiptUrl="";  
 let isLocalUpdate=false;
-
+let lastSavedReceiptUrl = null;
 function safeReceiptUrl(){
 return (receiptUrl && receiptUrl.length > 5) ? receiptUrl : null;
 }
@@ -457,6 +457,7 @@ nameList=data.nameList||[];
 venmoNames=data.venmoNames||{};
 
 receiptUrl = data.receiptUrl || "";
+lastSavedReceiptUrl = receiptUrl;
 
 if (receiptUrl) {
 showReceiptThumbnail(receiptUrl);
@@ -511,18 +512,29 @@ function saveBill(){
 
 isLocalUpdate=true;
 
+// 🚨 BLOCK EMPTY OR RESET OVERWRITES
+if (!receiptUrl || receiptUrl.length < 5) {
+receiptUrl = lastSavedReceiptUrl || "";
+}
+
 billRef.set({
 rows,
 nameList,
 venmoNames,
-
-receiptUrl: safeReceiptUrl() ?? undefined,  // ✅ FIXED
+receiptUrl: receiptUrl,
 
 taxValue:document.getElementById("taxValue").value,
 tipValue:document.getElementById("tipValue").value,
 taxMode:document.getElementById("taxMode").value,
 tipMode:document.getElementById("tipMode").value,
 notes:document.getElementById("notesBox").value
+}).then(()=>{
+
+// store last known good value AFTER successful save
+if (receiptUrl && receiptUrl.length > 5) {
+lastSavedReceiptUrl = receiptUrl;
+}
+
 }).finally(()=>{
 setTimeout(()=>isLocalUpdate=false,300);
 });
