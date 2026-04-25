@@ -46,6 +46,14 @@ margin-bottom:6px;
 gap:10px;
 }
 
+.header-center{
+display:flex;
+flex-direction:column;
+align-items:center;
+gap:2px;
+flex:1;
+}
+
 .header-right{
 display:flex;
 gap:6px;
@@ -80,15 +88,8 @@ border:none;
 padding:0;
 }
 
+/* Row 2: name input + people label | load dropdown + save */
 .action-row{
-display:flex;
-gap:6px;
-align-items:center;
-margin-bottom:4px;
-flex-wrap:nowrap;
-}
-
-.save-row{
 display:flex;
 gap:6px;
 align-items:center;
@@ -104,11 +105,25 @@ margin-left:auto;
 flex-shrink:0;
 }
 
+.name-input-wrap{
+display:flex;
+flex-direction:column;
+gap:2px;
+flex-shrink:0;
+}
+
+.people-label{
+font-size:10px;
+color:#555;
+margin:0;
+padding:0;
+line-height:1;
+}
+
 .add-person-input{
 padding:4px;
 font-size:12px;
 width:112px;
-flex-shrink:0;
 }
 
 .upload-btn{
@@ -147,6 +162,14 @@ color:red;
 font-size:11px;
 font-weight:bold;
 flex-shrink:0;
+}
+
+/* archived label row */
+.archived-row{
+display:flex;
+justify-content:flex-end;
+margin-bottom:2px;
+min-height:16px;
 }
 
 .top-row{
@@ -408,11 +431,11 @@ color:#cc0000;
 
 <body>
 
-<!-- ROW 1: title | upload receipt | thumbnail | New Bill -->
+<!-- ROW 1: Bill Splitter | Upload Receipt + thumbnail (centered) | New Bill -->
 <div class="header-row">
   <h2 style="margin:0;flex-shrink:0;">Bill Splitter</h2>
 
-  <div class="header-right">
+  <div class="header-center">
     <input type="file"
       id="receiptUpload"
       accept="image/*"
@@ -422,31 +445,36 @@ color:#cc0000;
       Upload Receipt
     </button>
     <div id="receiptPreviewContainer"></div>
+  </div>
+
+  <div class="header-right">
     <button id="newBillBtn" onclick="clearAll()">New Bill</button>
   </div>
 </div>
 
-<!-- ROW 2: name input | load dropdown -->
+<!-- ROW 2: People Involved label + name input | load dropdown + Save -->
 <div class="action-row">
-  <input class="add-person-input"
-    id="addPersonBox"
-    placeholder="type name + Enter"
-    onkeydown="handleAddPerson(event)">
+
+  <div class="name-input-wrap">
+    <span class="people-label">People Involved</span>
+    <input class="add-person-input"
+      id="addPersonBox"
+      placeholder="type name + Enter"
+      onkeydown="handleAddPerson(event)">
+  </div>
 
   <div class="right-actions">
     <select id="billDropdown" onchange="loadSavedBill(this.value)">
       <option value="" disabled selected style="color:#aaa;">-- load a saved bill --</option>
     </select>
+    <button class="save-bill-btn" id="saveBillBtn" onclick="saveNewBill()">Save</button>
   </div>
+
 </div>
 
-<!-- ROW 3: archived label | Save | Save As -->
-<div class="save-row">
+<!-- Archived label row -->
+<div class="archived-row">
   <span id="archivedLabel" class="archived-label" style="display:none;">⛔ ARCHIVED</span>
-  <div class="right-actions">
-    <button class="save-bill-btn" id="saveBillBtn" onclick="saveNewBill()">Save</button>
-    <button class="save-bill-btn" data-saveas onclick="saveAsBill()">Save As</button>
-  </div>
 </div>
 
 <div class="top-row">
@@ -619,11 +647,22 @@ function updateArchivedUI(){
     }
   }
 
-  // show/hide bill actions row only when a bill is loaded
   const actionsRow = document.getElementById("billActionsRow");
   if(actionsRow){
     actionsRow.style.display = currentLoadedBillId ? "flex" : "none";
   }
+
+  // disable notes, tax, tip inputs when archived
+  const notesBox = document.getElementById("notesBox");
+  const taxValue = document.getElementById("taxValue");
+  const tipValue = document.getElementById("tipValue");
+  const taxMode = document.getElementById("taxMode");
+  const tipMode = document.getElementById("tipMode");
+
+  [notesBox, taxValue, tipValue, taxMode, tipMode].forEach(el => {
+    if(isArchived) el.setAttribute("disabled", "");
+    else el.removeAttribute("disabled");
+  });
 
   updateSaveButtonState();
 }
@@ -841,34 +880,6 @@ async function saveNewBill(){
   }
 }
 
-async function saveAsBill(){
-  const title = prompt("Enter a title for this bill:");
-  if(!title || !title.trim()) return;
-
-  saveBill();
-
-  const billData = {
-    title: title.trim(),
-    savedAt: Date.now(),
-    ...getCurrentBillData(),
-    archived: false
-  };
-
-  const docRef = await db.collection("savedBills").add(billData);
-  currentLoadedBillId = docRef.id;
-  currentLoadedBillTitle = title.trim();
-  isDirty = false;
-  isArchived = false;
-  loadedSnapshot = snapshotState();
-  newBillFirstInputDate = null;
-
-  alert(`"${title.trim()}" saved!`);
-  await loadSavedBillsList();
-  document.getElementById("billDropdown").value = docRef.id;
-  updateSaveButtonState();
-  updateArchivedUI();
-}
-
 async function toggleArchive(){
   if(!currentLoadedBillId){
     alert("Save this bill first before archiving.");
@@ -876,7 +887,6 @@ async function toggleArchive(){
   }
 
   if(isArchived){
-    // UNARCHIVE — prompt for password
     const pw = prompt("Enter password to unarchive:");
     if(!pw) return;
     if(pw.trim().toLowerCase() !== "unarchive"){
@@ -884,7 +894,6 @@ async function toggleArchive(){
       return;
     }
 
-    // unlock all rows
     rows.forEach(r => r.locked = false);
 
     await db.collection("savedBills").doc(currentLoadedBillId).update({
@@ -904,7 +913,6 @@ async function toggleArchive(){
     alert(`"${currentLoadedBillTitle}" has been unarchived.`);
 
   } else {
-    // ARCHIVE
     const confirmed = confirm(`Archive "${currentLoadedBillTitle}"?\n\nArchived Bills can't be edited but can still be viewed.`);
     if(!confirmed) return;
 
@@ -1036,6 +1044,7 @@ calc();
 }
 
 function saveNotes(){
+if(isArchived) return;
 billRef.update({
 notes: document.getElementById("notesBox").value
 });
@@ -1073,7 +1082,6 @@ rows=[];
 nameList=[...defaultNames];
 venmoNames={...defaultVenmoMap};
 
-// fully rebuild dropdown with placeholder showing
 loadSavedBillsList();
 
 updateSaveButtonState();
