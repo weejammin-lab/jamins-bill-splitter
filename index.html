@@ -514,14 +514,14 @@ isLocalUpdate=true;
 
 // 🚨 BLOCK EMPTY OR RESET OVERWRITES
 if (!receiptUrl || receiptUrl.length < 5) {
-receiptUrl = lastSavedReceiptUrl || "";
+  receiptUrl = lastSavedReceiptUrl || "";
 }
 
 billRef.set({
 rows,
 nameList,
 venmoNames,
-receiptUrl: receiptUrl,
+receiptUrl: receiptUrl || lastSavedReceiptUrl || undefined,
 
 taxValue:document.getElementById("taxValue").value,
 tipValue:document.getElementById("tipValue").value,
