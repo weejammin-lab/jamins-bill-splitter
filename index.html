@@ -452,8 +452,9 @@ rows=data.rows||[];
 nameList=data.nameList||[];
 venmoNames=data.venmoNames||{};
 
-if (typeof data.receiptUrl === "string" && data.receiptUrl.trim() !== "") {
-receiptUrl = data.receiptUrl;
+receiptUrl = data.receiptUrl || "";
+
+if (receiptUrl) {
 showReceiptThumbnail(receiptUrl);
 }
 
@@ -507,14 +508,12 @@ billRef.set({
 rows,
 nameList,
 venmoNames,
-
-// 🚨 ONLY trust Firestore, never local empty overwrite
+receiptUrl: receiptUrl,   // ✅ ONLY this
 taxValue:document.getElementById("taxValue").value,
 tipValue:document.getElementById("tipValue").value,
 taxMode:document.getElementById("taxMode").value,
 tipMode:document.getElementById("tipMode").value,
 notes:document.getElementById("notesBox").value
-
 }).finally(()=>{
 setTimeout(()=>isLocalUpdate=false,300);
 });
