@@ -470,29 +470,38 @@ calc();
 }
   
 async function handleReceiptUpload(event){
-  console.log("UPLOAD FUNCTION TRIGGERED");
+
+console.log("UPLOAD FUNCTION TRIGGERED");
 
 const file = event.target.files[0];
 if(!file) return;
 
-/* upload to Firebase Storage */
 const storageRef =
-storage.ref().child("receipts/main_receipt.jpg");
+storage.ref().child(`receipts/${Date.now()}_receipt.jpg`);
 
 await storageRef.put(file);
 
-/* get URL */
-receiptUrl = await storageRef.getDownloadURL();
+const url = await storageRef.getDownloadURL();
 
-/* show thumbnail */
-showReceiptThumbnail(receiptUrl);
+receiptUrl = url;
 
-/* save so it persists */
-saveBill();
+// show immediately
+showReceiptThumbnail(url);
 
-/* reset input */
+// FORCE SAVE AND WAIT
+await billRef.set({
+rows,
+nameList,
+venmoNames,
+receiptUrl: url,
+taxValue:document.getElementById("taxValue").value,
+tipValue:document.getElementById("tipValue").value,
+taxMode:document.getElementById("taxMode").value,
+tipMode:document.getElementById("tipMode").value,
+notes:document.getElementById("notesBox").value
+});
+
 event.target.value = "";
-
 }
 
 
