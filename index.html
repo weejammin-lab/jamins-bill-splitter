@@ -46,12 +46,15 @@ margin-bottom:6px;
 gap:10px;
 }
 
+/* receipt area sits left-of-center */
 .header-center{
 display:flex;
-flex-direction:column;
+flex-direction:row;
 align-items:center;
-gap:2px;
+gap:4px;
 flex:1;
+justify-content:flex-start;
+padding-left:8px;
 }
 
 .header-right{
@@ -73,19 +76,20 @@ display:block;
 
 .receipt-thumb-wrap{
 display:flex;
-flex-direction:column;
+flex-direction:row;
 align-items:center;
-gap:1px;
+gap:4px;
 }
 
 .remove-receipt{
-font-size:10px;
+font-size:12px;
 color:red;
 cursor:pointer;
 line-height:1;
 background:none;
 border:none;
 padding:0;
+font-weight:bold;
 }
 
 .action-row{
@@ -218,9 +222,10 @@ gap:2px;
 }
 
 .delete-person{
-color:red;
+color:red !important;
 cursor:pointer;
 margin-left:0;
+-webkit-text-fill-color: red;
 }
 
 .notes-box{
@@ -445,16 +450,15 @@ border-radius:4px;
 color:#cc0000;
 }
 
-/* archived dimming */
-.archived-dim{
-opacity:0.85;
-pointer-events:none;
-}
-
 .row-btn-disabled{
 opacity:0.85;
 cursor:not-allowed;
 pointer-events:none;
+}
+
+/* archived dims everything at once */
+.archived-section{
+opacity:0.85;
 }
 </style>
 
@@ -462,7 +466,7 @@ pointer-events:none;
 
 <body>
 
-<!-- ROW 1: Bill Splitter | Upload Receipt + thumbnail (centered) | New Bill -->
+<!-- ROW 1: Bill Splitter | Upload Receipt + thumbnail (left-aligned in center) | New Bill -->
 <div class="header-row">
   <h2 style="margin:0;flex-shrink:0;">Bill Splitter</h2>
 
@@ -509,16 +513,15 @@ pointer-events:none;
 </div>
 
 <div class="top-row">
-
 <div id="personBar"></div>
-
 <textarea class="notes-box"
 id="notesBox"
 placeholder="type any notes here&#10;-click New Bill to get started&#10;-entering item names is optional&#10;-you can archive or delete any saved bill at the bottom (must be saved first)"
 oninput="saveNotes(); markDirty()"></textarea>
-
 </div>
 
+<!-- table + controls wrapped for archived dimming -->
+<div id="mainContentSection">
 <table>
 <thead>
 <tr>
@@ -539,7 +542,7 @@ oninput="saveNotes(); markDirty()"></textarea>
   <span id="deleteMsg" style="color:red; font-size:11px;"></span>
 </div>
 
-<div class="tax-tip-wrap">
+<div class="tax-tip-wrap" id="taxWrap">
 <label>Tax</label>
 <select id="taxMode" onchange="calc(); markDirty()">
 <option value="amount" selected>$</option>
@@ -551,7 +554,7 @@ oninput="saveNotes(); markDirty()"></textarea>
   oninput="calc(); markDirty()">
 </div>
 
-<div class="tax-tip-wrap">
+<div class="tax-tip-wrap" id="tipWrap">
 <label>Tip</label>
 <select id="tipMode" onchange="calc(); markDirty()">
 <option value="amount" selected>$</option>
@@ -560,6 +563,7 @@ oninput="saveNotes(); markDirty()"></textarea>
 <input id="tipValue" class="tax-tip-input"
   inputmode="decimal"
   oninput="calc(); markDirty()">
+</div>
 </div>
 
 <div class="summary-box" id="summary"></div>
@@ -601,7 +605,7 @@ maria:"mariapdiaz",
 paarus:"paarus-ali",
 anna:"anna-claire-choi",
 michelle:"michelletran9",
-  mich:"michelletran9",
+mich:"michelletran9",
 victoria:"victoriabao",
 vic:"victoriabao",
 };
@@ -644,7 +648,6 @@ function snapshotState(){
 }
 
 function defaultSnapshot(){
-  // what state looks like on a brand new bill
   return JSON.stringify({
     rows: Array(8).fill(null).map(()=>({item:"",price:"",people:"",selected:[],locked:false})),
     nameList: [...defaultNames],
@@ -662,7 +665,6 @@ function markDirty(){
     const changed = snapshotState() !== loadedSnapshot;
     isDirty = changed;
   } else {
-    // new bill: dirty if anything differs from default state
     const current = snapshotState();
     isDirty = current !== defaultSnapshot();
     if(isDirty && !newBillFirstInputDate){
@@ -675,11 +677,15 @@ function markDirty(){
 function updateSaveButtonState(){
   const btn = document.getElementById("saveBillBtn");
   if(!btn) return;
+  // don't override if currently showing "saved!" feedback
+  if(btn.dataset.feedback === "1") return;
   btn.textContent = "Save";
+  btn.style.color = "";
   if(currentLoadedBillId){
     btn.disabled = !isDirty || isArchived;
   } else {
-    btn.disabled = false;
+    // new bill: disable if no changes from default
+    btn.disabled = !isDirty;
   }
 }
 
@@ -703,46 +709,54 @@ function updateArchivedUI(){
     actionsRow.style.display = currentLoadedBillId ? "flex" : "none";
   }
 
-  // elements to disable/dim when archived
+  // dim entire main content section when archived
+  const mainSection = document.getElementById("mainContentSection");
   const notesBox = document.getElementById("notesBox");
-  const taxValue = document.getElementById("taxValue");
-  const tipValue = document.getElementById("tipValue");
-  const taxMode = document.getElementById("taxMode");
-  const tipMode = document.getElementById("tipMode");
+  const personBar = document.getElementById("personBar");
+  const summaryBox = document.getElementById("summary");
+  const totalsBox = document.getElementById("totals");
   const uploadBtn = document.getElementById("uploadReceiptBtn");
   const addRowBtn = document.getElementById("addRowBtn");
   const add5RowsBtn = document.getElementById("add5RowsBtn");
   const deleteLastRowBtn = document.getElementById("deleteLastRowBtn");
-  const personBar = document.getElementById("personBar");
-  const summaryBox = document.getElementById("summary");
-  const totalsBox = document.getElementById("totals");
+  const taxValue = document.getElementById("taxValue");
+  const tipValue = document.getElementById("tipValue");
+  const taxMode = document.getElementById("taxMode");
+  const tipMode = document.getElementById("tipMode");
 
-  [notesBox, taxValue, tipValue, taxMode, tipMode].forEach(el => {
-    if(isArchived){
-      el.setAttribute("disabled","");
-      el.style.opacity = "0.85";
-    } else {
-      el.removeAttribute("disabled");
-      el.style.opacity = "";
-    }
-  });
+  if(isArchived){
+    mainSection.classList.add("archived-section");
+    notesBox.classList.add("archived-section");
+    personBar.classList.add("archived-section");
+    summaryBox.classList.add("archived-section");
+    totalsBox.classList.add("archived-section");
 
-  [uploadBtn, addRowBtn, add5RowsBtn, deleteLastRowBtn].forEach(btn => {
-    if(btn){
-      if(isArchived){
-        btn.disabled = true;
-        btn.classList.add("row-btn-disabled");
-      } else {
-        btn.disabled = false;
-        btn.classList.remove("row-btn-disabled");
-      }
-    }
-  });
+    notesBox.setAttribute("disabled","");
+    taxValue.setAttribute("disabled","");
+    tipValue.setAttribute("disabled","");
+    taxMode.setAttribute("disabled","");
+    tipMode.setAttribute("disabled","");
 
-  // dim person bar and summary
-  if(personBar) personBar.style.opacity = isArchived ? "0.85" : "";
-  if(summaryBox) summaryBox.style.opacity = isArchived ? "0.85" : "";
-  if(totalsBox) totalsBox.style.opacity = isArchived ? "0.85" : "";
+    [uploadBtn, addRowBtn, add5RowsBtn, deleteLastRowBtn].forEach(btn => {
+      if(btn){ btn.disabled = true; btn.classList.add("row-btn-disabled"); }
+    });
+  } else {
+    mainSection.classList.remove("archived-section");
+    notesBox.classList.remove("archived-section");
+    personBar.classList.remove("archived-section");
+    summaryBox.classList.remove("archived-section");
+    totalsBox.classList.remove("archived-section");
+
+    notesBox.removeAttribute("disabled");
+    taxValue.removeAttribute("disabled");
+    tipValue.removeAttribute("disabled");
+    taxMode.removeAttribute("disabled");
+    tipMode.removeAttribute("disabled");
+
+    [uploadBtn, addRowBtn, add5RowsBtn, deleteLastRowBtn].forEach(btn => {
+      if(btn){ btn.disabled = false; btn.classList.remove("row-btn-disabled"); }
+    });
+  }
 
   updateSaveButtonState();
 }
@@ -806,7 +820,7 @@ img.onclick = function(){
 
 const removeBtn = document.createElement("button");
 removeBtn.className = "remove-receipt";
-removeBtn.textContent = "✕";
+removeBtn.textContent = "✖";
 removeBtn.title = "Remove receipt";
 removeBtn.onclick = function(){
   if(isArchived) return;
@@ -922,39 +936,55 @@ return {
 };
 }
 
+function showSavedFeedback(){
+  const btn = document.getElementById("saveBillBtn");
+  if(!btn) return;
+  btn.dataset.feedback = "1";
+  btn.textContent = "saved!";
+  btn.style.color = "red";
+  btn.disabled = true;
+  setTimeout(()=>{
+    btn.dataset.feedback = "0";
+    btn.style.color = "";
+    updateSaveButtonState();
+  }, 3000);
+}
+
 async function saveNewBill(){
   if(isArchived) return;
 
   if(currentLoadedBillId){
+    // UPDATE — no popup, just show "saved!" feedback on button
     await db.collection("savedBills").doc(currentLoadedBillId).update({
       ...getCurrentBillData()
     });
     isDirty = false;
     loadedSnapshot = snapshotState();
-    updateSaveButtonState();
-    alert(`"${currentLoadedBillTitle}" saved!`);
+    showSavedFeedback();
     await loadSavedBillsList();
     document.getElementById("billDropdown").value = currentLoadedBillId;
   } else {
-    const title = prompt("Enter a title for this bill:");
+    // NEW BILL — still prompt for title (max 15 chars)
+    let title = prompt("Enter a title for this bill (max 15 characters):");
     if(!title || !title.trim()) return;
+    title = title.trim().slice(0, 15);
 
     saveBill();
 
     const billData = {
-      title: title.trim(),
+      title,
       savedAt: newBillFirstInputDate || Date.now(),
       ...getCurrentBillData()
     };
 
     const docRef = await db.collection("savedBills").add(billData);
     currentLoadedBillId = docRef.id;
-    currentLoadedBillTitle = title.trim();
+    currentLoadedBillTitle = title;
     isDirty = false;
     loadedSnapshot = snapshotState();
     newBillFirstInputDate = null;
 
-    alert(`"${title.trim()}" saved!`);
+    alert(`"${title}" saved!`);
     await loadSavedBillsList();
     document.getElementById("billDropdown").value = docRef.id;
     updateSaveButtonState();
@@ -1049,7 +1079,6 @@ const currentVal = currentLoadedBillId || "";
 
 dropdown.innerHTML = "";
 
-// only show placeholder if no bill is currently loaded
 if(!currentLoadedBillId){
   const placeholder = document.createElement("option");
   placeholder.value = "";
@@ -1066,7 +1095,6 @@ snapshot.forEach(doc => {
   opt.value = doc.id;
   const archivedTag = d.archived ? " 🔒" : "";
   opt.textContent = `${d.title} (${formatDate(d.savedAt)})${archivedTag}`;
-  // do NOT grey out actual saved bills, only placeholder is greyed
   dropdown.appendChild(opt);
 });
 
