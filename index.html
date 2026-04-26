@@ -720,7 +720,7 @@ function updateArchivedUI(){
   [notesBox, taxValue, tipValue, taxMode, tipMode].forEach(el => {
     if(isArchived){
       el.setAttribute("disabled","");
-      el.style.opacity = "0.4";
+      el.style.opacity = "0.85";
     } else {
       el.removeAttribute("disabled");
       el.style.opacity = "";
@@ -740,9 +740,9 @@ function updateArchivedUI(){
   });
 
   // dim person bar and summary
-  if(personBar) personBar.style.opacity = isArchived ? "0.4" : "";
-  if(summaryBox) summaryBox.style.opacity = isArchived ? "0.4" : "";
-  if(totalsBox) totalsBox.style.opacity = isArchived ? "0.4" : "";
+  if(personBar) personBar.style.opacity = isArchived ? "0.85" : "";
+  if(summaryBox) summaryBox.style.opacity = isArchived ? "0.85" : "";
+  if(totalsBox) totalsBox.style.opacity = isArchived ? "0.85" : "";
 
   updateSaveButtonState();
 }
