@@ -1121,17 +1121,22 @@ return {
 }
 
 function showSavedFeedback(){
-  const btn = document.getElementById("saveBillBtn");
-  if(!btn) return;
-  btn.dataset.feedback = "1";
-  btn.textContent = "saved!";
-  btn.style.color = "red";
-  btn.style.fontSize = "11px";
-  btn.disabled = true;
+  const btns = document.querySelectorAll(".save-bill-btn");
+
+  btns.forEach(btn => {
+    btn.dataset.feedback = "1";
+    btn.textContent = "saved!";
+    btn.style.color = "red";
+    btn.style.fontSize = "11px";
+    btn.disabled = true;
+  });
+
   setTimeout(()=>{
-    btn.dataset.feedback = "0";
-    btn.style.color = "";
-    btn.style.fontSize = "";
+    btns.forEach(btn => {
+      btn.dataset.feedback = "0";
+      btn.style.color = "";
+      btn.style.fontSize = "";
+    });
     updateSaveButtonState();
   }, 750);
 }
