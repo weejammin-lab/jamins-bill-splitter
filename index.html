@@ -1226,7 +1226,7 @@ snapshot.forEach(doc => {
   const d = doc.data();
   const opt = document.createElement("option");
   opt.value = doc.id;
-  const archivedTag = d.archived ? " 🔒" : "";
+  const archivedTag = d.archived ? "🔒" : "";
   opt.textContent = `${d.title} (${formatDate(d.savedAt)})${archivedTag}`;
   dropdown.appendChild(opt);
 });
