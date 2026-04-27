@@ -993,9 +993,7 @@ billRef.onSnapshot(doc=>{
   if(isLocalUpdate) return;
 
   const data = doc.data();
-  if(!data){
-  init(); // ensure default rows exist
-  return;
+ if(!data) return;
 
 
   applyLiveData(data);
