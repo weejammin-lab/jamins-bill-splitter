@@ -954,7 +954,15 @@ container.appendChild(wrap);
 }
 
 function applyLiveData(data){
-  rows = data.rows || [];
+  rows = data.rows && data.rows.length
+  ? data.rows
+  : Array(5).fill(null).map(() => ({
+      item:"",
+      price:"",
+      people:"",
+      selected:[],
+      locked:false
+    }));
   nameList = data.nameList || [];
   venmoNames = data.venmoNames || {};
   receiptUrl = data.receiptUrl || "";
@@ -993,7 +1001,12 @@ billRef.onSnapshot(doc=>{
   if(isLocalUpdate) return;
 
   const data = doc.data();
-  if(!data) return;
+  if(!data){
+    if(!billLoaded){
+      init();
+      billLoaded = true;
+    }
+    return;
 
   applyLiveData(data);
 
