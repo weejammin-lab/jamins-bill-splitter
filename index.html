@@ -14,10 +14,9 @@
 <style>
 body{
 font-family:Arial;
-max-width:390px;
+max-width:550px;
 margin:auto;
 padding:10px;
-
 }
 
 .receipt-overlay{
@@ -142,7 +141,7 @@ cursor:not-allowed;
 #billDropdown{
 font-size:12px;
 padding:4px;
-width:175px;
+width:192px;
 flex-shrink:0;
 }
 
@@ -494,23 +493,9 @@ line-height:1.3;
     </button>
     <div id="receiptPreviewContainer"></div>
   </div>
-   <button class="save-bill-btn"
-    id="saveBillBtn"
-    onclick="saveNewBill()">
-    Save
-  </button>
 </div>
 
-<!-- ROW 2: Load Saved Bill (its own row) -->
-<div class="load-row">
-  <select id="billDropdown" onchange="loadSavedBill(this.value)">
-    <option value="" disabled selected style="color:#aaa;">
-      -- load a saved bill --
-    </option>
-  </select>
-</div>
-
-<!-- ROW 3: People Involved -->
+<!-- ROW 2: People Involved label + name input | load dropdown + Save -->
 <div class="action-row">
 
   <div class="name-input-wrap">
@@ -519,6 +504,13 @@ line-height:1.3;
       id="addPersonBox"
       placeholder="type name + Enter"
       onkeydown="handleAddPerson(event)">
+  </div>
+
+  <div class="right-actions">
+    <select id="billDropdown" onchange="loadSavedBill(this.value)">
+      <option value="" disabled selected style="color:#aaa;">-- load a saved bill --</option>
+    </select>
+    <button class="save-bill-btn" id="saveBillBtn" onclick="saveNewBill()">Save</button>
   </div>
 
 </div>
@@ -1228,7 +1220,7 @@ snapshot.forEach(doc => {
   const d = doc.data();
   const opt = document.createElement("option");
   opt.value = doc.id;
-  const archivedTag = d.archived ? "🔒" : "";
+  const archivedTag = d.archived ? " 🔒" : "";
   opt.textContent = `${d.title} (${formatDate(d.savedAt)})${archivedTag}`;
   dropdown.appendChild(opt);
 });
@@ -1303,7 +1295,7 @@ billRef.update({
 
 function init(){
 rows=[];
-for(let i=0;i<5;i++){
+for(let i=0;i<8;i++){
 rows.push({item:"",price:"",people:"",selected:[],locked:false});
 }
 renderPeopleBar();
