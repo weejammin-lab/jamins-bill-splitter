@@ -618,9 +618,6 @@ oninput="saveNotes(); markDirty()"></textarea>
 
 <div class="summary-box" id="summary"></div>
 <div id="totals"></div>
-  <div style="display:flex; justify-content:flex-end; margin-top:6px;">
-  <button class="save-bill-btn" onclick="saveNewBill()">Save</button>
-</div>
 
 <div class="bill-actions-row" id="billActionsRow" style="display:none;">
   <button id="archiveToggleBtn" class="archive-btn" onclick="toggleArchive()">Archive Bill</button>
@@ -1121,22 +1118,17 @@ return {
 }
 
 function showSavedFeedback(){
-  const btns = document.querySelectorAll(".save-bill-btn");
-
-  btns.forEach(btn => {
-    btn.dataset.feedback = "1";
-    btn.textContent = "saved!";
-    btn.style.color = "red";
-    btn.style.fontSize = "11px";
-    btn.disabled = true;
-  });
-
+  const btn = document.getElementById("saveBillBtn");
+  if(!btn) return;
+  btn.dataset.feedback = "1";
+  btn.textContent = "saved!";
+  btn.style.color = "red";
+  btn.style.fontSize = "11px";
+  btn.disabled = true;
   setTimeout(()=>{
-    btns.forEach(btn => {
-      btn.dataset.feedback = "0";
-      btn.style.color = "";
-      btn.style.fontSize = "";
-    });
+    btn.dataset.feedback = "0";
+    btn.style.color = "";
+    btn.style.fontSize = "";
     updateSaveButtonState();
   }, 750);
 }
