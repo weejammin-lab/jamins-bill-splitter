@@ -40,7 +40,7 @@ object-fit:contain;
 
 .header-row{
 display:flex;
-justify-content:space-between;
+justify-content:flex-start;
 align-items:center;
 margin-bottom:6px;
 gap:10px;
@@ -54,13 +54,6 @@ gap:4px;
 flex:1;
 justify-content:flex-start;
 padding-left:8px;
-}
-
-.header-right{
-display:flex;
-gap:6px;
-align-items:center;
-flex-shrink:0;
 }
 
 .receipt-thumb{
@@ -154,9 +147,11 @@ flex-shrink:0;
 
 .save-bill-btn{
 font-size:12px;
-padding:4px 6px;
+padding:4px 10px;
 white-space:nowrap;
 flex-shrink:0;
+min-width:52px;
+text-align:center;
 }
 
 .save-bill-btn:disabled{
@@ -265,11 +260,11 @@ z-index:10;
 background:#fff;
 }
 
-th:nth-child(1), td:nth-child(1){ width:8%; }
-th:nth-child(2), td:nth-child(2){ width:15%; }
-th:nth-child(3), td:nth-child(3){ width:12%; }
-th:nth-child(4), td:nth-child(4){ width:42%; }
-th:nth-child(5), td:nth-child(5){ width:23%; }
+/* 4 columns now (no Type Names) */
+th:nth-child(1), td:nth-child(1){ width:9%; }
+th:nth-child(2), td:nth-child(2){ width:18%; }
+th:nth-child(3), td:nth-child(3){ width:14%; }
+th:nth-child(4), td:nth-child(4){ width:59%; }
 
 .lock-cell{
 text-align:center;
@@ -419,6 +414,12 @@ margin:4px 0;
 .venmo-btn{
 margin-left:6px;
 font-size:11px;
+background:#008CFF;
+color:white;
+border:none;
+border-radius:4px;
+padding:2px 8px;
+cursor:pointer;
 }
 
 .bill-actions-row{
@@ -466,14 +467,20 @@ pointer-events:none;
 .archived-section{
 opacity:0.85;
 }
+
+/* th People Involved two-line */
+.th-people{
+line-height:1.3;
+}
 </style>
 
 </head>
 
 <body>
 
+<!-- ROW 1: New Bill | Upload Receipt + thumbnail -->
 <div class="header-row">
-  <h2 style="margin:0;flex-shrink:0;">Bill Splitter</h2>
+  <button id="newBillBtn" onclick="clearAll()">New Bill</button>
 
   <div class="header-center">
     <input type="file"
@@ -486,12 +493,9 @@ opacity:0.85;
     </button>
     <div id="receiptPreviewContainer"></div>
   </div>
-
-  <div class="header-right">
-    <button id="newBillBtn" onclick="clearAll()">New Bill</button>
-  </div>
 </div>
 
+<!-- ROW 2: People Involved label + name input | load dropdown + Save -->
 <div class="action-row">
 
   <div class="name-input-wrap">
@@ -511,8 +515,9 @@ opacity:0.85;
 
 </div>
 
+<!-- Archived label row -->
 <div class="archived-row">
-  <span id="archivedLabel" class="archived-label" style="display:none;">⛔ ARCHIVED</span>
+  <span id="archivedLabel" class="archived-label" style="display:none;">⛔ ARCHIVED — edits cannot be made</span>
 </div>
 
 <div class="top-row">
@@ -530,8 +535,7 @@ oninput="saveNotes(); markDirty()"></textarea>
 <th> </th>
 <th>Item</th>
 <th>Price ($)</th>
-<th>People Involved (Tap Names)</th>
-<th>Type Names</th>
+<th class="th-people">People Involved<br><span style="font-weight:normal;font-size:10px;">(Tap Names)</span></th>
 </tr>
 </thead>
 <tbody id="tableBody"></tbody>
@@ -589,8 +593,6 @@ appId: "1:139094691642:web:fa1f61dcfae8d085094a03"
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
-
-// "main" doc stores the live shared view — what's currently on screen for everyone
 const billRef = db.collection("bills").doc("main");
 const storage = firebase.storage();
 
@@ -628,7 +630,7 @@ let isArchived = false;
 let isDirty = false;
 let loadedSnapshot = null;
 let newBillFirstInputDate = null;
-let isUploadingReceipt = false; // guard against snapshot interfering with upload
+let isUploadingReceipt = false;
 
 function formatDate(ts){
   const d = new Date(ts);
@@ -668,15 +670,12 @@ function defaultSnapshot(){
 
 function markDirty(){
   if(currentLoadedBillId){
-    // compare without currentLoadedBillId field
     const a = JSON.parse(snapshotState()); delete a.currentLoadedBillId;
     const b = JSON.parse(loadedSnapshot || "{}"); delete b.currentLoadedBillId;
     isDirty = JSON.stringify(a) !== JSON.stringify(b);
   } else {
     isDirty = snapshotState() !== defaultSnapshot();
-    if(isDirty && !newBillFirstInputDate){
-      newBillFirstInputDate = Date.now();
-    }
+    if(isDirty && !newBillFirstInputDate) newBillFirstInputDate = Date.now();
   }
   updateSaveButtonState();
 }
@@ -687,6 +686,7 @@ function updateSaveButtonState(){
   if(btn.dataset.feedback === "1") return;
   btn.textContent = "Save";
   btn.style.color = "";
+  btn.style.fontSize = "";
   if(currentLoadedBillId){
     btn.disabled = !isDirty || isArchived;
   } else {
@@ -764,7 +764,6 @@ function hasContent(){
   return hasRows || hasTax || hasTip || hasNotes || hasReceipt || hasCustomNames;
 }
 
-// 3-option dialog: returns "save", "nosave", or "cancel"
 function confirmUnsaved(message){
   return new Promise(resolve => {
     const overlay = document.createElement("div");
@@ -809,12 +808,51 @@ function confirmUnsaved(message){
   });
 }
 
+// simple yes/no confirm dialog
+function confirmAction(message){
+  return new Promise(resolve => {
+    const overlay = document.createElement("div");
+    overlay.style.cssText = `
+      position:fixed;top:0;left:0;width:100%;height:100%;
+      background:rgba(0,0,0,0.5);z-index:9999;
+      display:flex;align-items:center;justify-content:center;
+    `;
+    const box = document.createElement("div");
+    box.style.cssText = `
+      background:#fff;padding:20px;border-radius:8px;
+      max-width:300px;width:90%;font-family:Arial;font-size:14px;
+      box-shadow:0 4px 20px rgba(0,0,0,0.3);
+    `;
+    box.innerHTML = `<p style="margin:0 0 16px;">${message}</p>`;
+
+    const btnStyle = `
+      display:inline-block;padding:8px 16px;margin-right:8px;
+      font-size:13px;border-radius:5px;cursor:pointer;border:1px solid #ccc;
+    `;
+
+    const yesBtn = document.createElement("button");
+    yesBtn.textContent = "Yes";
+    yesBtn.style.cssText = btnStyle + "background:#e74c3c;color:white;border-color:#e74c3c;";
+    yesBtn.onclick = () => { document.body.removeChild(overlay); resolve(true); };
+
+    const noBtn = document.createElement("button");
+    noBtn.textContent = "Cancel";
+    noBtn.style.cssText = btnStyle + "background:#f5f5f5;";
+    noBtn.onclick = () => { document.body.removeChild(overlay); resolve(false); };
+
+    box.appendChild(yesBtn);
+    box.appendChild(noBtn);
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+  });
+}
+
 async function checkUnsavedBill(){
   if(currentLoadedBillId && isDirty){
     const choice = await confirmUnsaved("There are unsaved changes to this bill.");
     if(choice === "save"){ await saveNewBill(); return true; }
     if(choice === "nosave"){ return true; }
-    return false; // cancel
+    return false;
   }
   if(!currentLoadedBillId && hasContent()){
     const choice = await confirmUnsaved("There are unsaved changes. Save this bill before continuing?");
@@ -834,7 +872,7 @@ async function checkUnsavedBill(){
       return true;
     }
     if(choice === "nosave"){ return true; }
-    return false; // cancel
+    return false;
   }
   return true;
 }
@@ -861,12 +899,13 @@ const removeBtn = document.createElement("button");
 removeBtn.className = "remove-receipt";
 removeBtn.textContent = "✖";
 removeBtn.title = "Remove receipt";
-removeBtn.onclick = function(){
+removeBtn.onclick = async function(){
   if(isArchived) return;
+  const confirmed = await confirmAction("Remove the uploaded receipt?");
+  if(!confirmed) return;
   receiptUrl = "";
   lastSavedReceiptUrl = "";
   container.innerHTML = "";
-  // save full state so receipt removal is synced to all devices
   saveBill();
   markDirty();
 };
@@ -876,7 +915,6 @@ container.appendChild(wrap);
 }
 
 function applyLiveData(data){
-  // applies data from Firestore to the UI
   rows = data.rows || [];
   nameList = data.nameList || [];
   venmoNames = data.venmoNames || {};
@@ -912,7 +950,6 @@ function applyLiveData(data){
 
 function loadBill(){
 billRef.onSnapshot(doc=>{
-  // block snapshot from interfering during upload
   if(isUploadingReceipt) return;
   if(isLocalUpdate) return;
 
@@ -930,7 +967,6 @@ billRef.onSnapshot(doc=>{
   updateSaveButtonState();
   updateArchivedUI();
 
-  // restore dropdown selection
   loadSavedBillsList().then(()=>{
     if(currentLoadedBillId){
       document.getElementById("billDropdown").value = currentLoadedBillId;
@@ -944,13 +980,21 @@ if(isArchived) return;
 const file = event.target.files[0];
 if(!file) return;
 
+// confirm if replacing existing receipt
+if(receiptUrl){
+  const confirmed = await confirmAction("Replace the current receipt with this new one?");
+  if(!confirmed){
+    event.target.value = "";
+    return;
+  }
+}
+
 if(file.size > 15 * 1024 * 1024){
   alert("Image too large. Please upload a photo under 15MB.");
   event.target.value = "";
   return;
 }
 
-// block snapshot listener during upload to prevent data overwrite
 isUploadingReceipt = true;
 isLocalUpdate = true;
 
@@ -963,7 +1007,6 @@ try {
   lastSavedReceiptUrl = url;
   showReceiptThumbnail(url);
 
-  // save full current state including new receipt url
   await billRef.set({
     rows,
     nameList,
@@ -1037,10 +1080,12 @@ function showSavedFeedback(){
   btn.dataset.feedback = "1";
   btn.textContent = "saved!";
   btn.style.color = "red";
+  btn.style.fontSize = "11px";
   btn.disabled = true;
   setTimeout(()=>{
     btn.dataset.feedback = "0";
     btn.style.color = "";
+    btn.style.fontSize = "";
     updateSaveButtonState();
   }, 750);
 }
@@ -1089,7 +1134,6 @@ async function saveNewBill(){
       notes: document.getElementById("notesBox").value
     });
 
-    // persist currentLoadedBillId to main doc so all devices know
     saveBill();
 
     alert(`"${title}" saved!`);
@@ -1227,7 +1271,6 @@ loadedSnapshot = JSON.stringify({
   notes: data.notes || ""
 });
 
-// persist to main doc so all devices switch to this bill
 saveBill();
 
 await loadSavedBillsList();
@@ -1242,7 +1285,6 @@ calc();
 
 function saveNotes(){
 if(isArchived) return;
-// include currentLoadedBillId so notes sync doesn't lose bill context
 isLocalUpdate = true;
 billRef.update({
   notes: document.getElementById("notesBox").value
@@ -1283,7 +1325,6 @@ rows=[];
 nameList=[...defaultNames];
 venmoNames={...defaultVenmoMap};
 
-// persist new bill state to main doc so all devices reset
 saveBill();
 loadSavedBillsList();
 updateSaveButtonState();
@@ -1482,12 +1523,6 @@ onblur="saveBill()"
 oninput="handlePriceInput(${i},this)">${r.price}</textarea>
 </td>
 <td>${tapHTML}</td>
-<td>
-<textarea data-r="${i}" data-c="3"
-${isLocked?"disabled":""}
-onkeydown="if(event.key==='Enter'){nav(event,${i},3)}"
-oninput="update(${i},'people',this.value)">${r.people}</textarea>
-</td>
 `;
 body.appendChild(tr);
 });
@@ -1550,7 +1585,9 @@ ${venmoId?`<button class="venmo-btn" onclick="window.open('https://venmo.com/?tx
 });
 }
 
-init();
+// On a new bill, don't call init() before loadBill() sets billLoaded=true
+// so rows don't get wiped on refresh. Instead just render the empty state.
+billLoaded = false;
 loadBill();
 loadSavedBillsList();
 
