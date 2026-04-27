@@ -525,8 +525,13 @@ padding:3px 6px;
   <button class="save-bill-btn" id="saveBillBtn" onclick="saveNewBill()">Save</button>
 </div>
 
-<!-- ROW 2: People Involved input | Load dropdown -->
+<!-- ROW 2: Load dropdown --> | People Involved input
 <div class="load-row">
+  
+    <select id="billDropdown" onchange="loadSavedBill(this.value)">
+    <option value="" disabled selected style="color:#aaa;">-- load a saved bill --</option>
+  </select>
+  
   <div class="name-input-wrap">
     <span class="people-label">People Involved</span>
     <input class="add-person-input"
@@ -535,9 +540,7 @@ padding:3px 6px;
       onkeydown="handleAddPerson(event)">
   </div>
 
-  <select id="billDropdown" onchange="loadSavedBill(this.value)">
-    <option value="" disabled selected style="color:#aaa;">-- load a saved bill --</option>
-  </select>
+
 </div>
 
 <!-- Archived label row -->
