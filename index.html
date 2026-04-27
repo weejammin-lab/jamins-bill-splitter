@@ -664,7 +664,7 @@ let billLoaded = false;
 let nameList=[...defaultNames];
 let rows=[];
 let venmoNames={...defaultVenmoMap};
-
+let isRendering = false;
 let receiptUrl="";
 let isLocalUpdate=false;
 let lastSavedReceiptUrl = null;
@@ -1524,6 +1524,7 @@ if(next){ next.focus(); next.select?.(); }
 }
 
 function render(){
+  isRendering = true;
 let body=document.getElementById("tableBody");
 body.innerHTML="";
 rows.forEach((r,i)=>{
@@ -1569,6 +1570,7 @@ oninput="handlePriceInput(${i},this)">${r.price}</textarea>
 `;
 body.appendChild(tr);
 });
+  isRendering = false;
 }
 
 function calc(){
