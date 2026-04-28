@@ -8,528 +8,610 @@
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono&display=swap" rel="stylesheet">
 
 <title>Bill Splitter</title>
 
 <style>
-body{
-font-family:Arial;
-max-width:390px;
-margin:auto;
-padding:8px;
-min-height:100vh;
+:root {
+  --bg: #f5f3ef;
+  --card: #ffffff;
+  --accent: #7c6af7;
+  --accent-light: #ede9ff;
+  --accent2: #f06a6a;
+  --accent2-light: #fff0f0;
+  --green: #3ecf76;
+  --green-light: #e8faf0;
+  --border: #e2dfd8;
+  --text: #2d2a26;
+  --muted: #9c9690;
+  --shadow: 0 2px 8px rgba(0,0,0,0.07);
+  --radius: 10px;
+  --radius-sm: 6px;
 }
 
-  html, body {
+* { box-sizing: border-box; }
+
+body {
+  font-family: 'DM Sans', Arial, sans-serif;
+  max-width: 390px;
+  margin: auto;
+  padding: 10px 10px 40px;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+}
+
+html, body {
   overscroll-behavior: none;
 }
-  
-.receipt-overlay{
-position:fixed;
-top:0;left:0;
-width:100%;height:100%;
-background:rgba(0,0,0,0.85);
-display:flex;
-align-items:center;
-justify-content:center;
-z-index:1000;
-cursor:pointer;
-}
-
-.receipt-overlay img{
-max-width:90%;
-max-height:90%;
-border-radius:6px;
-object-fit:contain;
-}
-
-.header-row{
-display:flex;
-justify-content:flex-start;
-align-items:center;
-margin-bottom:5px;
-gap:8px;
-}
-
-.load-row{
-display:flex;
-align-items:flex-end;
-justify-content:space-between;
-gap:4px;
-margin-bottom:2px;
-}
-
-.header-center{
-display:flex;
-flex-direction:row;
-align-items:center;
-gap:4px;
-flex:1;
-justify-content:flex-start;
-padding-left:6px;
-}
-
-.receipt-thumb{
-width:34px;
-height:34px;
-object-fit:cover;
-border:1px solid #ccc;
-border-radius:4px;
-cursor:pointer;
-display:block;
-}
-
-.receipt-thumb-wrap{
-display:flex;
-flex-direction:row;
-align-items:center;
-gap:4px;
-}
-
-.remove-receipt{
-font-size:16px;
-color:red;
-cursor:pointer;
-line-height:1;
-background:none;
-border:none;
-padding:0;
-font-weight:bold;
-}
-
-.action-row{
-display:flex;
-gap:5px;
-align-items:center;
-margin-bottom:3px;
-flex-wrap:nowrap;
-}
-
-.right-actions{
-display:flex;
-gap:5px;
-align-items:center;
-margin-left:auto;
-flex-shrink:0;
-}
-
-.name-input-wrap{
-display:flex;
-flex-direction:column;
-gap:1px;
-flex-shrink:0;
-}
-
-.people-label{
-font-size:11px;
-color:#555;
-margin:0;
-padding:0;
-line-height:1;
-}
-
-.add-person-input{
-padding:3px;
-font-size:16px;
-width:136px;
-}
-
-.upload-btn{
-font-size:14px;
-padding:3px 4px;
-white-space:normal;
-word-break:break-word;
-width:70px;
-line-height:1.2;
-text-align:center;
-cursor:pointer;
-flex-shrink:0;
-}
-
-.upload-btn:disabled{
-opacity:0.85;
-cursor:not-allowed;
-}
-
-#billDropdown{
-font-size:16px;
-padding:3px;
-width:234px;
-flex-shrink:0;
-}
-
-.save-bill-btn{
-font-size:24px;
-padding:3px 8px;
-white-space:nowrap;
-flex-shrink:0;
-min-width:48px;
-text-align:center;
-}
-
-.save-bill-btn:disabled{
-opacity:0.85;
-cursor:not-allowed;
-}
-
-#newBillBtn{
-font-size:32px;
-font-weight:bold;
-padding:4px 8px;
-background:#6c5ce7;
-color:white;
-border:none;
-border-radius:5px;
-cursor:pointer;
-flex-shrink:0;
-}
-
-#newBillBtn:hover{
-background:#5a4bd1;
-}
-
-.archived-label{
-color:red;
-font-size:11px;
-font-weight:bold;
-flex-shrink:0;
-}
-
-.archived-row{
-display:flex;
-justify-content:flex-start;
-margin-bottom:2px;
-min-height:14px;
-}
-
-.top-row{
-display:flex;
-gap:6px;
-align-items:stretch;
-margin-top:0px;
-}
-
-#personBar{
-display:grid;
-grid-template-columns:repeat(3,1fr);
-gap:3px;
-flex:1;
-max-width:50%;
-margin-bottom:2px;
-}
-
-.person-tag{
-border:1px solid #ccc;
-padding:2px 4px;
-font-size:13px;
-text-align:center;
-display:flex;
-flex-direction:column;
-align-items:center;
-gap:1px;
-  overflow:hidden;
-  text-overflow:ellipsis;
-  white-space:nowrap;
-}
-
-
-.delete-person{
-color:red !important;
-cursor:pointer;
-margin-left:0;
--webkit-text-fill-color: red;
-font-size:13px;
-}
-
-.notes-box{
-  flex:0 0 50%;
-  max-width:50%;
-  font-size:16px;
-  font-family:Arial;
-  padding:3px;
-  border:1px solid #ccc;
-  resize:none;
-  height:75px;
-  box-sizing:border-box;
-}
-
-.notes-box::placeholder{
-color:#bbb;
-font-size:11px;
-opacity:0.96;
-}
-
-/* sticky table header */
-table{
-width:100%;
-border-collapse:collapse;
-font-size:13px;
-table-layout:fixed;
-}
-
-td,th{
-border:1px solid #ddd;
-padding:2px;
-vertical-align:top;
-}
-
-thead tr{
-position:sticky;
-top:0;
-z-index:10;
-background:#fff;
-}
-
-/* col 1: lock/num, col 2: item, col 3: price, col 4: people */
-th:nth-child(1), td:nth-child(1){ width:7%; }
-th:nth-child(2), td:nth-child(2){ width:20%; }
-th:nth-child(3), td:nth-child(3){ width:14%; }
-th:nth-child(4), td:nth-child(4){ width:59%; }
-
-.lock-cell{
-text-align:center;
-font-size:12px;
-}
-
-td textarea{
-width:100%;
-box-sizing:border-box;
-font-size:16px;
-resize:none;
-overflow:hidden;
-border:1px solid #ddd;
-padding:2px;
-font-family:Arial;
-display:block;
-min-height:50px;
-height:auto;
-}
-
-td:nth-child(3) textarea{
-  text-align:center;
-  font-variant-numeric: tabular-nums;
-  min-height:23px;
-  height:23px;
-  padding:2px;
-}
-
-td textarea::placeholder{
-color:#bbb;
-font-size:11px;
-opacity:0.96;
-}
-
-.tap-grid{
-display:grid;
-grid-template-columns:repeat(3,1fr);
-gap:2px;
-margin-top:2px;
-}
-
-.name-btn{
-margin:1px;
-padding:3px 2px;
-font-size:15px;
-cursor:pointer;
-border:1px solid #ccc;
-background:#e0e0e0;
-border-radius:6px;
-white-space:nowrap;
-overflow:hidden;
-text-overflow:ellipsis;
-min-width:0;
-}
-
-.lock-btn{
-margin-top:2px;
-padding:1px 2px;
-font-size:11px;
-cursor:pointer;
-border:1px solid #ccc;
-background:#e0e0e0;
-border-radius:5px;
-transition:0.15s;
-line-height:1;
-}
-
-.lock-btn.locked{
-background:#ffb3b3;
-border-color:#ff5c5c;
-}
-
-.lock-btn.unlocked{
-filter: grayscale(100%);
-opacity:0.85;
-}
-
-tr.locked-row td{
-background:#f3f3f3;
-opacity:0.85;
-}
-
-tr.locked-row textarea{
-background:#f7f7f7;
-}
-
-.name-btn.selected{
-background:#7dff8a;
-border-color:#2ecc71;
-}
-
-.everyone-btn{
-width:100%;
-margin-bottom:3px;
-font-size:15px;
-padding:2px 2px ;
-}
-
-.tax-tip-wrap{
-display:flex;
-gap:5px;
-align-items:center;
-margin-top:6px;
-}
-
-.tax-tip-wrap label{
-font-size:16px;
-}
-
-.tax-tip-wrap select{
-font-size:16px;
-}
-
-.tax-tip-input{
-width:65px;
-padding:3px;
-font-size:16px;
-}
-
-.summary-save-row{
-display:flex;
-align-items:flex-start;
-justify-content:space-between;
-margin-top:6px;
-gap:8px;
-}
-
-.summary-box{
-border:1px solid #ccc;
-padding:6px;
-width:30%;
-max-width:260px;
-min-width:140px;
-}
-
-.sum-table{
-font-family:monospace;
-width:100%;
-font-size:13px;
-}
-
-.row{
-display:grid;
-grid-template-columns:1fr auto;
-column-gap:6px;
-align-items:center;
-white-space:nowrap;
-}
-
-.label{
-text-align:left;
-white-space:nowrap;
-}
-
-.value{
-text-align:right;
-white-space:nowrap;
-}
-
-.total .label,
-.total .value{
-font-weight:bold;
-}
-
-.result{
-font-weight:bold;
-margin:3px 0;
-font-size:14px;
-}
-
-.venmo-btn{
-margin-left:5px;
-font-size:13px;
-background:#008CFF;
-color:white;
-border:none;
-border-radius:4px;
-padding:2px 7px;
-cursor:pointer;
-}
-
-.bill-actions-row{
-display:flex;
-justify-content:flex-end;
-gap:5px;
-margin-top:10px;
-}
 
-.archive-btn{
-font-size:13px;
-padding:3px 7px;
-cursor:pointer;
-background:#fff3cd;
-border:1px solid #ffc107;
-border-radius:4px;
-}
-
-.unarchive-btn{
-font-size:13px;
-padding:3px 7px;
-cursor:pointer;
-background:#d4edda;
-border:1px solid #28a745;
-border-radius:4px;
-color:#155724;
-}
-
-.delete-btn{
-font-size:13px;
-padding:3px 7px;
-cursor:pointer;
-background:#ffe0e0;
-border:1px solid #ff5c5c;
-border-radius:4px;
-color:#cc0000;
-}
-
-.row-btn-disabled{
-opacity:0.85;
-cursor:not-allowed;
-pointer-events:none;
-}
-
-.archived-section{
-opacity:0.85;
-}
-
-.th-people{
-line-height:1.3;
-}
+.receipt-overlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  cursor: pointer;
+}
+.receipt-overlay img {
+  max-width: 90%;
+  max-height: 90%;
+  border-radius: var(--radius);
+  object-fit: contain;
+}
+
+.header-row {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  margin-bottom: 8px;
+  gap: 8px;
+}
+
+.load-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.header-center {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  justify-content: flex-start;
+  padding-left: 6px;
+}
+
+.receipt-thumb {
+  width: 34px;
+  height: 34px;
+  object-fit: cover;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: block;
+}
+.receipt-thumb-wrap {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+}
+.remove-receipt {
+  font-size: 15px;
+  color: var(--accent2);
+  cursor: pointer;
+  line-height: 1;
+  background: none;
+  border: none;
+  padding: 0;
+  font-weight: bold;
+}
+
+.action-row {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  margin-bottom: 3px;
+  flex-wrap: nowrap;
+}
+.right-actions {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.name-input-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.people-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0; padding: 0; line-height: 1;
+}
+
+.add-person-input {
+  padding: 5px 8px;
+  font-size: 14px;
+  width: 136px;
+  border: 1.5px solid var(--border);
+  border-radius: 20px;
+  background: var(--card);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.add-person-input:focus { border-color: var(--accent); }
+.add-person-input::placeholder { color: var(--muted); font-size: 12px; }
+
+.upload-btn {
+  font-size: 12px;
+  padding: 5px 6px;
+  white-space: normal;
+  word-break: break-word;
+  width: 68px;
+  line-height: 1.2;
+  text-align: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  transition: border-color 0.15s, background 0.15s;
+}
+.upload-btn:hover { border-color: var(--accent); background: var(--accent-light); }
+.upload-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+#billDropdown {
+  font-size: 14px;
+  padding: 5px 8px;
+  width: 234px;
+  flex-shrink: 0;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  outline: none;
+}
+
+.save-bill-btn {
+  font-size: 14px;
+  font-weight: 600;
+  padding: 6px 14px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: 54px;
+  text-align: center;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  transition: opacity 0.15s, background 0.15s;
+  box-shadow: 0 2px 6px rgba(124,106,247,0.25);
+}
+.save-bill-btn:hover { background: #6a58e5; }
+.save-bill-btn:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
+
+#newBillBtn {
+  font-size: 13px;
+  font-weight: 700;
+  padding: 6px 12px;
+  background: var(--text);
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  flex-shrink: 0;
+  font-family: 'DM Sans', sans-serif;
+  letter-spacing: 0.02em;
+  transition: background 0.15s;
+}
+#newBillBtn:hover { background: #444; }
+
+.archived-label {
+  color: var(--accent2);
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+  background: var(--accent2-light);
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+.archived-row {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 4px;
+  min-height: 16px;
+}
+
+.top-row {
+  display: flex;
+  gap: 6px;
+  align-items: stretch;
+  margin-top: 0px;
+  margin-bottom: 8px;
+}
+
+#personBar {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  flex: 1;
+  max-width: 50%;
+  margin-bottom: 2px;
+}
+.person-tag {
+  border: 1.5px solid var(--border);
+  background: var(--card);
+  padding: 3px 4px;
+  font-size: 12px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+.delete-person {
+  color: var(--accent2) !important;
+  cursor: pointer;
+  margin-left: 0;
+  -webkit-text-fill-color: var(--accent2);
+  font-size: 11px;
+}
+
+.notes-box {
+  flex: 0 0 50%;
+  max-width: 50%;
+  font-size: 13px;
+  font-family: 'DM Sans', sans-serif;
+  padding: 6px 8px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  resize: none;
+  height: 75px;
+  background: var(--card);
+  color: var(--text);
+  box-shadow: var(--shadow);
+  outline: none;
+  transition: border-color 0.15s;
+}
+.notes-box:focus { border-color: var(--accent); }
+.notes-box::placeholder { color: var(--muted); font-size: 11px; opacity: 1; }
+
+table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+  table-layout: fixed;
+  background: var(--card);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  border: 1.5px solid var(--border);
+}
+
+td, th {
+  border-bottom: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  padding: 2px;
+  vertical-align: top;
+}
+td:last-child, th:last-child { border-right: none; }
+tr:last-child td { border-bottom: none; }
+
+thead tr {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--accent-light);
+}
+thead th {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  padding: 5px 4px;
+}
+
+th:nth-child(1), td:nth-child(1) { width: 7%; }
+th:nth-child(2), td:nth-child(2) { width: 20%; }
+th:nth-child(3), td:nth-child(3) { width: 14%; }
+th:nth-child(4), td:nth-child(4) { width: 59%; }
+
+.lock-cell { text-align: center; font-size: 12px; }
+
+td textarea {
+  width: 100%;
+  box-sizing: border-box;
+  font-size: 14px;
+  resize: none;
+  overflow: hidden;
+  border: none;
+  padding: 3px 4px;
+  font-family: 'DM Sans', sans-serif;
+  display: block;
+  min-height: 50px;
+  height: auto;
+  background: transparent;
+  color: var(--text);
+  outline: none;
+}
+td:nth-child(3) textarea {
+  text-align: center;
+  font-family: 'DM Mono', monospace;
+  font-size: 13px;
+  min-height: 23px;
+  height: 23px;
+  padding: 2px;
+}
+td textarea::placeholder { color: var(--muted); font-size: 11px; opacity: 1; }
+td textarea:focus { background: #faf9ff; }
+
+.tap-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+  margin-top: 2px;
+}
+.name-btn {
+  margin: 1px;
+  padding: 4px 2px;
+  font-size: 13px;
+  cursor: pointer;
+  border: 1.5px solid var(--border);
+  background: #f7f6f3;
+  border-radius: 20px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 500;
+  transition: background 0.12s, border-color 0.12s;
+}
+.name-btn:hover { border-color: var(--accent); background: var(--accent-light); }
+.name-btn.selected {
+  background: var(--green-light);
+  border-color: var(--green);
+  color: #1a8a45;
+  font-weight: 600;
+}
+.everyone-btn {
+  width: 100%;
+  margin-bottom: 4px;
+  font-size: 13px;
+  padding: 4px 2px;
+  border-radius: 20px;
+  background: #f7f6f3;
+  border: 1.5px solid var(--border);
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+.everyone-btn.selected {
+  background: var(--green-light);
+  border-color: var(--green);
+  color: #1a8a45;
+  font-weight: 600;
+}
+
+.lock-btn {
+  margin-top: 3px;
+  padding: 2px 4px;
+  font-size: 11px;
+  cursor: pointer;
+  border: 1.5px solid var(--border);
+  background: #f7f6f3;
+  border-radius: 20px;
+  transition: 0.15s;
+  line-height: 1;
+  font-family: 'DM Sans', sans-serif;
+}
+.lock-btn.locked { background: var(--accent2-light); border-color: var(--accent2); }
+.lock-btn.unlocked { opacity: 0.6; }
+
+tr.locked-row td { background: #fafaf9; opacity: 0.85; }
+tr.locked-row textarea { background: transparent; }
 
-/* row buttons */
 #addRowBtn, #add5RowsBtn, #deleteLastRowBtn {
-font-size:13px;
-padding:3px 6px;
+  font-size: 12px;
+  padding: 4px 10px;
+  border: 1.5px solid var(--border);
+  border-radius: 20px;
+  background: var(--card);
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 500;
+  color: var(--text);
+  transition: border-color 0.15s, background 0.15s;
 }
+#addRowBtn:hover, #add5RowsBtn:hover { border-color: var(--accent); background: var(--accent-light); }
+#deleteLastRowBtn:hover { border-color: var(--accent2); background: var(--accent2-light); }
+
+.tax-tip-wrap {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-top: 8px;
+}
+.tax-tip-wrap label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  width: 26px;
+}
+.tax-tip-wrap select {
+  font-size: 13px;
+  padding: 4px 6px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  font-family: 'DM Sans', sans-serif;
+  outline: none;
+}
+.tax-tip-input {
+  width: 70px;
+  padding: 4px 8px;
+  font-size: 13px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  font-family: 'DM Mono', monospace;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.tax-tip-input:focus { border-color: var(--accent); }
+
+.summary-save-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-top: 10px;
+  gap: 8px;
+}
+.summary-box {
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  width: 30%;
+  max-width: 260px;
+  min-width: 148px;
+  box-shadow: var(--shadow);
+}
+.sum-table {
+  font-family: 'DM Mono', monospace;
+  width: 100%;
+  font-size: 12px;
+}
+.row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  column-gap: 6px;
+  align-items: center;
+  white-space: nowrap;
+  padding: 1px 0;
+}
+.label { text-align: left; white-space: nowrap; color: var(--muted); }
+.value { text-align: right; white-space: nowrap; }
+.total .label, .total .value {
+  font-weight: bold;
+  color: var(--text);
+  font-size: 13px;
+  padding-top: 3px;
+  border-top: 1px solid var(--border);
+  margin-top: 2px;
+}
+
+.result {
+  font-weight: 600;
+  margin: 5px 0;
+  font-size: 14px;
+  padding: 6px 10px;
+  background: var(--card);
+  border-radius: var(--radius);
+  border: 1.5px solid var(--border);
+  box-shadow: var(--shadow);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.venmo-btn {
+  margin-left: auto;
+  font-size: 12px;
+  background: #3d95ce;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  padding: 3px 10px;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.venmo-btn:hover { background: #2f7eb8; }
+
+.bill-actions-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 12px;
+}
+.archive-btn {
+  font-size: 12px;
+  padding: 4px 10px;
+  cursor: pointer;
+  background: #fff8e1;
+  border: 1.5px solid #f0c040;
+  border-radius: 20px;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 500;
+}
+.unarchive-btn {
+  font-size: 12px;
+  padding: 4px 10px;
+  cursor: pointer;
+  background: var(--green-light);
+  border: 1.5px solid var(--green);
+  border-radius: 20px;
+  color: #1a8a45;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 500;
+}
+.delete-btn {
+  font-size: 12px;
+  padding: 4px 10px;
+  cursor: pointer;
+  background: var(--accent2-light);
+  border: 1.5px solid var(--accent2);
+  border-radius: 20px;
+  color: var(--accent2);
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 500;
+}
+
+.row-btn-disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+.archived-section { opacity: 0.75; }
+.th-people { line-height: 1.3; }
 </style>
 
 </head>
-
 <body>
 
 <!-- ROW 1: New Bill | Upload Receipt + thumbnail | Save -->
 <div class="header-row">
-  <button id="newBillBtn" onclick="clearAll()">New Bill</button>
+  <button id="newBillBtn" onclick="clearAll()">+ New Bill</button>
 
   <div class="header-center">
     <input type="file"
@@ -546,22 +628,19 @@ padding:3px 6px;
   <button class="save-bill-btn" id="saveBillBtn" onclick="saveNewBill()">Save</button>
 </div>
 
-<!-- ROW 2: Load dropdown --> 
+<!-- ROW 2: Load dropdown -->
 <div class="load-row">
-  
-    <select id="billDropdown" onchange="loadSavedBill(this.value)">
-    <option value="" disabled selected style="color:#aaa;">-- load a saved bill --</option>
+  <select id="billDropdown" onchange="loadSavedBill(this.value)">
+    <option value="" disabled selected style="color:#aaa;">— load a saved bill —</option>
   </select>
-  
+
   <div class="name-input-wrap">
-    <span class="people-label">People Involved</span>
+    <span class="people-label">Add Person</span>
     <input class="add-person-input"
       id="addPersonBox"
       placeholder="type name + Enter"
       onkeydown="handleAddPerson(event)">
   </div>
-
-
 </div>
 
 <!-- Archived label row -->
@@ -570,14 +649,12 @@ padding:3px 6px;
 </div>
 
 <div class="top-row">
-  
-<textarea class="notes-box"
-id="notesBox"
-placeholder="notes..."
-oninput="saveNotes(); markDirty()"></textarea>
-  
-<div id="personBar"></div>
+  <textarea class="notes-box"
+    id="notesBox"
+    placeholder="type notes here"
+    oninput="saveNotes(); markDirty()"></textarea>
 
+  <div id="personBar"></div>
 </div>
 
 <div id="mainContentSection">
@@ -587,40 +664,40 @@ oninput="saveNotes(); markDirty()"></textarea>
 <th> </th>
 <th>Item</th>
 <th>Price ($)</th>
-<th class="th-people">People Involved<br><span style="font-weight:normal;font-size:10px;">(Tap Names)</span></th>
+<th class="th-people">People Involved<br><span style="font-weight:normal;font-size:10px;text-transform:none;letter-spacing:0;">(Tap Names)</span></th>
 </tr>
 </thead>
 <tbody id="tableBody"></tbody>
 </table>
 
-<div style="margin:5px 0; display:flex; gap:5px; align-items:center;">
-  <button id="addRowBtn" onclick="addRow()">Add 1 Row</button>
-  <button id="add5RowsBtn" onclick="add5Rows()">Add 5 Rows</button>
-  <button id="deleteLastRowBtn" onclick="deleteLastRow()">Delete Last Row</button>
-  <span id="deleteMsg" style="color:red; font-size:11px;"></span>
+<div style="margin:7px 0; display:flex; gap:5px; align-items:center;">
+  <button id="addRowBtn" onclick="addRow()">+ 1 Row</button>
+  <button id="add5RowsBtn" onclick="add5Rows()">+ 5 Rows</button>
+  <button id="deleteLastRowBtn" onclick="deleteLastRow()">Delete Last</button>
+  <span id="deleteMsg" style="color:var(--accent2); font-size:11px;"></span>
 </div>
 
 <div class="tax-tip-wrap" id="taxWrap">
-<label>Tax</label>
-<select id="taxMode" onchange="calc(); markDirty()">
-<option value="amount" selected>$</option>
-<option value="percent">%</option>
-</select>
-<input id="taxValue" class="tax-tip-input"
-  inputmode="decimal"
-  onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('tipValue').focus();}"
-  oninput="calc(); markDirty()">
+  <label>Tax</label>
+  <select id="taxMode" onchange="calc(); markDirty()">
+    <option value="amount" selected>$</option>
+    <option value="percent">%</option>
+  </select>
+  <input id="taxValue" class="tax-tip-input"
+    inputmode="decimal"
+    onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('tipValue').focus();}"
+    oninput="calc(); markDirty()">
 </div>
 
 <div class="tax-tip-wrap" id="tipWrap">
-<label>Tip</label>
-<select id="tipMode" onchange="calc(); markDirty()">
-<option value="amount" selected>$</option>
-<option value="percent">%</option>
-</select>
-<input id="tipValue" class="tax-tip-input"
-  inputmode="decimal"
-  oninput="calc(); markDirty()">
+  <label>Tip</label>
+  <select id="tipMode" onchange="calc(); markDirty()">
+    <option value="amount" selected>$</option>
+    <option value="percent">%</option>
+  </select>
+  <input id="tipValue" class="tax-tip-input"
+    inputmode="decimal"
+    oninput="calc(); markDirty()">
 </div>
 </div>
 
@@ -630,7 +707,7 @@ oninput="saveNotes(); markDirty()"></textarea>
   <button class="save-bill-btn" id="saveBillBtnBottom" onclick="saveNewBill()">Save</button>
 </div>
 
-<div id="totals"></div>
+<div id="totals" style="margin-top:8px;"></div>
 
 <div class="bill-actions-row" id="billActionsRow" style="display:none;">
   <button id="archiveToggleBtn" class="archive-btn" onclick="toggleArchive()">Archive Bill</button>
@@ -746,6 +823,7 @@ function updateSaveButtonState(){
     b.textContent = "Save";
     b.style.color = "";
     b.style.fontSize = "";
+    b.style.background = "";
     if(currentLoadedBillId){
       b.disabled = !isDirty || isArchived;
     } else {
@@ -834,20 +912,21 @@ function confirmUnsaved(message){
     `;
     const box = document.createElement("div");
     box.style.cssText = `
-      background:#fff;padding:20px;border-radius:8px;
-      max-width:300px;width:90%;font-family:Arial;font-size:16px;
-      box-shadow:0 4px 20px rgba(0,0,0,0.3);
+      background:#fff;padding:20px;border-radius:14px;
+      max-width:300px;width:90%;font-family:'DM Sans',sans-serif;font-size:15px;
+      box-shadow:0 8px 32px rgba(0,0,0,0.18);
     `;
     box.innerHTML = `<p style="margin:0 0 16px;">${message}</p>`;
 
     const btnStyle = `
       display:block;width:100%;padding:10px;margin-bottom:8px;
-      font-size:16px;border-radius:5px;cursor:pointer;border:1px solid #ccc;
+      font-size:15px;border-radius:20px;cursor:pointer;border:1.5px solid #e2dfd8;
+      font-family:'DM Sans',sans-serif;font-weight:500;
     `;
 
     const saveBtn = document.createElement("button");
     saveBtn.textContent = "Save";
-    saveBtn.style.cssText = btnStyle + "background:#6c5ce7;color:white;border-color:#6c5ce7;font-weight:bold;";
+    saveBtn.style.cssText = btnStyle + "background:#7c6af7;color:white;border-color:#7c6af7;font-weight:600;";
     saveBtn.onclick = () => { document.body.removeChild(overlay); resolve("save"); };
 
     const noBtn = document.createElement("button");
@@ -857,7 +936,7 @@ function confirmUnsaved(message){
 
     const cancelBtn = document.createElement("button");
     cancelBtn.textContent = "Cancel";
-    cancelBtn.style.cssText = btnStyle + "background:#f5f5f5;margin-bottom:0;";
+    cancelBtn.style.cssText = btnStyle + "background:#f5f3ef;margin-bottom:0;";
     cancelBtn.onclick = () => { document.body.removeChild(overlay); resolve("cancel"); };
 
     box.appendChild(saveBtn);
@@ -878,25 +957,26 @@ function confirmAction(message){
     `;
     const box = document.createElement("div");
     box.style.cssText = `
-      background:#fff;padding:20px;border-radius:8px;
-      max-width:300px;width:90%;font-family:Arial;font-size:16px;
-      box-shadow:0 4px 20px rgba(0,0,0,0.3);
+      background:#fff;padding:20px;border-radius:14px;
+      max-width:300px;width:90%;font-family:'DM Sans',sans-serif;font-size:15px;
+      box-shadow:0 8px 32px rgba(0,0,0,0.18);
     `;
     box.innerHTML = `<p style="margin:0 0 16px;">${message}</p>`;
 
     const btnStyle = `
-      display:inline-block;padding:10px 16px;margin-right:8px;
-      font-size:16px;border-radius:5px;cursor:pointer;border:1px solid #ccc;
+      display:inline-block;padding:8px 18px;margin-right:8px;
+      font-size:15px;border-radius:20px;cursor:pointer;border:1.5px solid #e2dfd8;
+      font-family:'DM Sans',sans-serif;font-weight:500;
     `;
 
     const yesBtn = document.createElement("button");
     yesBtn.textContent = "Yes";
-    yesBtn.style.cssText = btnStyle + "background:#e74c3c;color:white;border-color:#e74c3c;";
+    yesBtn.style.cssText = btnStyle + "background:#f06a6a;color:white;border-color:#f06a6a;font-weight:600;";
     yesBtn.onclick = () => { document.body.removeChild(overlay); resolve(true); };
 
     const noBtn = document.createElement("button");
     noBtn.textContent = "Cancel";
-    noBtn.style.cssText = btnStyle + "background:#f5f5f5;";
+    noBtn.style.cssText = btnStyle + "background:#f5f3ef;";
     noBtn.onclick = () => { document.body.removeChild(overlay); resolve(false); };
 
     box.appendChild(yesBtn);
@@ -1020,7 +1100,6 @@ billRef.onSnapshot(doc=>{
   billLoaded = true;
   isDirty = false;
 
-  // Only run init() if Firebase returned no rows at all (truly blank state)
   if(!rows || rows.length === 0){
     rows = [];
     for(let i=0;i<8;i++){
@@ -1146,13 +1225,15 @@ function showSavedFeedback(){
     if(!btn) return;
     btn.dataset.feedback = "1";
     btn.textContent = "saved!";
-    btn.style.color = "red";
-    btn.style.fontSize = "11px";
+    btn.style.color = "#fff";
+    btn.style.fontSize = "12px";
+    btn.style.background = "#3ecf76";
     btn.disabled = true;
     setTimeout(()=>{
       btn.dataset.feedback = "0";
       btn.style.color = "";
       btn.style.fontSize = "";
+      btn.style.background = "";
       updateSaveButtonState();
     }, 750);
   });
@@ -1277,7 +1358,7 @@ dropdown.innerHTML = "";
 if(!currentLoadedBillId){
   const placeholder = document.createElement("option");
   placeholder.value = "";
-  placeholder.textContent = "-- load a saved bill --";
+  placeholder.textContent = "— load a saved bill —";
   placeholder.disabled = true;
   placeholder.selected = true;
   placeholder.style.color = "#aaa";
@@ -1572,7 +1653,7 @@ if(isLocked) tr.classList.add("locked-row");
 
 tr.innerHTML=`
 <td class="lock-cell">
-<div>${i+1}</div>
+<div style="font-size:11px;color:var(--muted);">${i+1}</div>
 <button class="lock-btn ${lockClass}" onclick="toggleLock(${i})">${lockIcon}</button>
 </td>
 <td>
@@ -1649,7 +1730,7 @@ Object.keys(people).forEach(p=>{
 let venmoId=venmoNames[p.toLowerCase()]||"";
 div.innerHTML+=`
 <div class="result">
-${p} owes $${people[p].total.toFixed(2)}
+<span>${p} owes $${people[p].total.toFixed(2)}</span>
 ${venmoId?`<button class="venmo-btn" onclick="window.open('https://venmo.com/?txn=request&recipients=${encodeURIComponent(venmoId)}&amount=${people[p].total.toFixed(2)}','_blank')">Request</button>`:""}
 </div>`;
 });
