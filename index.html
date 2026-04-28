@@ -349,6 +349,7 @@ th:nth-child(4), td:nth-child(4) { width: 58.5%; }
 
 .lock-cell { text-align: center; font-size: 12px; }
 
+/* FIX 1: removed td textarea:focus background so purple hue doesn't linger after clicking */
 td textarea {
   width: 100%;
   box-sizing: border-box;
@@ -369,12 +370,17 @@ td:nth-child(3) textarea {
   text-align: center;
   font-family: 'DM Mono', monospace;
   font-size: 13px;
+  /* FIX 2: keep price textarea at fixed height but allow full td to be clickable */
   min-height: 23px;
   height: 23px;
   padding: 2px;
 }
 td textarea::placeholder { color: var(--muted); font-size: 11px; opacity: 1; }
-td textarea:focus { background: #faf9ff; }
+
+/* FIX 2: make item and price td cells fully clickable */
+td.clickable-cell {
+  cursor: text;
+}
 
 .tap-grid {
   display: grid;
@@ -1658,19 +1664,27 @@ let lockClass = isLocked ? "locked" : "unlocked";
 let tr=document.createElement("tr");
 if(isLocked) tr.classList.add("locked-row");
 
+// FIX 2: td onclick focuses the textarea inside, but only if click wasn't on the textarea itself
+const itemTdOnclick = !isLocked
+  ? `onclick="if(event.target===this){this.querySelector('textarea').focus();}"` 
+  : "";
+const priceTdOnclick = !isLocked
+  ? `onclick="if(event.target===this){this.querySelector('textarea').focus();}"` 
+  : "";
+
 tr.innerHTML=`
 <td class="lock-cell">
 <div style="font-size:11px;color:var(--muted);">${i+1}</div>
 <button class="lock-btn ${lockClass}" onclick="toggleLock(${i})">${lockIcon}</button>
 </td>
-<td>
+<td class="clickable-cell" ${itemTdOnclick}>
 <textarea data-r="${i}" data-c="0"
 placeholder="optional"
 ${isLocked?"disabled":""}
 onkeydown="if(event.key==='Enter'){nav(event,${i},0)}"
 oninput="update(${i},'item',this.value)">${r.item}</textarea>
 </td>
-<td>
+<td class="clickable-cell" ${priceTdOnclick}>
 <textarea data-r="${i}" data-c="1"
 inputmode="decimal"
 pattern="[0-9]*"
