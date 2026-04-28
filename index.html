@@ -675,6 +675,13 @@ tr.locked-row textarea { background: transparent; }
   <button id="add5RowsBtn" onclick="add5Rows()">+ 5 Rows</button>
   <button id="deleteLastRowBtn" onclick="deleteLastRow()">Delete Last</button>
   <span id="deleteMsg" style="color:var(--accent2); font-size:11px;"></span>
+    <button
+    class="save-bill-btn"
+    id="saveBillBtnBottom"
+    onclick="saveNewBill()"
+    style="margin-left:auto;">
+    Save
+  </button>
 </div>
 
 <div class="tax-tip-wrap" id="taxWrap">
@@ -704,7 +711,7 @@ tr.locked-row textarea { background: transparent; }
 <!-- Summary + bottom Save button on same row -->
 <div class="summary-save-row">
   <div class="summary-box" id="summary"></div>
-  <button class="save-bill-btn" id="saveBillBtnBottom" onclick="saveNewBill()">Save</button>
+
 </div>
 
 <div id="totals" style="margin-top:8px;"></div>
