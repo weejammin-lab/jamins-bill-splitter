@@ -43,7 +43,7 @@ body {
 }
 
 html, body {
-  overscroll-behavior: none;
+  overscroll-behavior-y: contain;
 }
 
 .receipt-overlay {
@@ -406,10 +406,10 @@ td textarea:focus { background: #faf9ff; }
   font-weight: 600;
 }
 .everyone-btn {
-  width: 100%;
-  margin-bottom: 4px;
+   width: calc(100% - 4px);
+  margin: 0 2px 4px 2px;
   font-size: 13px;
-  padding: 4px 2px;
+  padding: 4px 1px;
   border-radius: 20px;
   background: #f7f6f3;
   border: 1.5px solid var(--border);
