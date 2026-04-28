@@ -17,10 +17,11 @@ font-family:Arial;
 max-width:390px;
 margin:auto;
 padding:8px;
+min-height:100vh;
 }
 
   html, body {
-  overscroll-behavior: contain;
+  overscroll-behavior: none;
 }
   
 .receipt-overlay{
@@ -403,10 +404,17 @@ padding:3px;
 font-size:16px;
 }
 
+.summary-save-row{
+display:flex;
+align-items:flex-start;
+justify-content:space-between;
+margin-top:6px;
+gap:8px;
+}
+
 .summary-box{
 border:1px solid #ccc;
 padding:6px;
-margin-top:6px;
 width:30%;
 max-width:260px;
 min-width:140px;
@@ -616,7 +624,12 @@ oninput="saveNotes(); markDirty()"></textarea>
 </div>
 </div>
 
-<div class="summary-box" id="summary"></div>
+<!-- Summary + bottom Save button on same row -->
+<div class="summary-save-row">
+  <div class="summary-box" id="summary"></div>
+  <button class="save-bill-btn" id="saveBillBtnBottom" onclick="saveNewBill()">Save</button>
+</div>
+
 <div id="totals"></div>
 
 <div class="bill-actions-row" id="billActionsRow" style="display:none;">
@@ -726,16 +739,19 @@ function markDirty(){
 
 function updateSaveButtonState(){
   const btn = document.getElementById("saveBillBtn");
-  if(!btn) return;
-  if(btn.dataset.feedback === "1") return;
-  btn.textContent = "Save";
-  btn.style.color = "";
-  btn.style.fontSize = "";
-  if(currentLoadedBillId){
-    btn.disabled = !isDirty || isArchived;
-  } else {
-    btn.disabled = !isDirty;
-  }
+  const btnBottom = document.getElementById("saveBillBtnBottom");
+  [btn, btnBottom].forEach(b => {
+    if(!b) return;
+    if(b.dataset.feedback === "1") return;
+    b.textContent = "Save";
+    b.style.color = "";
+    b.style.fontSize = "";
+    if(currentLoadedBillId){
+      b.disabled = !isDirty || isArchived;
+    } else {
+      b.disabled = !isDirty;
+    }
+  });
 }
 
 function updateArchivedUI(){
@@ -997,13 +1013,20 @@ billRef.onSnapshot(doc=>{
   if(isLocalUpdate) return;
 
   const data = doc.data();
- if(!data) return;
-
+  if(!data) return;
 
   applyLiveData(data);
 
   billLoaded = true;
   isDirty = false;
+
+  // Only run init() if Firebase returned no rows at all (truly blank state)
+  if(!rows || rows.length === 0){
+    rows = [];
+    for(let i=0;i<8;i++){
+      rows.push({item:"",price:"",people:"",selected:[],locked:false});
+    }
+  }
 
   renderPeopleBar();
   render();
@@ -1118,19 +1141,21 @@ return {
 }
 
 function showSavedFeedback(){
-  const btn = document.getElementById("saveBillBtn");
-  if(!btn) return;
-  btn.dataset.feedback = "1";
-  btn.textContent = "saved!";
-  btn.style.color = "red";
-  btn.style.fontSize = "11px";
-  btn.disabled = true;
-  setTimeout(()=>{
-    btn.dataset.feedback = "0";
-    btn.style.color = "";
-    btn.style.fontSize = "";
-    updateSaveButtonState();
-  }, 750);
+  ["saveBillBtn","saveBillBtnBottom"].forEach(id => {
+    const btn = document.getElementById(id);
+    if(!btn) return;
+    btn.dataset.feedback = "1";
+    btn.textContent = "saved!";
+    btn.style.color = "red";
+    btn.style.fontSize = "11px";
+    btn.disabled = true;
+    setTimeout(()=>{
+      btn.dataset.feedback = "0";
+      btn.style.color = "";
+      btn.style.fontSize = "";
+      updateSaveButtonState();
+    }, 750);
+  });
 }
 
 async function saveNewBill(){
@@ -1338,7 +1363,7 @@ billRef.update({
 
 function init(){
 rows=[];
-for(let i=0;i<6;i++){
+for(let i=0;i<8;i++){
 rows.push({item:"",price:"",people:"",selected:[],locked:false});
 }
 renderPeopleBar();
