@@ -136,8 +136,6 @@ html, body {
   flex-direction: column;
   gap: 2px;
   flex-shrink: 0;
-  /* contain the scaled input visually */
-  overflow: hidden;
 }
 .people-label {
   font-size: 10px;
@@ -148,18 +146,10 @@ html, body {
   margin: 0; padding: 0; line-height: 1;
 }
 
-/* Mobile zoom fix: font-size 16px, scale down visually.
-   The wrapper is sized to the visual footprint. */
 .add-person-input {
-  font-size: 16px;
-  /* scale(0.82) → visually ~13.1px, fits nicely */
-  transform: scale(0.82);
-  transform-origin: left center;
-  /* Visual width target ~136px → logical width = 136/0.82 ≈ 166px */
-  width: 166px;
-  /* compensate right overflow from scale */
-  margin-right: -30px;
   padding: 5px 8px;
+  font-size: 14px;
+  width: 136px;
   border: 1.5px solid var(--border);
   border-radius: 20px;
   background: var(--card);
@@ -167,10 +157,9 @@ html, body {
   font-family: 'DM Sans', sans-serif;
   outline: none;
   transition: border-color 0.15s;
-  display: block;
 }
 .add-person-input:focus { border-color: var(--accent); }
-.add-person-input::placeholder { color: var(--muted); opacity: 1; }
+.add-person-input::placeholder { color: var(--muted); font-size: 12px; }
 
 .upload-btn {
   font-size: 12px;
@@ -297,27 +286,16 @@ html, body {
   font-size: 11px;
 }
 
-/* Notes box: 16px font-size to prevent mobile zoom, scaled down visually.
-   scale(0.82) → ~13.1px visual. Adjust logical dimensions to compensate. */
 .notes-box {
   flex: 0 0 50%;
   max-width: 50%;
-  /* logical width = 50% of parent; scale shrinks it visually so we expand */
-  font-size: 16px;
-  transform: scale(0.82);
-  transform-origin: top left;
-  /* to keep it in its 50% slot, compensate: actual visual width = logical*0.82,
-     we want visual = 50% of parent. Achieved by setting width to 50%/0.82 via inline flex trick.
-     Simpler: let the flex container handle it; use width:100% inside scaled wrapper. */
-  width: calc(100% / 0.82);
-  margin-right: calc(-1 * (100% / 0.82 - 100%) * 0.82);
+  font-size: 13px;
   font-family: 'DM Sans', sans-serif;
   padding: 6px 8px;
   border: 1.5px solid var(--border);
   border-radius: var(--radius);
   resize: none;
-  /* visual height ~75px → logical height = 75/0.82 ≈ 91px */
-  height: 91px;
+  height: 75px;
   background: var(--card);
   color: var(--text);
   box-shadow: var(--shadow);
@@ -325,7 +303,7 @@ html, body {
   transition: border-color 0.15s;
 }
 .notes-box:focus { border-color: var(--accent); }
-.notes-box::placeholder { color: var(--muted); opacity: 1; }
+.notes-box::placeholder { color: var(--muted); font-size: 11px; opacity: 1; }
 
 table {
   width: 100%;
@@ -371,11 +349,11 @@ th:nth-child(4), td:nth-child(4) { width: 58.5%; }
 
 .lock-cell { text-align: center; font-size: 12px; }
 
-/* Item column textarea: 16px font to prevent mobile zoom, scale(0.82) visually ≈ 13px */
+/* FIX 1: removed td textarea:focus background so purple hue doesn't linger after clicking */
 td textarea {
   width: 100%;
   box-sizing: border-box;
-  font-size: 16px;
+  font-size: 14px;
   resize: none;
   overflow: hidden;
   border: none;
@@ -387,38 +365,22 @@ td textarea {
   background: transparent;
   color: var(--text);
   outline: none;
-  /* Scale to visually ~13px without triggering mobile zoom */
-  transform: scale(0.82);
-  transform-origin: top left;
-  /* Compensate: logical width must be larger so visual width fills the cell */
-  width: calc(100% / 0.82);
-  /* Compensate height: visual min-height ~50px → logical ~61px */
-  min-height: 61px;
 }
-
-/* Price column textarea: monospace, needs to fit "xx.xx" visually.
-   16px * scale(0.82) ≈ 13px rendered. Monospace "xx.xx" at 13px ≈ 39px wide.
-   Column is 13.5% of ~370px ≈ 50px. Fits with padding. */
 td:nth-child(3) textarea {
   text-align: center;
   font-family: 'DM Mono', monospace;
-  font-size: 16px;
-  transform: scale(0.82);
-  transform-origin: top center;
-  width: calc(100% / 0.82);
-  /* Keep price row compact */
-  min-height: 28px;
-  height: 28px;
+  font-size:16px;      /* prevents mobile zoom */
+  transform:scale(0.7); /* makes it look smaller */
+  /* FIX 2: keep price textarea at fixed height but allow full td to be clickable */
+  min-height: 23px;
+  height: 23px;
   padding: 1px;
 }
-
-td textarea::placeholder { color: var(--muted); opacity: 1; }
+td textarea::placeholder { color: var(--muted); font-size: 11px; opacity: 1; }
 
 /* FIX 2: make item and price td cells fully clickable */
 td.clickable-cell {
   cursor: text;
-  /* clip the overflowing scaled textarea */
-  overflow: hidden;
 }
 
 .tap-grid {
@@ -524,24 +486,16 @@ tr.locked-row textarea { background: transparent; }
   font-family: 'DM Sans', sans-serif;
   outline: none;
 }
-
-/* Tax/tip input: 16px font to prevent zoom, scale(0.82) visual ≈ 13px.
-   Visual target width ~70px → logical = 70/0.82 ≈ 85px */
 .tax-tip-input {
-  font-size: 16px;
-  transform: scale(0.82);
-  transform-origin: left center;
-  width: 85px;
-  /* compensate right overflow so layout doesn't shift */
-  margin-right: -15px;
+  width: 70px;
   padding: 4px 8px;
+  font-size: 13px;
   border: 1.5px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--card);
   font-family: 'DM Mono', monospace;
   outline: none;
   transition: border-color 0.15s;
-  display: inline-block;
 }
 .tax-tip-input:focus { border-color: var(--accent); }
 
