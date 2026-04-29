@@ -564,25 +564,31 @@ td.clickable-cell {
 .lock-btn.unlocked { opacity: 0.6; }
 
 .erase-btn {
-  padding: 2px 4px;
-  font-size: 11px;
+  width: 28px;
+  height: 20px;
   cursor: pointer;
-  border: 1.5px solid var(--border);
-  background: #f7f6f3;
-  border-radius: 20px;
-  transition: 0.15s;
-  line-height: 1;
-  font-family: 'DM Sans', sans-serif;
-  opacity: 0.7;
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin-top: 5px;
+  opacity: 0.75;
+  transition: opacity 0.15s, transform 0.1s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .erase-btn:hover:not(:disabled) {
-  border-color: var(--accent2);
-  background: var(--accent2-light);
   opacity: 1;
+  transform: scale(1.15);
 }
 .erase-btn:disabled {
-  opacity: 0.3;
+  opacity: 0.25;
   cursor: not-allowed;
+}
+.erase-btn svg {
+  width: 26px;
+  height: 18px;
+  display: block;
 }
 
 #addRowBtn, #add5RowsBtn, #deleteEmptyRowsBtn {
@@ -1753,7 +1759,18 @@ function render(){
         <div class="lock-cell-inner">
           <div style="font-size:11px;color:var(--muted);">${i+1}</div>
           <button class="lock-btn ${lockClass}" onclick="toggleLock(${i})">${lockIcon}</button>
-          <button class="erase-btn" onclick="eraseRow(${i})" ${eraseDisabled} title="Clear row">🧹</button>
+          <button class="erase-btn" onclick="eraseRow(${i})" ${eraseDisabled} title="Clear row">
+            <svg viewBox="0 0 26 18" xmlns="http://www.w3.org/2000/svg">
+              <!-- eraser body: pink top half -->
+              <rect x="4" y="2" width="18" height="9" rx="1.5" fill="#f9a8a8" stroke="#d04040" stroke-width="1.2"/>
+              <!-- eraser body: white bottom half -->
+              <rect x="4" y="11" width="18" height="5" rx="1" fill="#ffffff" stroke="#aaa" stroke-width="1"/>
+              <!-- center dividing line -->
+              <line x1="4" y1="11" x2="22" y2="11" stroke="#d04040" stroke-width="1"/>
+              <!-- left smudge mark -->
+              <rect x="1" y="12" width="4" height="4" rx="0.5" fill="#e8e4de"/>
+            </svg>
+          </button>
         </div>
       </td>
       <td class="item-cell" ${itemTdOnclick} style="position:relative;">
