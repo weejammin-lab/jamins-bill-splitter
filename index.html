@@ -5,6 +5,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -116,6 +117,23 @@ html, body {
   font-weight: bold;
 }
 
+.ocr-btn {
+  font-size: 11px;
+  padding: 3px 7px;
+  background: var(--accent-light);
+  border: 1.5px solid var(--accent);
+  border-radius: 20px;
+  color: var(--accent);
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+.ocr-btn:hover { background: #d8d0ff; }
+.ocr-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
 .action-row {
   display: flex;
   gap: 5px;
@@ -180,9 +198,11 @@ html, body {
 }
 .upload-btn:hover { border-color: var(--accent); background: var(--accent-light); }
 .upload-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
 #mainContentSection th {
   font-size: 16px;
 }
+
 #billDropdown {
   font-size: 14px;
   padding: 5px 8px;
@@ -351,7 +371,6 @@ th:nth-child(4), td:nth-child(4) { width: 57%; }
 
 .lock-cell { text-align: center; font-size: 12px; }
 
-/* FIX 1: removed td textarea:focus background so purple hue doesn't linger after clicking */
 td textarea {
   width: 100%;
   box-sizing: border-box;
@@ -371,15 +390,13 @@ td textarea {
 td:nth-child(3) textarea {
   text-align: center;
   font-family: 'DM Mono', monospace;
-  font-size:16px;      /* prevents mobile zoom */
-  /* FIX 2: keep price textarea at fixed height but allow full td to be clickable */
+  font-size:16px;
   min-height: 23px;
   height: 23px;
   padding: 1px;
 }
 td textarea::placeholder { color: var(--muted); font-size: 11px; opacity: 1; }
 
-/* FIX 2: make item and price td cells fully clickable */
 td.clickable-cell {
   cursor: text;
 }
@@ -719,7 +736,6 @@ tr.locked-row textarea { background: transparent; }
 <!-- Summary + bottom Save button on same row -->
 <div class="summary-save-row">
   <div class="summary-box" id="summary"></div>
-
 </div>
 
 <div id="totals" style="margin-top:8px;"></div>
@@ -771,6 +787,7 @@ let rows=[];
 let venmoNames={...defaultVenmoMap};
 let isRendering = false;
 let receiptUrl="";
+let receiptFileRef = null;
 let isLocalUpdate=false;
 let lastSavedReceiptUrl = null;
 let currentLoadedBillId = null;
@@ -1032,40 +1049,138 @@ async function checkUnsavedBill(){
 }
 
 function showReceiptThumbnail(url){
-if(!url) return;
-const container = document.getElementById("receiptPreviewContainer");
-container.innerHTML = "";
-const wrap = document.createElement("div");
-wrap.className = "receipt-thumb-wrap";
-const img = document.createElement("img");
-img.src = url;
-img.className = "receipt-thumb";
-img.onclick = function(){
-  const overlay = document.createElement("div");
-  overlay.className = "receipt-overlay";
-  const full = document.createElement("img");
-  full.src = url;
-  overlay.appendChild(full);
-  overlay.onclick = () => overlay.remove();
-  document.body.appendChild(overlay);
-};
-const removeBtn = document.createElement("button");
-removeBtn.className = "remove-receipt";
-removeBtn.textContent = "✖";
-removeBtn.title = "Remove receipt";
-removeBtn.onclick = async function(){
-  if(isArchived) return;
-  const confirmed = await confirmAction("Remove the uploaded receipt?");
-  if(!confirmed) return;
-  receiptUrl = "";
-  lastSavedReceiptUrl = "";
+  if(!url) return;
+  const container = document.getElementById("receiptPreviewContainer");
   container.innerHTML = "";
+  const wrap = document.createElement("div");
+  wrap.className = "receipt-thumb-wrap";
+
+  const img = document.createElement("img");
+  img.src = url;
+  img.className = "receipt-thumb";
+  img.onclick = function(){
+    const overlay = document.createElement("div");
+    overlay.className = "receipt-overlay";
+    const full = document.createElement("img");
+    full.src = url;
+    overlay.appendChild(full);
+    overlay.onclick = () => overlay.remove();
+    document.body.appendChild(overlay);
+  };
+
+  const removeBtn = document.createElement("button");
+  removeBtn.className = "remove-receipt";
+  removeBtn.textContent = "✖";
+  removeBtn.title = "Remove receipt";
+  removeBtn.onclick = async function(){
+    if(isArchived) return;
+    const confirmed = await confirmAction("Remove the uploaded receipt?");
+    if(!confirmed) return;
+    receiptUrl = "";
+    lastSavedReceiptUrl = "";
+    receiptFileRef = null;
+    container.innerHTML = "";
+    saveBill();
+    markDirty();
+  };
+
+  const ocrBtn = document.createElement("button");
+  ocrBtn.className = "ocr-btn";
+  ocrBtn.id = "ocrBtn";
+  ocrBtn.textContent = "Use AI";
+  ocrBtn.title = "Scan receipt and auto-fill items & prices";
+  ocrBtn.onclick = runOCR;
+
+  wrap.appendChild(img);
+  wrap.appendChild(removeBtn);
+  wrap.appendChild(ocrBtn);
+  container.appendChild(wrap);
+}
+
+function parseReceiptText(text){
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  const priceRegex = /\$?\s*([\d]+\.[\d]{2})/;
+
+  // words that indicate a line is a total/fee/non-item line — skip these
+  const skipKeywords = /\b(subtotal|sub.?total|total|tax|tip|gratuity|service\s*fee|surcharge|discount|change|cash|credit|debit|visa|mastercard|amex|discover|balance|amount\s*due|amount\s*paid|thank|receipt|order|table|server|guest|check\s*#|item|qty|quantity|price|description|void|comp)\b/i;
+
+  const parsed = [];
+
+  lines.forEach(line => {
+    const priceMatch = line.match(priceRegex);
+    if(!priceMatch) return;
+
+    const price = priceMatch[1];
+    const priceFloat = parseFloat(price);
+
+    // skip zeros, negatives, or suspiciously large numbers (likely totals)
+    if(priceFloat <= 0 || priceFloat > 300) return;
+
+    // get item name by removing the matched price portion
+    let item = line.replace(priceMatch[0], '').trim();
+
+    // clean up trailing punctuation/dots/dashes
+    item = item.replace(/[\.\-\*\_\s]+$/, '').trim();
+
+    // skip if the line matches known non-item keywords
+    if(skipKeywords.test(line)) return;
+
+    // skip if item has no letters at all (just numbers/symbols)
+    if(!item || !/[a-zA-Z]/.test(item)) return;
+
+    // skip very short fragments that are likely noise
+    if(item.length < 2) return;
+
+    parsed.push({ item, price });
+  });
+
+  if(parsed.length === 0){
+    alert("No items found. The receipt may be unclear — try a flat, well-lit photo.");
+    return;
+  }
+
+  // fill into rows: use existing empty unlocked rows first, add new ones as needed
+  let rowIndex = 0;
+  parsed.forEach(p => {
+    // advance past locked or already-filled rows
+    while(rowIndex < rows.length && (rows[rowIndex].locked || rows[rowIndex].item || rows[rowIndex].price)){
+      rowIndex++;
+    }
+    if(rowIndex >= rows.length){
+      rows.push({ item:'', price:'', people:'', selected:[], locked:false });
+    }
+    rows[rowIndex].item = p.item;
+    rows[rowIndex].price = p.price;
+    rowIndex++;
+  });
+
+  render();
+  calc();
   saveBill();
   markDirty();
-};
-wrap.appendChild(img);
-wrap.appendChild(removeBtn);
-container.appendChild(wrap);
+}
+
+async function runOCR(){
+  if(isArchived) return;
+  if(!receiptFileRef && !receiptUrl){
+    alert("No receipt uploaded.");
+    return;
+  }
+
+  const btn = document.getElementById("ocrBtn");
+  if(btn){ btn.textContent = "Scanning…"; btn.disabled = true; }
+
+  try {
+    // prefer the original local file (sharper); fall back to the hosted URL
+    const source = receiptFileRef || receiptUrl;
+    const { data: { text } } = await Tesseract.recognize(source, 'eng');
+    parseReceiptText(text);
+  } catch(err){
+    alert("Scan failed — please try again.");
+    console.error(err);
+  } finally {
+    if(btn){ btn.textContent = "Use AI"; btn.disabled = false; }
+  }
 }
 
 function applyLiveData(data){
@@ -1165,6 +1280,8 @@ try {
 
   receiptUrl = url;
   lastSavedReceiptUrl = url;
+  receiptFileRef = file; // keep local file for higher-quality OCR
+
   showReceiptThumbnail(url);
 
   await billRef.set({
@@ -1416,6 +1533,7 @@ nameList = data.nameList || [];
 venmoNames = data.venmoNames || {};
 receiptUrl = data.receiptUrl || "";
 lastSavedReceiptUrl = receiptUrl;
+receiptFileRef = null; // no local file available for saved bills
 
 document.getElementById("taxValue").value = data.taxValue || "";
 document.getElementById("tipValue").value = data.tipValue || "";
@@ -1476,6 +1594,7 @@ document.getElementById("notesBox").value="";
 
 receiptUrl = "";
 lastSavedReceiptUrl = "";
+receiptFileRef = null;
 document.getElementById("receiptPreviewContainer").innerHTML = "";
 
 currentLoadedBillId = null;
@@ -1666,7 +1785,6 @@ let lockClass = isLocked ? "locked" : "unlocked";
 let tr=document.createElement("tr");
 if(isLocked) tr.classList.add("locked-row");
 
-// FIX 2: td onclick focuses the textarea inside, but only if click wasn't on the textarea itself
 const itemTdOnclick = !isLocked
   ? `onclick="if(event.target===this){this.querySelector('textarea').focus();}"` 
   : "";
