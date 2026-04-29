@@ -8,7 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono&display=swap" rel="stylesheet">
 
 <title>Bill Splitter</title>
@@ -31,7 +31,7 @@
   --radius-sm: 6px;
 }
 
-* { box-sizing: border-box; }
+* { box-sizing: border-box; touch-action: pan-x pan-y; }
 
 body {
   font-family: 'DM Sans', Arial, sans-serif;
@@ -85,36 +85,38 @@ html, body {
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   flex: 1;
   justify-content: flex-start;
   padding-left: 6px;
 }
 
 .receipt-thumb {
-  width: 34px;
-  height: 34px;
+  width: 42px;
+  height: 42px;
   object-fit: cover;
   border: 2px solid var(--border);
   border-radius: var(--radius-sm);
   cursor: pointer;
   display: block;
+  flex-shrink: 0;
 }
 .receipt-thumb-wrap {
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 4px;
+  gap: 7px;
 }
 .remove-receipt {
-  font-size: 15px;
+  font-size: 19px;
   color: var(--accent2);
   cursor: pointer;
   line-height: 1;
   background: none;
   border: none;
-  padding: 0;
+  padding: 2px 4px;
   font-weight: bold;
+  flex-shrink: 0;
 }
 
 .ocr-btn {
@@ -130,6 +132,7 @@ html, body {
   white-space: nowrap;
   transition: background 0.15s;
   flex-shrink: 0;
+  margin-left: auto;
 }
 .ocr-btn:hover { background: #d8d0ff; }
 .ocr-btn:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -185,6 +188,7 @@ html, body {
   white-space: normal;
   word-break: break-word;
   width: 68px;
+  height: 42px;
   line-height: 1.2;
   text-align: center;
   cursor: pointer;
@@ -252,6 +256,14 @@ html, body {
 }
 #newBillBtn:hover { background: #444; }
 
+/* ── Archive/Save inline row (below notes) ── */
+.archive-save-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  min-height: 26px;
+}
 .archived-label {
   color: var(--accent2);
   font-size: 11px;
@@ -378,7 +390,28 @@ th:nth-child(2), td:nth-child(2) { width: 20%; }
 th:nth-child(3), td:nth-child(3) { width: 15%; }
 th:nth-child(4), td:nth-child(4) { width: 57%; }
 
-.lock-cell { text-align: center; font-size: 12px; }
+.lock-cell {
+  text-align: center;
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 3px 2px;
+}
+
+/* Make the item column td act as a flex container so textarea fills full height */
+td.item-cell {
+  padding: 0;
+  position: relative;
+}
+td.item-cell textarea {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  height: 100%;
+  min-height: unset;
+}
 
 td textarea {
   width: 100%;
@@ -414,14 +447,13 @@ td.clickable-cell {
 .swipe-row-wrapper {
   position: relative;
   overflow: hidden;
-  /* match tr bottom border */
   border-bottom: 1px solid var(--border);
 }
-/* last wrapper: remove double border */
 .swipe-row-wrapper:last-child {
   border-bottom: none;
 }
-/* The red delete button revealed on swipe */
+
+/* The red delete button — sits at the right edge, always there, clipped by overflow:hidden */
 .swipe-delete-btn {
   position: absolute;
   top: 0; right: 0;
@@ -438,8 +470,9 @@ td.clickable-cell {
   align-items: center;
   justify-content: center;
   z-index: 1;
-  /* always visible in DOM but behind the sliding tr */
+  /* The button is always present but hidden behind the tr (z-index 2) until tr slides left */
 }
+
 /* The actual <tr> that slides */
 .swipe-tr {
   position: relative;
@@ -447,15 +480,24 @@ td.clickable-cell {
   transform: translateX(0);
   transition: transform 0.2s ease;
   background: var(--card);
-  /* tr needs display:flex override won't work — use a wrapper div inside */
   display: table-row;
   will-change: transform;
 }
-.swipe-tr.swiped {
-  transform: translateX(-70px);
-}
 .swipe-tr.locked-row td { background: #fafaf9; opacity: 0.85; }
 .swipe-tr.locked-row textarea { background: transparent; }
+
+/* lock-cell needs to be a normal td but with flex content inside */
+.lock-cell-td {
+  text-align: center;
+  vertical-align: middle;
+}
+.lock-cell-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 3px 2px;
+}
 
 .tap-grid {
   display: grid;
@@ -507,7 +549,6 @@ td.clickable-cell {
 }
 
 .lock-btn {
-  margin-top: 3px;
   padding: 2px 4px;
   font-size: 11px;
   cursor: pointer;
@@ -520,6 +561,28 @@ td.clickable-cell {
 }
 .lock-btn.locked { background: var(--accent2-light); border-color: var(--accent2); }
 .lock-btn.unlocked { opacity: 0.6; }
+
+.erase-btn {
+  padding: 2px 4px;
+  font-size: 11px;
+  cursor: pointer;
+  border: 1.5px solid var(--border);
+  background: #f7f6f3;
+  border-radius: 20px;
+  transition: 0.15s;
+  line-height: 1;
+  font-family: 'DM Sans', sans-serif;
+  opacity: 0.7;
+}
+.erase-btn:hover:not(:disabled) {
+  border-color: var(--accent2);
+  background: var(--accent2-light);
+  opacity: 1;
+}
+.erase-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
 
 #addRowBtn, #add5RowsBtn, #deleteEmptyRowsBtn {
   font-size: 12px;
@@ -535,6 +598,15 @@ td.clickable-cell {
 }
 #addRowBtn:hover, #add5RowsBtn:hover { border-color: var(--accent); background: var(--accent-light); }
 #deleteEmptyRowsBtn:hover { border-color: var(--accent2); background: var(--accent2-light); }
+
+/* Delete message that replaces the Delete Empty button */
+#deleteMsg {
+  font-size: 12px;
+  color: var(--accent2);
+  padding: 4px 10px;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 500;
+}
 
 .tax-tip-wrap {
   display: flex;
@@ -644,7 +716,7 @@ td.clickable-cell {
   display: flex;
   justify-content: flex-end;
   gap: 6px;
-  margin-top: 12px;
+  margin-top: 40px;
 }
 .archive-btn {
   font-size: 12px;
@@ -724,11 +796,6 @@ td.clickable-cell {
   </div>
 </div>
 
-<!-- Archived label row -->
-<div class="archived-row">
-  <span id="archivedLabel" class="archived-label" style="display:none;">⛔ ARCHIVED — edits cannot be made</span>
-</div>
-
 <div class="top-row">
   <textarea class="notes-box"
     id="notesBox"
@@ -736,6 +803,12 @@ td.clickable-cell {
     oninput="saveNotes(); markDirty()"></textarea>
 
   <div id="personBar"></div>
+</div>
+
+<!-- Archive label + Save button row (below notes, above table) -->
+<div class="archive-save-row" id="archiveSaveRow">
+  <span id="archivedLabel" class="archived-label" style="display:none;">⛔ ARCHIVED — edits cannot be made</span>
+  <span style="flex:1;"></span>
 </div>
 
 <div id="mainContentSection">
@@ -755,7 +828,7 @@ td.clickable-cell {
   <button id="addRowBtn" onclick="addRow()">+ 1 Row</button>
   <button id="add5RowsBtn" onclick="add5Rows()">+ 5 Rows</button>
   <button id="deleteEmptyRowsBtn" onclick="deleteEmptyRows()">Delete Empty</button>
-  <span id="deleteMsg" style="color:var(--accent2); font-size:11px;"></span>
+  <span id="deleteMsg" style="display:none;"></span>
   <button
     class="save-bill-btn"
     id="saveBillBtnBottom"
@@ -845,7 +918,7 @@ let newBillFirstInputDate = null;
 let isUploadingReceipt = false;
 
 // ── Swipe state ──
-let swipeCurrent = null; // currently open swipe row index
+let swipeCurrent = null;
 
 function formatDate(ts){
   const d = new Date(ts);
@@ -1063,45 +1136,22 @@ function showReceiptThumbnail(url){
 // ── OCR ──
 function parseReceiptText(text){
   const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
-
-  // Must have a price on the RIGHT side of the line (last token)
-  // Pattern: line ends with an optional $ and a decimal number
   const rightPriceRegex = /\$?\s*(\d+\.\d{2})\s*$/;
-
-  // Skip lines that are totals/fees/non-items
   const skipKeywords = /\b(subtotal|sub[-\s]?total|total|tax|tip|gratuity|service\s*fee|surcharge|discount|change|cash|credit|debit|visa|mastercard|amex|discover|balance|amount\s*due|amount\s*paid|thank|receipt|order\s*#|table\s*#|server|guest|check\s*#|qty|quantity|void|comp)\b/i;
 
   const parsed = [];
-
   lines.forEach(line => {
-    // Price must be on the RIGHT side of the line
     const priceMatch = line.match(rightPriceRegex);
     if(!priceMatch) return;
-
     const price = priceMatch[1];
     const priceFloat = parseFloat(price);
-
-    // skip zeros or suspiciously large (totals)
     if(priceFloat <= 0 || priceFloat > 300) return;
-
-    // skip total/tax/tip lines
     if(skipKeywords.test(line)) return;
-
-    // get item name: everything before the price match, stripped of leading garbage
     let item = line.slice(0, line.length - priceMatch[0].length).trim();
-
-    // remove leading non-letter characters (random OCR noise like "| ", ". ", etc.)
     item = item.replace(/^[^a-zA-Z0-9]+/, '').trim();
-
-    // clean trailing dots/dashes/spaces
     item = item.replace(/[\.\-\*\_\s]+$/, '').trim();
-
-    // must have at least one letter
     if(!item || !/[a-zA-Z]/.test(item)) return;
-
-    // skip very short noise fragments
     if(item.length < 2) return;
-
     parsed.push({ item, price });
   });
 
@@ -1110,33 +1160,22 @@ function parseReceiptText(text){
     return;
   }
 
-  // REPLACE all rows with OCR results (clear existing, keep locked rows)
-  // First collect any locked rows so we don't lose them
   const lockedRows = rows.filter(r => r.locked);
-
-  // Build new row list: locked rows first, then OCR results, padded to at least 5
   rows = [...lockedRows];
   parsed.forEach(p => {
     rows.push({ item: p.item, price: p.price, people: '', selected: [], locked: false });
   });
-  // Pad to minimum 5 rows
   while(rows.length < 5){
     rows.push({ item:'', price:'', people:'', selected:[], locked:false });
   }
-
-  render();
-  calc();
-  saveBill();
-  markDirty();
+  render(); calc(); saveBill(); markDirty();
 }
 
 async function runOCR(){
   if(isArchived) return;
   if(!receiptFileRef && !receiptUrl){ alert("No receipt uploaded."); return; }
-
   const btn = document.getElementById("ocrBtn");
   if(btn){ btn.textContent = "Scanning…"; btn.disabled = true; }
-
   try {
     const source = receiptFileRef || receiptUrl;
     const { data: { text } } = await Tesseract.recognize(source, 'eng');
@@ -1474,6 +1513,12 @@ function toggleLock(row){
   render(); saveBill(); markDirty();
 }
 
+function eraseRow(i){
+  if(isArchived || rows[i].locked) return;
+  rows[i] = { item:"", price:"", people:"", selected:[], locked:false };
+  render(); calc(); saveBill(); markDirty();
+}
+
 function update(i, key, val){
   if(isArchived || rows[i].locked) return;
   rows[i][key] = val;
@@ -1517,17 +1562,28 @@ function add5Rows(){
   render(); calc(); saveBill();
 }
 
-// Delete ALL empty rows (no item AND no price), anywhere in the list
+// Delete ALL truly empty rows (item, price, AND selected/people all empty)
 function deleteEmptyRows(){
   if(isArchived) return;
   const before = rows.length;
-  rows = rows.filter(r => r.locked || r.item || r.price);
-  // ensure at least 1 row remains
+  // A row is empty only if item, price, AND no people selected
+  rows = rows.filter(r => r.locked || r.item || r.price || (r.selected && r.selected.length > 0));
   if(rows.length === 0) rows.push({item:"",price:"",people:"",selected:[],locked:false});
   const removed = before - rows.length;
+
+  // Hide the Delete Empty button and show message in its place
+  const deleteBtn = document.getElementById("deleteEmptyRowsBtn");
   const msg = document.getElementById("deleteMsg");
-  if(msg) msg.textContent = removed > 0 ? `Removed ${removed} empty row${removed>1?"s":""}` : "No empty rows";
-  setTimeout(()=>{ if(msg) msg.textContent = ""; }, 2000);
+  if(deleteBtn) deleteBtn.style.display = "none";
+  if(msg){
+    msg.style.display = "inline";
+    msg.textContent = removed > 0 ? `Removed ${removed} empty row${removed>1?"s":""}` : "No empty rows";
+  }
+  setTimeout(()=>{
+    if(deleteBtn) deleteBtn.style.display = "";
+    if(msg) msg.style.display = "none";
+  }, 2000);
+
   render(); calc(); saveBill(); markDirty();
 }
 
@@ -1555,48 +1611,75 @@ function nav(e, row, col){
   }, 0);
 }
 
-// ── Swipe-to-delete logic ──
+// ── Swipe-to-delete logic (progressive/live tracking) ──
 function closeAllSwipes(exceptIndex){
-  document.querySelectorAll('.swipe-tr.swiped').forEach(tr => {
+  document.querySelectorAll('.swipe-tr').forEach(tr => {
     const idx = parseInt(tr.dataset.swipeIdx);
-    if(idx !== exceptIndex) tr.classList.remove('swiped');
+    if(idx !== exceptIndex){
+      tr.style.transition = 'transform 0.2s ease';
+      tr.style.transform = 'translateX(0)';
+    }
   });
   if(swipeCurrent !== null && swipeCurrent !== exceptIndex) swipeCurrent = null;
 }
 
 function attachSwipe(tr, rowIndex){
-  let startX = 0, startY = 0, dx = 0;
+  let startX = 0, startY = 0;
   let isSwiping = false;
-  let isLocked = rows[rowIndex]?.locked || isArchived;
+  let isDetermining = true;
+  let currentOffset = 0; // track current open amount
+
+  const MAX_SWIPE = 70;
 
   tr.addEventListener('touchstart', e => {
-    if(isLocked) return;
+    if(isArchived || rows[rowIndex]?.locked) return;
     startX = e.touches[0].clientX;
     startY = e.touches[0].clientY;
-    dx = 0; isSwiping = false;
+    isSwiping = false;
+    isDetermining = true;
+    // Get current translateX
+    const style = window.getComputedStyle(tr);
+    const matrix = new WebKitCSSMatrix(style.transform);
+    currentOffset = matrix.m41; // negative value = swiped left
+    tr.style.transition = 'none'; // disable transition during drag
   }, {passive: true});
 
   tr.addEventListener('touchmove', e => {
-    if(isLocked) return;
+    if(isArchived || rows[rowIndex]?.locked) return;
     const cx = e.touches[0].clientX;
     const cy = e.touches[0].clientY;
     const adx = Math.abs(cx - startX);
     const ady = Math.abs(cy - startY);
-    if(!isSwiping && ady > adx) return; // scrolling vertically, ignore
-    isSwiping = true;
-    dx = cx - startX;
+
+    if(isDetermining){
+      if(ady > adx) return; // vertical scroll, ignore
+      if(adx > 5) { isSwiping = true; isDetermining = false; closeAllSwipes(rowIndex); }
+      else return;
+    }
+
+    if(!isSwiping) return;
+
+    const rawDelta = cx - startX;
+    // new position = currentOffset + rawDelta, clamped between -MAX_SWIPE and 0
+    let newX = currentOffset + rawDelta;
+    newX = Math.max(-MAX_SWIPE, Math.min(0, newX));
+    tr.style.transform = `translateX(${newX}px)`;
   }, {passive: true});
 
-  tr.addEventListener('touchend', () => {
-    if(!isSwiping || isLocked) return;
-    if(dx < -40){
-      // swiped left enough → open
-      closeAllSwipes(rowIndex);
-      tr.classList.add('swiped');
+  tr.addEventListener('touchend', e => {
+    if(!isSwiping || isArchived || rows[rowIndex]?.locked) return;
+    tr.style.transition = 'transform 0.2s ease';
+    const style = window.getComputedStyle(tr);
+    const matrix = new WebKitCSSMatrix(style.transform);
+    const finalX = matrix.m41;
+
+    if(finalX < -35){
+      // snap open
+      tr.style.transform = `translateX(-${MAX_SWIPE}px)`;
       swipeCurrent = rowIndex;
-    } else if(dx > 20){
-      // swiped right → close
-      tr.classList.remove('swiped');
+    } else {
+      // snap closed
+      tr.style.transform = 'translateX(0)';
       if(swipeCurrent === rowIndex) swipeCurrent = null;
     }
   });
@@ -1605,11 +1688,18 @@ function attachSwipe(tr, rowIndex){
 // Close swipe if user taps elsewhere
 document.addEventListener('touchstart', e => {
   if(swipeCurrent === null) return;
-  const swipedTr = document.querySelector('.swipe-tr.swiped');
-  if(swipedTr && !swipedTr.parentElement.contains(e.target)){
-    swipedTr.classList.remove('swiped');
-    swipeCurrent = null;
-  }
+  const swipedTr = document.querySelector('.swipe-tr[style*="translateX(-70px)"], .swipe-tr[style*="translateX(-"]');
+  // Check if tap is outside swiped row
+  const allSwipedTrs = document.querySelectorAll('.swipe-tr');
+  allSwipedTrs.forEach(tr => {
+    const style = window.getComputedStyle(tr);
+    const matrix = new WebKitCSSMatrix(style.transform);
+    if(matrix.m41 < -5 && !tr.parentElement.contains(e.target)){
+      tr.style.transition = 'transform 0.2s ease';
+      tr.style.transform = 'translateX(0)';
+      swipeCurrent = null;
+    }
+  });
 }, {passive: true});
 
 function render(){
@@ -1632,7 +1722,7 @@ function render(){
     const lockIcon = isLocked ? "🔒" : "🔓";
     const lockClass = isLocked ? "locked" : "unlocked";
 
-    // Wrapper div (acts as the swipe container per row)
+    // Wrapper div (swipe container)
     const wrapper = document.createElement("div");
     wrapper.className = "swipe-row-wrapper";
 
@@ -1648,18 +1738,24 @@ function render(){
     const tr = document.createElement("tr");
     tr.className = "swipe-tr" + (isLocked ? " locked-row" : "");
     tr.dataset.swipeIdx = i;
+    tr.style.transform = "translateX(0)";
 
     const itemTdOnclick = !isLocked
       ? `onclick="if(event.target===this){this.querySelector('textarea').focus();}"` : "";
     const priceTdOnclick = !isLocked
       ? `onclick="if(event.target===this){this.querySelector('textarea').focus();}"` : "";
 
+    const eraseDisabled = isLocked ? "disabled" : "";
+
     tr.innerHTML = `
-      <td class="lock-cell">
-        <div style="font-size:11px;color:var(--muted);">${i+1}</div>
-        <button class="lock-btn ${lockClass}" onclick="toggleLock(${i})">${lockIcon}</button>
+      <td class="lock-cell-td">
+        <div class="lock-cell-inner">
+          <div style="font-size:11px;color:var(--muted);">${i+1}</div>
+          <button class="lock-btn ${lockClass}" onclick="toggleLock(${i})">${lockIcon}</button>
+          <button class="erase-btn" onclick="eraseRow(${i})" ${eraseDisabled} title="Clear row">🧹</button>
+        </div>
       </td>
-      <td class="clickable-cell" ${itemTdOnclick}>
+      <td class="item-cell" ${itemTdOnclick} style="position:relative;">
         <textarea data-r="${i}" data-c="0"
           placeholder="optional"
           ${isLocked?"disabled":""}
@@ -1682,27 +1778,14 @@ function render(){
     // Attach swipe listeners
     if(!isLocked) attachSwipe(tr, i);
 
-    // We can't put a div inside tbody directly, so we use a "display:contents" trick:
-    // Insert wrapper as a custom element workaround — instead, append tr directly and
-    // use a separate overlay approach. Actually the cleanest solution for table rows
-    // is to make the tbody itself handle the swipe at the tr level with a clip container.
-    // We'll use a single-cell spanning approach: append the wrapper as a block inside a tr.
     const wrapperTr = document.createElement("tr");
     wrapperTr.style.cssText = "padding:0;margin:0;border:none;";
     const wrapperTd = document.createElement("td");
     wrapperTd.colSpan = 4;
     wrapperTd.style.cssText = "padding:0;border:none;border-bottom:1px solid var(--border);";
     wrapperTd.appendChild(wrapper);
-
-    // Move the tr's content INTO the wrapper so the swipe container wraps it
-    // Re-architecture: put the real tr inside the wrapper td
-    wrapper.removeChild(tr); // remove from wrapper
-    wrapper.appendChild(tr); // re-add after delBtn (correct order already)
-
     wrapperTr.appendChild(wrapperTd);
     body.appendChild(wrapperTr);
-
-    // Re-attach swipe to tr (already done above)
   });
 
   // Fix last row border
