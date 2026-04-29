@@ -1232,7 +1232,7 @@ billRef.onSnapshot(doc=>{
 
   if(!rows || rows.length === 0){
     rows = [];
-    for(let i=0;i<8;i++){
+    for(let i=0;i<5;i++){
       rows.push({item:"",price:"",people:"",selected:[],locked:false});
     }
   }
@@ -1577,7 +1577,7 @@ billRef.update({
 
 function init(){
 rows=[];
-for(let i=0;i<8;i++){
+for(let i=0;i<5;i++){
 rows.push({item:"",price:"",people:"",selected:[],locked:false});
 }
 renderPeopleBar();
