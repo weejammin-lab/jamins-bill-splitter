@@ -433,7 +433,7 @@ td textarea {
 td:nth-child(3) textarea {
   text-align: center;
   font-family: 'DM Mono', monospace;
-  font-size:16px;
+  font-size:14px;
   min-height: 23px;
   height: 23px;
   padding: 1px;
@@ -444,17 +444,14 @@ td.clickable-cell {
   cursor: text;
 }
 
-/* ── Swipe-to-delete row wrapper ── */
-.swipe-row-wrapper {
+/* ── Swipe-to-delete ── */
+/* People td is the clipping context for the delete button */
+.people-td {
   position: relative;
   overflow: hidden;
-  border-bottom: 1px solid var(--border);
-}
-.swipe-row-wrapper:last-child {
-  border-bottom: none;
 }
 
-/* The red delete button — sits at the right edge, always there, clipped by overflow:hidden */
+/* Delete button inside .people-td, hidden to the right, slides in as tr slides left */
 .swipe-delete-btn {
   position: absolute;
   top: 0; right: 0;
@@ -470,19 +467,16 @@ td.clickable-cell {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1;
-  /* The button is always present but hidden behind the tr (z-index 2) until tr slides left */
+  /* Hidden off the right edge initially; revealed as tr translates left */
+  pointer-events: none;
 }
 
-/* The actual <tr> that slides */
+/* The tr slides left; overflow:hidden on people-td clips things correctly */
 .swipe-tr {
-  position: relative;
-  z-index: 2;
   transform: translateX(0);
   transition: transform 0.2s ease;
-  background: var(--card);
-  display: table-row;
   will-change: transform;
+  background: var(--card);
 }
 .swipe-tr.locked-row td { background: #fafaf9; opacity: 0.85; }
 .swipe-tr.locked-row textarea { background: transparent; }
@@ -1715,6 +1709,17 @@ function render(){
   body.innerHTML = "";
 
   rows.forEach((r, i) => {
+    const isLocked = r.locked || isArchived;
+    const lockIcon = isLocked ? "🔒" : "🔓";
+    const lockClass = isLocked ? "locked" : "unlocked";
+    const eraseDisabled = isLocked ? "disabled" : "";
+
+    const itemTdOnclick = !isLocked
+      ? `onclick="if(event.target===this){this.querySelector('textarea').focus();}"` : "";
+    const priceTdOnclick = !isLocked
+      ? `onclick="if(event.target===this){this.querySelector('textarea').focus();}"` : "";
+
+    // Build people buttons
     let tapHTML = `
       <button class="name-btn everyone-btn ${r.selected?.length===nameList.length?'selected':''}"
         onclick="toggleEveryone(${i})">EVERYONE</button>
@@ -1725,34 +1730,15 @@ function render(){
     });
     tapHTML += `</div>`;
 
-    const isLocked = r.locked || isArchived;
-    const lockIcon = isLocked ? "🔒" : "🔓";
-    const lockClass = isLocked ? "locked" : "unlocked";
+    // Delete button goes inside the people td, absolutely positioned to its right
+    const deleteBtnHTML = !isLocked ? `
+      <button class="swipe-delete-btn" id="del-btn-${i}" onclick="deleteRow(${i})">Delete</button>` : '';
 
-    // Wrapper div (swipe container)
-    const wrapper = document.createElement("div");
-    wrapper.className = "swipe-row-wrapper";
-
-    // Delete button (revealed on swipe)
-    const delBtn = document.createElement("button");
-    delBtn.className = "swipe-delete-btn";
-    delBtn.textContent = "Delete";
-    delBtn.onclick = () => deleteRow(i);
-    if(isLocked) delBtn.style.display = "none";
-    wrapper.appendChild(delBtn);
-
-    // The actual table row
     const tr = document.createElement("tr");
     tr.className = "swipe-tr" + (isLocked ? " locked-row" : "");
     tr.dataset.swipeIdx = i;
     tr.style.transform = "translateX(0)";
-
-    const itemTdOnclick = !isLocked
-      ? `onclick="if(event.target===this){this.querySelector('textarea').focus();}"` : "";
-    const priceTdOnclick = !isLocked
-      ? `onclick="if(event.target===this){this.querySelector('textarea').focus();}"` : "";
-
-    const eraseDisabled = isLocked ? "disabled" : "";
+    tr.style.transition = "transform 0.2s ease";
 
     tr.innerHTML = `
       <td class="lock-cell-td">
@@ -1780,26 +1766,16 @@ function render(){
           onblur="saveBill()"
           oninput="handlePriceInput(${i},this)">${r.price}</textarea>
       </td>
-      <td>${tapHTML}</td>`;
+      <td class="people-td">
+        ${deleteBtnHTML}
+        <div class="people-content">${tapHTML}</div>
+      </td>`;
 
-    wrapper.appendChild(tr);
+    body.appendChild(tr);
 
-    // Attach swipe listeners
+    // Attach swipe listeners to the tr itself
     if(!isLocked) attachSwipe(tr, i);
-
-    const wrapperTr = document.createElement("tr");
-    wrapperTr.style.cssText = "padding:0;margin:0;border:none;";
-    const wrapperTd = document.createElement("td");
-    wrapperTd.colSpan = 4;
-    wrapperTd.style.cssText = "padding:0;border:none;border-bottom:1px solid var(--border);";
-    wrapperTd.appendChild(wrapper);
-    wrapperTr.appendChild(wrapperTd);
-    body.appendChild(wrapperTr);
   });
-
-  // Fix last row border
-  const lastWrapperTd = body.querySelector("tr:last-child td");
-  if(lastWrapperTd) lastWrapperTd.style.borderBottom = "none";
 
   isRendering = false;
 }
