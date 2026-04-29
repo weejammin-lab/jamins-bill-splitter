@@ -324,9 +324,18 @@ html, body {
   outline: none;
   transition: border-color 0.15s;
 }
+
+  .notes-box {
+  text-align: left;
+}
+
+.notes-box::placeholder {
+  text-align: center;
+}
 .notes-box:focus { border-color: var(--accent); }
 .notes-box::placeholder { color: var(--muted); font-size: 11px; opacity: 1; }
 
+/* ── Table ── */
 table {
   width: 100%;
   border-collapse: separate;
@@ -401,6 +410,53 @@ td.clickable-cell {
   cursor: text;
 }
 
+/* ── Swipe-to-delete row wrapper ── */
+.swipe-row-wrapper {
+  position: relative;
+  overflow: hidden;
+  /* match tr bottom border */
+  border-bottom: 1px solid var(--border);
+}
+/* last wrapper: remove double border */
+.swipe-row-wrapper:last-child {
+  border-bottom: none;
+}
+/* The red delete button revealed on swipe */
+.swipe-delete-btn {
+  position: absolute;
+  top: 0; right: 0;
+  height: 100%;
+  width: 70px;
+  background: var(--accent2);
+  color: #fff;
+  border: none;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+  /* always visible in DOM but behind the sliding tr */
+}
+/* The actual <tr> that slides */
+.swipe-tr {
+  position: relative;
+  z-index: 2;
+  transform: translateX(0);
+  transition: transform 0.2s ease;
+  background: var(--card);
+  /* tr needs display:flex override won't work — use a wrapper div inside */
+  display: table-row;
+  will-change: transform;
+}
+.swipe-tr.swiped {
+  transform: translateX(-70px);
+}
+.swipe-tr.locked-row td { background: #fafaf9; opacity: 0.85; }
+.swipe-tr.locked-row textarea { background: transparent; }
+
 .tap-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -465,10 +521,7 @@ td.clickable-cell {
 .lock-btn.locked { background: var(--accent2-light); border-color: var(--accent2); }
 .lock-btn.unlocked { opacity: 0.6; }
 
-tr.locked-row td { background: #fafaf9; opacity: 0.85; }
-tr.locked-row textarea { background: transparent; }
-
-#addRowBtn, #add5RowsBtn, #deleteLastRowBtn {
+#addRowBtn, #add5RowsBtn, #deleteEmptyRowsBtn {
   font-size: 12px;
   padding: 4px 10px;
   border: 1.5px solid var(--border);
@@ -481,7 +534,7 @@ tr.locked-row textarea { background: transparent; }
   transition: border-color 0.15s, background 0.15s;
 }
 #addRowBtn:hover, #add5RowsBtn:hover { border-color: var(--accent); background: var(--accent-light); }
-#deleteLastRowBtn:hover { border-color: var(--accent2); background: var(--accent2-light); }
+#deleteEmptyRowsBtn:hover { border-color: var(--accent2); background: var(--accent2-light); }
 
 .tax-tip-wrap {
   display: flex;
@@ -629,6 +682,9 @@ tr.locked-row textarea { background: transparent; }
 .row-btn-disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
 .archived-section { opacity: 0.75; }
 .th-people { line-height: 1.3; }
+
+/* tbody needs relative positioning so swipe wrappers work */
+#tableBody { position: relative; }
 </style>
 
 </head>
@@ -676,7 +732,7 @@ tr.locked-row textarea { background: transparent; }
 <div class="top-row">
   <textarea class="notes-box"
     id="notesBox"
-    placeholder="       type notes here&#10;upload receipt to use AI&#10;(it kinda sucks tho)"
+    placeholder="type notes here&#10;upload receipt to use AI&#10;(it kinda sucks tho)"
     oninput="saveNotes(); markDirty()"></textarea>
 
   <div id="personBar"></div>
@@ -698,9 +754,9 @@ tr.locked-row textarea { background: transparent; }
 <div style="margin:7px 0; display:flex; gap:5px; align-items:center;">
   <button id="addRowBtn" onclick="addRow()">+ 1 Row</button>
   <button id="add5RowsBtn" onclick="add5Rows()">+ 5 Rows</button>
-  <button id="deleteLastRowBtn" onclick="deleteLastRow()">Delete Last</button>
+  <button id="deleteEmptyRowsBtn" onclick="deleteEmptyRows()">Delete Empty</button>
   <span id="deleteMsg" style="color:var(--accent2); font-size:11px;"></span>
-    <button
+  <button
     class="save-bill-btn"
     id="saveBillBtnBottom"
     onclick="saveNewBill()"
@@ -733,7 +789,7 @@ tr.locked-row textarea { background: transparent; }
 </div>
 </div>
 
-<!-- Summary + bottom Save button on same row -->
+<!-- Summary -->
 <div class="summary-save-row">
   <div class="summary-box" id="summary"></div>
 </div>
@@ -748,12 +804,12 @@ tr.locked-row textarea { background: transparent; }
 <script>
 
 const firebaseConfig = {
-apiKey: "AIzaSyB6rIAq2loPyngSITMCwKVZZwGrwzs6Kmk",
-authDomain: "jamins-bill-splitter.firebaseapp.com",
-projectId: "jamins-bill-splitter",
-storageBucket: "jamins-bill-splitter.firebasestorage.app",
-messagingSenderId: "139094691642",
-appId: "1:139094691642:web:fa1f61dcfae8d085094a03"
+  apiKey: "AIzaSyB6rIAq2loPyngSITMCwKVZZwGrwzs6Kmk",
+  authDomain: "jamins-bill-splitter.firebaseapp.com",
+  projectId: "jamins-bill-splitter",
+  storageBucket: "jamins-bill-splitter.firebasestorage.app",
+  messagingSenderId: "139094691642",
+  appId: "1:139094691642:web:fa1f61dcfae8d085094a03"
 };
 
 firebase.initializeApp(firebaseConfig);
@@ -762,33 +818,23 @@ const billRef = db.collection("bills").doc("main");
 const storage = firebase.storage();
 
 const defaultVenmoMap = {
-jamin:"jamin-chen",
-jack:"jack-bao",
-cliff:"clifford-chao",
-howard:"braveclaw",
-willie:"willie-zeng",
-lin:"linlin221",
-freddy:"freddy-dai",
-viv:"vivian-bang",
-vivian:"vivian-bang",
-maria:"mariapdiaz",
-paarus:"paarus-ali",
-anna:"anna-claire-choi",
-michelle:"michelletran9",
-mich:"michelletran9",
-victoria:"victoriabao",
-vic:"victoriabao",
+  jamin:"jamin-chen", jack:"jack-bao", cliff:"clifford-chao",
+  howard:"braveclaw", willie:"willie-zeng", lin:"linlin221",
+  freddy:"freddy-dai", viv:"vivian-bang", vivian:"vivian-bang",
+  maria:"mariapdiaz", paarus:"paarus-ali", anna:"anna-claire-choi",
+  michelle:"michelletran9", mich:"michelletran9",
+  victoria:"victoriabao", vic:"victoriabao",
 };
 
-let defaultNames=["jamin","jack","cliff","willie","howard","lin"];
+let defaultNames = ["jamin","jack","cliff","willie","howard","lin"];
 let billLoaded = false;
-let nameList=[...defaultNames];
-let rows=[];
-let venmoNames={...defaultVenmoMap};
+let nameList = [...defaultNames];
+let rows = [];
+let venmoNames = {...defaultVenmoMap};
 let isRendering = false;
-let receiptUrl="";
+let receiptUrl = "";
 let receiptFileRef = null;
-let isLocalUpdate=false;
+let isLocalUpdate = false;
 let lastSavedReceiptUrl = null;
 let currentLoadedBillId = null;
 let currentLoadedBillTitle = null;
@@ -798,19 +844,17 @@ let loadedSnapshot = null;
 let newBillFirstInputDate = null;
 let isUploadingReceipt = false;
 
+// ── Swipe state ──
+let swipeCurrent = null; // currently open swipe row index
+
 function formatDate(ts){
   const d = new Date(ts);
-  const mm = d.getMonth()+1;
-  const dd = d.getDate();
-  const yy = String(d.getFullYear()).slice(-2);
-  return `${mm}/${dd}/${yy}`;
+  return `${d.getMonth()+1}/${d.getDate()}/${String(d.getFullYear()).slice(-2)}`;
 }
 
 function snapshotState(){
   return JSON.stringify({
-    rows,
-    nameList,
-    receiptUrl,
+    rows, nameList, receiptUrl,
     taxValue: document.getElementById("taxValue").value,
     tipValue: document.getElementById("tipValue").value,
     taxMode: document.getElementById("taxMode").value,
@@ -822,15 +866,12 @@ function snapshotState(){
 
 function defaultSnapshot(){
   return JSON.stringify({
-    rows: Array(8).fill(null).map(()=>({item:"",price:"",people:"",selected:[],locked:false})),
+    rows: Array(5).fill(null).map(()=>({item:"",price:"",people:"",selected:[],locked:false})),
     nameList: [...defaultNames],
     receiptUrl: "",
-    taxValue: "",
-    tipValue: "",
-    taxMode: "amount",
-    tipMode: "amount",
-    notes: "",
-    currentLoadedBillId: null
+    taxValue: "", tipValue: "",
+    taxMode: "amount", tipMode: "amount",
+    notes: "", currentLoadedBillId: null
   });
 }
 
@@ -847,26 +888,17 @@ function markDirty(){
 }
 
 function updateSaveButtonState(){
-  const btn = document.getElementById("saveBillBtn");
-  const btnBottom = document.getElementById("saveBillBtnBottom");
-  [btn, btnBottom].forEach(b => {
-    if(!b) return;
-    if(b.dataset.feedback === "1") return;
+  ["saveBillBtn","saveBillBtnBottom"].forEach(id => {
+    const b = document.getElementById(id);
+    if(!b || b.dataset.feedback === "1") return;
     b.textContent = "Save";
-    b.style.color = "";
-    b.style.fontSize = "";
-    b.style.background = "";
-    if(currentLoadedBillId){
-      b.disabled = !isDirty || isArchived;
-    } else {
-      b.disabled = !isDirty;
-    }
+    b.style.color = b.style.fontSize = b.style.background = "";
+    b.disabled = currentLoadedBillId ? (!isDirty || isArchived) : !isDirty;
   });
 }
 
 function updateArchivedUI(){
-  const label = document.getElementById("archivedLabel");
-  label.style.display = isArchived ? "inline" : "none";
+  document.getElementById("archivedLabel").style.display = isArchived ? "inline" : "none";
 
   const archiveBtn = document.getElementById("archiveToggleBtn");
   if(archiveBtn){
@@ -885,38 +917,26 @@ function updateArchivedUI(){
   const uploadBtn = document.getElementById("uploadReceiptBtn");
   const addRowBtn = document.getElementById("addRowBtn");
   const add5RowsBtn = document.getElementById("add5RowsBtn");
-  const deleteLastRowBtn = document.getElementById("deleteLastRowBtn");
+  const deleteEmptyRowsBtn = document.getElementById("deleteEmptyRowsBtn");
   const taxValue = document.getElementById("taxValue");
   const tipValue = document.getElementById("tipValue");
   const taxMode = document.getElementById("taxMode");
   const tipMode = document.getElementById("tipMode");
 
   if(isArchived){
-    mainSection.classList.add("archived-section");
-    notesBox.classList.add("archived-section");
-    personBar.classList.add("archived-section");
-    summaryBox.classList.add("archived-section");
-    totalsBox.classList.add("archived-section");
+    [mainSection, notesBox, personBar, summaryBox, totalsBox].forEach(el => el.classList.add("archived-section"));
     notesBox.setAttribute("disabled","");
-    taxValue.setAttribute("disabled","");
-    tipValue.setAttribute("disabled","");
-    taxMode.setAttribute("disabled","");
-    tipMode.setAttribute("disabled","");
-    [uploadBtn, addRowBtn, add5RowsBtn, deleteLastRowBtn].forEach(btn => {
+    taxValue.setAttribute("disabled",""); tipValue.setAttribute("disabled","");
+    taxMode.setAttribute("disabled",""); tipMode.setAttribute("disabled","");
+    [uploadBtn, addRowBtn, add5RowsBtn, deleteEmptyRowsBtn].forEach(btn => {
       if(btn){ btn.disabled = true; btn.classList.add("row-btn-disabled"); }
     });
   } else {
-    mainSection.classList.remove("archived-section");
-    notesBox.classList.remove("archived-section");
-    personBar.classList.remove("archived-section");
-    summaryBox.classList.remove("archived-section");
-    totalsBox.classList.remove("archived-section");
+    [mainSection, notesBox, personBar, summaryBox, totalsBox].forEach(el => el.classList.remove("archived-section"));
     notesBox.removeAttribute("disabled");
-    taxValue.removeAttribute("disabled");
-    tipValue.removeAttribute("disabled");
-    taxMode.removeAttribute("disabled");
-    tipMode.removeAttribute("disabled");
-    [uploadBtn, addRowBtn, add5RowsBtn, deleteLastRowBtn].forEach(btn => {
+    taxValue.removeAttribute("disabled"); tipValue.removeAttribute("disabled");
+    taxMode.removeAttribute("disabled"); tipMode.removeAttribute("disabled");
+    [uploadBtn, addRowBtn, add5RowsBtn, deleteEmptyRowsBtn].forEach(btn => {
       if(btn){ btn.disabled = false; btn.classList.remove("row-btn-disabled"); }
     });
   }
@@ -925,96 +945,57 @@ function updateArchivedUI(){
 }
 
 function hasContent(){
-  const hasRows = rows.some(r => r.price || r.item);
-  const hasTax = !!document.getElementById("taxValue").value;
-  const hasTip = !!document.getElementById("tipValue").value;
-  const hasNotes = !!document.getElementById("notesBox").value;
-  const hasReceipt = !!receiptUrl;
-  const hasCustomNames = JSON.stringify(nameList) !== JSON.stringify(defaultNames);
-  return hasRows || hasTax || hasTip || hasNotes || hasReceipt || hasCustomNames;
+  return rows.some(r => r.price || r.item)
+    || !!document.getElementById("taxValue").value
+    || !!document.getElementById("tipValue").value
+    || !!document.getElementById("notesBox").value
+    || !!receiptUrl
+    || JSON.stringify(nameList) !== JSON.stringify(defaultNames);
 }
 
 function confirmUnsaved(message){
   return new Promise(resolve => {
     const overlay = document.createElement("div");
-    overlay.style.cssText = `
-      position:fixed;top:0;left:0;width:100%;height:100%;
-      background:rgba(0,0,0,0.5);z-index:9999;
-      display:flex;align-items:center;justify-content:center;
-    `;
+    overlay.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;";
     const box = document.createElement("div");
-    box.style.cssText = `
-      background:#fff;padding:20px;border-radius:14px;
-      max-width:300px;width:90%;font-family:'DM Sans',sans-serif;font-size:15px;
-      box-shadow:0 8px 32px rgba(0,0,0,0.18);
-    `;
+    box.style.cssText = "background:#fff;padding:20px;border-radius:14px;max-width:300px;width:90%;font-family:'DM Sans',sans-serif;font-size:15px;box-shadow:0 8px 32px rgba(0,0,0,0.18);";
     box.innerHTML = `<p style="margin:0 0 16px;">${message}</p>`;
-
-    const btnStyle = `
-      display:block;width:100%;padding:10px;margin-bottom:8px;
-      font-size:15px;border-radius:20px;cursor:pointer;border:1.5px solid #e2dfd8;
-      font-family:'DM Sans',sans-serif;font-weight:500;
-    `;
-
+    const s = "display:block;width:100%;padding:10px;margin-bottom:8px;font-size:15px;border-radius:20px;cursor:pointer;border:1.5px solid #e2dfd8;font-family:'DM Sans',sans-serif;font-weight:500;";
     const saveBtn = document.createElement("button");
     saveBtn.textContent = "Save";
-    saveBtn.style.cssText = btnStyle + "background:#7c6af7;color:white;border-color:#7c6af7;font-weight:600;";
+    saveBtn.style.cssText = s + "background:#7c6af7;color:white;border-color:#7c6af7;font-weight:600;";
     saveBtn.onclick = () => { document.body.removeChild(overlay); resolve("save"); };
-
     const noBtn = document.createElement("button");
     noBtn.textContent = "Don't Save";
-    noBtn.style.cssText = btnStyle + "background:#fff;";
+    noBtn.style.cssText = s + "background:#fff;";
     noBtn.onclick = () => { document.body.removeChild(overlay); resolve("nosave"); };
-
     const cancelBtn = document.createElement("button");
     cancelBtn.textContent = "Cancel";
-    cancelBtn.style.cssText = btnStyle + "background:#f5f3ef;margin-bottom:0;";
+    cancelBtn.style.cssText = s + "background:#f5f3ef;margin-bottom:0;";
     cancelBtn.onclick = () => { document.body.removeChild(overlay); resolve("cancel"); };
-
-    box.appendChild(saveBtn);
-    box.appendChild(noBtn);
-    box.appendChild(cancelBtn);
-    overlay.appendChild(box);
-    document.body.appendChild(overlay);
+    box.appendChild(saveBtn); box.appendChild(noBtn); box.appendChild(cancelBtn);
+    overlay.appendChild(box); document.body.appendChild(overlay);
   });
 }
 
 function confirmAction(message){
   return new Promise(resolve => {
     const overlay = document.createElement("div");
-    overlay.style.cssText = `
-      position:fixed;top:0;left:0;width:100%;height:100%;
-      background:rgba(0,0,0,0.5);z-index:9999;
-      display:flex;align-items:center;justify-content:center;
-    `;
+    overlay.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;";
     const box = document.createElement("div");
-    box.style.cssText = `
-      background:#fff;padding:20px;border-radius:14px;
-      max-width:300px;width:90%;font-family:'DM Sans',sans-serif;font-size:15px;
-      box-shadow:0 8px 32px rgba(0,0,0,0.18);
-    `;
+    box.style.cssText = "background:#fff;padding:20px;border-radius:14px;max-width:300px;width:90%;font-family:'DM Sans',sans-serif;font-size:15px;box-shadow:0 8px 32px rgba(0,0,0,0.18);";
     box.innerHTML = `<p style="margin:0 0 16px;">${message}</p>`;
-
-    const btnStyle = `
-      display:inline-block;padding:8px 18px;margin-right:8px;
-      font-size:15px;border-radius:20px;cursor:pointer;border:1.5px solid #e2dfd8;
-      font-family:'DM Sans',sans-serif;font-weight:500;
-    `;
-
+    const s = "display:inline-block;padding:8px 18px;margin-right:8px;font-size:15px;border-radius:20px;cursor:pointer;border:1.5px solid #e2dfd8;font-family:'DM Sans',sans-serif;font-weight:500;";
     const yesBtn = document.createElement("button");
     yesBtn.textContent = "Yes";
-    yesBtn.style.cssText = btnStyle + "background:#f06a6a;color:white;border-color:#f06a6a;font-weight:600;";
+    yesBtn.style.cssText = s + "background:#f06a6a;color:white;border-color:#f06a6a;font-weight:600;";
     yesBtn.onclick = () => { document.body.removeChild(overlay); resolve(true); };
-
     const noBtn = document.createElement("button");
     noBtn.textContent = "Cancel";
-    noBtn.style.cssText = btnStyle + "background:#f5f3ef;";
+    noBtn.style.cssText = s + "background:#f5f3ef;";
     noBtn.onclick = () => { document.body.removeChild(overlay); resolve(false); };
-
-    box.appendChild(yesBtn);
-    box.appendChild(noBtn);
-    overlay.appendChild(box);
-    document.body.appendChild(overlay);
+    box.appendChild(yesBtn); box.appendChild(noBtn);
+    overlay.appendChild(box); document.body.appendChild(overlay);
   });
 }
 
@@ -1022,7 +1003,7 @@ async function checkUnsavedBill(){
   if(currentLoadedBillId && isDirty){
     const choice = await confirmUnsaved("There are unsaved changes to this bill.");
     if(choice === "save"){ await saveNewBill(); return true; }
-    if(choice === "nosave"){ return true; }
+    if(choice === "nosave") return true;
     return false;
   }
   if(!currentLoadedBillId && hasContent()){
@@ -1030,19 +1011,12 @@ async function checkUnsavedBill(){
     if(choice === "save"){
       let title = prompt("Enter a title for this bill (max 15 characters):");
       if(!title || !title.trim()) return false;
-      title = title.trim().slice(0, 15);
-      const billData = {
-        title,
-        savedAt: newBillFirstInputDate || Date.now(),
-        ...getCurrentBillData()
-      };
-      const docRef = await db.collection("savedBills").add(billData);
-      currentLoadedBillId = docRef.id;
-      currentLoadedBillTitle = title;
-      await loadSavedBillsList();
-      return true;
+      title = title.trim().slice(0,15);
+      const docRef = await db.collection("savedBills").add({ title, savedAt: newBillFirstInputDate || Date.now(), ...getCurrentBillData() });
+      currentLoadedBillId = docRef.id; currentLoadedBillTitle = title;
+      await loadSavedBillsList(); return true;
     }
-    if(choice === "nosave"){ return true; }
+    if(choice === "nosave") return true;
     return false;
   }
   return true;
@@ -1056,8 +1030,7 @@ function showReceiptThumbnail(url){
   wrap.className = "receipt-thumb-wrap";
 
   const img = document.createElement("img");
-  img.src = url;
-  img.className = "receipt-thumb";
+  img.src = url; img.className = "receipt-thumb";
   img.onclick = function(){
     const overlay = document.createElement("div");
     overlay.className = "receipt-overlay";
@@ -1069,90 +1042,87 @@ function showReceiptThumbnail(url){
   };
 
   const removeBtn = document.createElement("button");
-  removeBtn.className = "remove-receipt";
-  removeBtn.textContent = "✖";
-  removeBtn.title = "Remove receipt";
+  removeBtn.className = "remove-receipt"; removeBtn.textContent = "✖"; removeBtn.title = "Remove receipt";
   removeBtn.onclick = async function(){
     if(isArchived) return;
     const confirmed = await confirmAction("Remove the uploaded receipt?");
     if(!confirmed) return;
-    receiptUrl = "";
-    lastSavedReceiptUrl = "";
-    receiptFileRef = null;
-    container.innerHTML = "";
-    saveBill();
-    markDirty();
+    receiptUrl = ""; lastSavedReceiptUrl = ""; receiptFileRef = null;
+    container.innerHTML = ""; saveBill(); markDirty();
   };
 
   const ocrBtn = document.createElement("button");
-  ocrBtn.className = "ocr-btn";
-  ocrBtn.id = "ocrBtn";
-  ocrBtn.textContent = "Use AI";
-  ocrBtn.title = "Scan receipt and auto-fill items & prices";
+  ocrBtn.className = "ocr-btn"; ocrBtn.id = "ocrBtn";
+  ocrBtn.textContent = "Use AI"; ocrBtn.title = "Scan receipt and auto-fill items & prices";
   ocrBtn.onclick = runOCR;
 
-  wrap.appendChild(img);
-  wrap.appendChild(removeBtn);
-  wrap.appendChild(ocrBtn);
+  wrap.appendChild(img); wrap.appendChild(removeBtn); wrap.appendChild(ocrBtn);
   container.appendChild(wrap);
 }
 
+// ── OCR ──
 function parseReceiptText(text){
   const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
-  const priceRegex = /\$?\s*([\d]+\.[\d]{2})/;
 
-  // words that indicate a line is a total/fee/non-item line — skip these
-  const skipKeywords = /\b(subtotal|sub.?total|total|tax|tip|gratuity|service\s*fee|surcharge|discount|change|cash|credit|debit|visa|mastercard|amex|discover|balance|amount\s*due|amount\s*paid|thank|receipt|order|table|server|guest|check\s*#|item|qty|quantity|price|description|void|comp)\b/i;
+  // Must have a price on the RIGHT side of the line (last token)
+  // Pattern: line ends with an optional $ and a decimal number
+  const rightPriceRegex = /\$?\s*(\d+\.\d{2})\s*$/;
+
+  // Skip lines that are totals/fees/non-items
+  const skipKeywords = /\b(subtotal|sub[-\s]?total|total|tax|tip|gratuity|service\s*fee|surcharge|discount|change|cash|credit|debit|visa|mastercard|amex|discover|balance|amount\s*due|amount\s*paid|thank|receipt|order\s*#|table\s*#|server|guest|check\s*#|qty|quantity|void|comp)\b/i;
 
   const parsed = [];
 
   lines.forEach(line => {
-    const priceMatch = line.match(priceRegex);
+    // Price must be on the RIGHT side of the line
+    const priceMatch = line.match(rightPriceRegex);
     if(!priceMatch) return;
 
     const price = priceMatch[1];
     const priceFloat = parseFloat(price);
 
-    // skip zeros, negatives, or suspiciously large numbers (likely totals)
+    // skip zeros or suspiciously large (totals)
     if(priceFloat <= 0 || priceFloat > 300) return;
 
-    // get item name by removing the matched price portion
-    let item = line.replace(priceMatch[0], '').trim();
-
-    // clean up trailing punctuation/dots/dashes
-    item = item.replace(/[\.\-\*\_\s]+$/, '').trim();
-
-    // skip if the line matches known non-item keywords
+    // skip total/tax/tip lines
     if(skipKeywords.test(line)) return;
 
-    // skip if item has no letters at all (just numbers/symbols)
+    // get item name: everything before the price match, stripped of leading garbage
+    let item = line.slice(0, line.length - priceMatch[0].length).trim();
+
+    // remove leading non-letter characters (random OCR noise like "| ", ". ", etc.)
+    item = item.replace(/^[^a-zA-Z0-9]+/, '').trim();
+
+    // clean trailing dots/dashes/spaces
+    item = item.replace(/[\.\-\*\_\s]+$/, '').trim();
+
+    // must have at least one letter
     if(!item || !/[a-zA-Z]/.test(item)) return;
 
-    // skip very short fragments that are likely noise
+    // skip very short noise fragments
     if(item.length < 2) return;
 
     parsed.push({ item, price });
   });
 
   if(parsed.length === 0){
-    alert("No items found. The receipt may be unclear — try a flat, well-lit photo.");
+    alert("No items found. Try a flat, well-lit photo with prices clearly on the right side.");
     return;
   }
 
-  // fill into rows: use existing empty unlocked rows first, add new ones as needed
-  let rowIndex = 0;
+  // REPLACE all rows with OCR results (clear existing, keep locked rows)
+  // First collect any locked rows so we don't lose them
+  const lockedRows = rows.filter(r => r.locked);
+
+  // Build new row list: locked rows first, then OCR results, padded to at least 5
+  rows = [...lockedRows];
   parsed.forEach(p => {
-    // advance past locked or already-filled rows
-    while(rowIndex < rows.length && (rows[rowIndex].locked || rows[rowIndex].item || rows[rowIndex].price)){
-      rowIndex++;
-    }
-    if(rowIndex >= rows.length){
-      rows.push({ item:'', price:'', people:'', selected:[], locked:false });
-    }
-    rows[rowIndex].item = p.item;
-    rows[rowIndex].price = p.price;
-    rowIndex++;
+    rows.push({ item: p.item, price: p.price, people: '', selected: [], locked: false });
   });
+  // Pad to minimum 5 rows
+  while(rows.length < 5){
+    rows.push({ item:'', price:'', people:'', selected:[], locked:false });
+  }
 
   render();
   calc();
@@ -1162,16 +1132,12 @@ function parseReceiptText(text){
 
 async function runOCR(){
   if(isArchived) return;
-  if(!receiptFileRef && !receiptUrl){
-    alert("No receipt uploaded.");
-    return;
-  }
+  if(!receiptFileRef && !receiptUrl){ alert("No receipt uploaded."); return; }
 
   const btn = document.getElementById("ocrBtn");
   if(btn){ btn.textContent = "Scanning…"; btn.disabled = true; }
 
   try {
-    // prefer the original local file (sharper); fall back to the hosted URL
     const source = receiptFileRef || receiptUrl;
     const { data: { text } } = await Tesseract.recognize(source, 'eng');
     parseReceiptText(text);
@@ -1199,156 +1165,100 @@ function applyLiveData(data){
   document.getElementById("tipMode").value = data.tipMode || "amount";
   document.getElementById("notesBox").value = data.notes || "";
 
-  if(receiptUrl){
-    showReceiptThumbnail(receiptUrl);
-  } else {
-    document.getElementById("receiptPreviewContainer").innerHTML = "";
-  }
+  if(receiptUrl) showReceiptThumbnail(receiptUrl);
+  else document.getElementById("receiptPreviewContainer").innerHTML = "";
 
   if(currentLoadedBillId){
     loadedSnapshot = JSON.stringify({
       rows, nameList, receiptUrl,
-      taxValue: data.taxValue || "",
-      tipValue: data.tipValue || "",
-      taxMode: data.taxMode || "amount",
-      tipMode: data.tipMode || "amount",
+      taxValue: data.taxValue || "", tipValue: data.tipValue || "",
+      taxMode: data.taxMode || "amount", tipMode: data.tipMode || "amount",
       notes: data.notes || ""
     });
   }
 }
 
 function loadBill(){
-billRef.onSnapshot(doc=>{
-  if(isUploadingReceipt) return;
-  if(isLocalUpdate) return;
-
-  const data = doc.data();
-  if(!data) return;
-
-  applyLiveData(data);
-
-  billLoaded = true;
-  isDirty = false;
-
-  if(!rows || rows.length === 0){
-    rows = [];
-    for(let i=0;i<5;i++){
-      rows.push({item:"",price:"",people:"",selected:[],locked:false});
+  billRef.onSnapshot(doc => {
+    if(isUploadingReceipt || isLocalUpdate) return;
+    const data = doc.data();
+    if(!data) return;
+    applyLiveData(data);
+    billLoaded = true; isDirty = false;
+    if(!rows || rows.length === 0){
+      rows = [];
+      for(let i=0;i<5;i++) rows.push({item:"",price:"",people:"",selected:[],locked:false});
     }
-  }
-
-  renderPeopleBar();
-  render();
-  calc();
-  updateSaveButtonState();
-  updateArchivedUI();
-
-  loadSavedBillsList().then(()=>{
-    if(currentLoadedBillId){
-      document.getElementById("billDropdown").value = currentLoadedBillId;
-    }
+    renderPeopleBar(); render(); calc();
+    updateSaveButtonState(); updateArchivedUI();
+    loadSavedBillsList().then(()=>{
+      if(currentLoadedBillId) document.getElementById("billDropdown").value = currentLoadedBillId;
+    });
   });
-});
 }
 
 async function handleReceiptUpload(event){
-if(isArchived) return;
-const file = event.target.files[0];
-if(!file) return;
-
-if(receiptUrl){
-  const confirmed = await confirmAction("Replace the current receipt with this new one?");
-  if(!confirmed){
+  if(isArchived) return;
+  const file = event.target.files[0];
+  if(!file) return;
+  if(receiptUrl){
+    const confirmed = await confirmAction("Replace the current receipt with this new one?");
+    if(!confirmed){ event.target.value = ""; return; }
+  }
+  if(file.size > 15 * 1024 * 1024){
+    alert("Image too large. Please upload a photo under 15MB.");
+    event.target.value = ""; return;
+  }
+  isUploadingReceipt = true; isLocalUpdate = true;
+  try {
+    const storageRef = storage.ref().child(`receipts/${Date.now()}_receipt.jpg`);
+    await storageRef.put(file);
+    const url = await storageRef.getDownloadURL();
+    receiptUrl = url; lastSavedReceiptUrl = url; receiptFileRef = file;
+    showReceiptThumbnail(url);
+    await billRef.set({
+      rows, nameList, venmoNames, receiptUrl: url,
+      taxValue: document.getElementById("taxValue").value,
+      tipValue: document.getElementById("tipValue").value,
+      taxMode: document.getElementById("taxMode").value,
+      tipMode: document.getElementById("tipMode").value,
+      notes: document.getElementById("notesBox").value,
+      currentLoadedBillId, currentLoadedBillTitle, isArchived
+    });
+    markDirty();
+  } finally {
     event.target.value = "";
-    return;
+    setTimeout(()=>{ isUploadingReceipt = false; isLocalUpdate = false; }, 500);
   }
 }
 
-if(file.size > 15 * 1024 * 1024){
-  alert("Image too large. Please upload a photo under 15MB.");
-  event.target.value = "";
-  return;
-}
-
-isUploadingReceipt = true;
-isLocalUpdate = true;
-
-try {
-  const storageRef = storage.ref().child(`receipts/${Date.now()}_receipt.jpg`);
-  await storageRef.put(file);
-  const url = await storageRef.getDownloadURL();
-
-  receiptUrl = url;
-  lastSavedReceiptUrl = url;
-  receiptFileRef = file; // keep local file for higher-quality OCR
-
-  showReceiptThumbnail(url);
-
-  await billRef.set({
-    rows,
-    nameList,
-    venmoNames,
-    receiptUrl: url,
+function saveBill(){
+  if(!billLoaded) return;
+  isLocalUpdate = true;
+  if(!receiptUrl || receiptUrl.length < 5) receiptUrl = lastSavedReceiptUrl || "";
+  billRef.set({
+    rows, nameList, venmoNames, receiptUrl,
     taxValue: document.getElementById("taxValue").value,
     tipValue: document.getElementById("tipValue").value,
     taxMode: document.getElementById("taxMode").value,
     tipMode: document.getElementById("tipMode").value,
     notes: document.getElementById("notesBox").value,
-    currentLoadedBillId,
-    currentLoadedBillTitle,
-    isArchived
-  });
-
-  markDirty();
-} finally {
-  event.target.value = "";
-  setTimeout(()=>{
-    isUploadingReceipt = false;
-    isLocalUpdate = false;
-  }, 500);
-}
-}
-
-function saveBill(){
-if(!billLoaded) return;
-isLocalUpdate = true;
-
-if(!receiptUrl || receiptUrl.length < 5){
-  receiptUrl = lastSavedReceiptUrl || "";
-}
-
-billRef.set({
-  rows,
-  nameList,
-  venmoNames,
-  receiptUrl,
-  taxValue: document.getElementById("taxValue").value,
-  tipValue: document.getElementById("tipValue").value,
-  taxMode: document.getElementById("taxMode").value,
-  tipMode: document.getElementById("tipMode").value,
-  notes: document.getElementById("notesBox").value,
-  currentLoadedBillId,
-  currentLoadedBillTitle,
-  isArchived
-}).then(()=>{
-  if(receiptUrl && receiptUrl.length > 5) lastSavedReceiptUrl = receiptUrl;
-}).finally(()=>{
-  setTimeout(()=>isLocalUpdate=false, 300);
-});
+    currentLoadedBillId, currentLoadedBillTitle, isArchived
+  }).then(()=>{
+    if(receiptUrl && receiptUrl.length > 5) lastSavedReceiptUrl = receiptUrl;
+  }).finally(()=>{ setTimeout(()=>isLocalUpdate=false, 300); });
 }
 
 function getCurrentBillData(){
-return {
-  rows,
-  nameList,
-  venmoNames,
-  receiptUrl: receiptUrl || "",
-  taxValue: document.getElementById("taxValue").value,
-  tipValue: document.getElementById("tipValue").value,
-  taxMode: document.getElementById("taxMode").value,
-  tipMode: document.getElementById("tipMode").value,
-  notes: document.getElementById("notesBox").value
-};
+  return {
+    rows, nameList, venmoNames,
+    receiptUrl: receiptUrl || "",
+    taxValue: document.getElementById("taxValue").value,
+    tipValue: document.getElementById("tipValue").value,
+    taxMode: document.getElementById("taxMode").value,
+    tipMode: document.getElementById("tipMode").value,
+    notes: document.getElementById("notesBox").value
+  };
 }
 
 function showSavedFeedback(){
@@ -1356,16 +1266,11 @@ function showSavedFeedback(){
     const btn = document.getElementById(id);
     if(!btn) return;
     btn.dataset.feedback = "1";
-    btn.textContent = "saved!";
-    btn.style.color = "#fff";
-    btn.style.fontSize = "12px";
-    btn.style.background = "#3ecf76";
-    btn.disabled = true;
+    btn.textContent = "saved!"; btn.style.color = "#fff";
+    btn.style.fontSize = "12px"; btn.style.background = "#3ecf76"; btn.disabled = true;
     setTimeout(()=>{
       btn.dataset.feedback = "0";
-      btn.style.color = "";
-      btn.style.fontSize = "";
-      btn.style.background = "";
+      btn.style.color = btn.style.fontSize = btn.style.background = "";
       updateSaveButtonState();
     }, 750);
   });
@@ -1373,11 +1278,8 @@ function showSavedFeedback(){
 
 async function saveNewBill(){
   if(isArchived) return;
-
   if(currentLoadedBillId){
-    await db.collection("savedBills").doc(currentLoadedBillId).update({
-      ...getCurrentBillData()
-    });
+    await db.collection("savedBills").doc(currentLoadedBillId).update({ ...getCurrentBillData() });
     isDirty = false;
     loadedSnapshot = JSON.stringify({
       rows, nameList, receiptUrl,
@@ -1393,19 +1295,11 @@ async function saveNewBill(){
   } else {
     let title = prompt("Enter a title for this bill (max 15 characters):");
     if(!title || !title.trim()) return;
-    title = title.trim().slice(0, 15);
-
-    const billData = {
-      title,
-      savedAt: newBillFirstInputDate || Date.now(),
-      ...getCurrentBillData()
-    };
-
+    title = title.trim().slice(0,15);
+    const billData = { title, savedAt: newBillFirstInputDate || Date.now(), ...getCurrentBillData() };
     const docRef = await db.collection("savedBills").add(billData);
-    currentLoadedBillId = docRef.id;
-    currentLoadedBillTitle = title;
-    isDirty = false;
-    newBillFirstInputDate = null;
+    currentLoadedBillId = docRef.id; currentLoadedBillTitle = title;
+    isDirty = false; newBillFirstInputDate = null;
     loadedSnapshot = JSON.stringify({
       rows, nameList, receiptUrl,
       taxValue: document.getElementById("taxValue").value,
@@ -1414,55 +1308,37 @@ async function saveNewBill(){
       tipMode: document.getElementById("tipMode").value,
       notes: document.getElementById("notesBox").value
     });
-
     saveBill();
-
     alert(`"${title}" saved!`);
     await loadSavedBillsList();
     document.getElementById("billDropdown").value = docRef.id;
-    updateSaveButtonState();
-    updateArchivedUI();
+    updateSaveButtonState(); updateArchivedUI();
   }
 }
 
 async function toggleArchive(){
-  if(!currentLoadedBillId){
-    alert("Save this bill first before archiving.");
-    return;
-  }
-
+  if(!currentLoadedBillId){ alert("Save this bill first before archiving."); return; }
   if(isArchived){
     const pw = prompt("Enter password to unarchive:");
     if(!pw) return;
-    if(pw.trim().toLowerCase() !== "unarchive"){
-      alert("Incorrect password.");
-      return;
-    }
+    if(pw.trim().toLowerCase() !== "unarchive"){ alert("Incorrect password."); return; }
     rows.forEach(r => r.locked = false);
     await db.collection("savedBills").doc(currentLoadedBillId).update({ archived: false, rows });
-    isArchived = false;
-    isDirty = false;
-    saveBill();
+    isArchived = false; isDirty = false; saveBill();
     await loadSavedBillsList();
     document.getElementById("billDropdown").value = currentLoadedBillId;
-    updateArchivedUI();
-    render();
+    updateArchivedUI(); render();
     alert(`"${currentLoadedBillTitle}" has been unarchived.`);
   } else {
     const confirmed = confirm(`Archive "${currentLoadedBillTitle}"?\n\nArchived Bills can't be edited but can still be viewed.`);
     if(!confirmed) return;
     rows.forEach(r => r.locked = true);
     rows = rows.filter(r => r.price || r.item || (r.selected && r.selected.length));
-    await db.collection("savedBills").doc(currentLoadedBillId).update({
-      ...getCurrentBillData(), rows, archived: true
-    });
-    isArchived = true;
-    isDirty = false;
-    saveBill();
+    await db.collection("savedBills").doc(currentLoadedBillId).update({ ...getCurrentBillData(), rows, archived: true });
+    isArchived = true; isDirty = false; saveBill();
     await loadSavedBillsList();
     document.getElementById("billDropdown").value = currentLoadedBillId;
-    updateArchivedUI();
-    render();
+    updateArchivedUI(); render();
     alert(`"${currentLoadedBillTitle}" has been archived.`);
   }
 }
@@ -1477,404 +1353,418 @@ async function deleteBill(){
 }
 
 async function loadSavedBillsList(){
-const snapshot = await db.collection("savedBills")
-  .orderBy("savedAt", "desc")
-  .limit(10)
-  .get();
-
-const dropdown = document.getElementById("billDropdown");
-const currentVal = currentLoadedBillId || "";
-
-dropdown.innerHTML = "";
-
-if(!currentLoadedBillId){
-  const placeholder = document.createElement("option");
-  placeholder.value = "";
-  placeholder.textContent = "— load a saved bill —";
-  placeholder.disabled = true;
-  placeholder.selected = true;
-  placeholder.style.color = "#aaa";
-  dropdown.appendChild(placeholder);
-}
-
-snapshot.forEach(doc => {
-  const d = doc.data();
-  const opt = document.createElement("option");
-  opt.value = doc.id;
-  const archivedTag = d.archived ? "🔒" : "";
-  opt.textContent = `${d.title} (${formatDate(d.savedAt)})${archivedTag}`;
-  dropdown.appendChild(opt);
-});
-
-if(currentVal) dropdown.value = currentVal;
+  const snapshot = await db.collection("savedBills").orderBy("savedAt","desc").limit(10).get();
+  const dropdown = document.getElementById("billDropdown");
+  const currentVal = currentLoadedBillId || "";
+  dropdown.innerHTML = "";
+  if(!currentLoadedBillId){
+    const ph = document.createElement("option");
+    ph.value = ""; ph.textContent = "— load a saved bill —";
+    ph.disabled = true; ph.selected = true; ph.style.color = "#aaa";
+    dropdown.appendChild(ph);
+  }
+  snapshot.forEach(doc => {
+    const d = doc.data();
+    const opt = document.createElement("option");
+    opt.value = doc.id;
+    opt.textContent = `${d.title} (${formatDate(d.savedAt)})${d.archived ? "🔒" : ""}`;
+    dropdown.appendChild(opt);
+  });
+  if(currentVal) dropdown.value = currentVal;
 }
 
 async function loadSavedBill(id){
-if(!id) return;
-
-const proceed = await checkUnsavedBill();
-if(!proceed){
-  document.getElementById("billDropdown").value = currentLoadedBillId || "";
-  return;
-}
-
-const doc = await db.collection("savedBills").doc(id).get();
-const data = doc.data();
-if(!data) return;
-
-currentLoadedBillId = id;
-currentLoadedBillTitle = data.title;
-isArchived = data.archived || false;
-isDirty = false;
-newBillFirstInputDate = null;
-
-rows = data.rows || [];
-nameList = data.nameList || [];
-venmoNames = data.venmoNames || {};
-receiptUrl = data.receiptUrl || "";
-lastSavedReceiptUrl = receiptUrl;
-receiptFileRef = null; // no local file available for saved bills
-
-document.getElementById("taxValue").value = data.taxValue || "";
-document.getElementById("tipValue").value = data.tipValue || "";
-document.getElementById("taxMode").value = data.taxMode || "amount";
-document.getElementById("tipMode").value = data.tipMode || "amount";
-document.getElementById("notesBox").value = data.notes || "";
-
-if(receiptUrl) showReceiptThumbnail(receiptUrl);
-else document.getElementById("receiptPreviewContainer").innerHTML = "";
-
-loadedSnapshot = JSON.stringify({
-  rows, nameList, receiptUrl,
-  taxValue: data.taxValue || "",
-  tipValue: data.tipValue || "",
-  taxMode: data.taxMode || "amount",
-  tipMode: data.tipMode || "amount",
-  notes: data.notes || ""
-});
-
-saveBill();
-
-await loadSavedBillsList();
-document.getElementById("billDropdown").value = id;
-
-updateSaveButtonState();
-updateArchivedUI();
-renderPeopleBar();
-render();
-calc();
+  if(!id) return;
+  const proceed = await checkUnsavedBill();
+  if(!proceed){ document.getElementById("billDropdown").value = currentLoadedBillId || ""; return; }
+  const doc = await db.collection("savedBills").doc(id).get();
+  const data = doc.data();
+  if(!data) return;
+  currentLoadedBillId = id; currentLoadedBillTitle = data.title;
+  isArchived = data.archived || false; isDirty = false; newBillFirstInputDate = null;
+  rows = data.rows || []; nameList = data.nameList || [];
+  venmoNames = data.venmoNames || {};
+  receiptUrl = data.receiptUrl || ""; lastSavedReceiptUrl = receiptUrl; receiptFileRef = null;
+  document.getElementById("taxValue").value = data.taxValue || "";
+  document.getElementById("tipValue").value = data.tipValue || "";
+  document.getElementById("taxMode").value = data.taxMode || "amount";
+  document.getElementById("tipMode").value = data.tipMode || "amount";
+  document.getElementById("notesBox").value = data.notes || "";
+  if(receiptUrl) showReceiptThumbnail(receiptUrl);
+  else document.getElementById("receiptPreviewContainer").innerHTML = "";
+  loadedSnapshot = JSON.stringify({
+    rows, nameList, receiptUrl,
+    taxValue: data.taxValue || "", tipValue: data.tipValue || "",
+    taxMode: data.taxMode || "amount", tipMode: data.tipMode || "amount",
+    notes: data.notes || ""
+  });
+  saveBill();
+  await loadSavedBillsList();
+  document.getElementById("billDropdown").value = id;
+  updateSaveButtonState(); updateArchivedUI();
+  renderPeopleBar(); render(); calc();
 }
 
 function saveNotes(){
-if(isArchived) return;
-isLocalUpdate = true;
-billRef.update({
-  notes: document.getElementById("notesBox").value
-}).finally(()=>{
-  setTimeout(()=>isLocalUpdate=false, 300);
-});
+  if(isArchived) return;
+  isLocalUpdate = true;
+  billRef.update({ notes: document.getElementById("notesBox").value })
+    .finally(()=>{ setTimeout(()=>isLocalUpdate=false, 300); });
 }
 
 function init(){
-rows=[];
-for(let i=0;i<5;i++){
-rows.push({item:"",price:"",people:"",selected:[],locked:false});
-}
-renderPeopleBar();
-render();
-calc();
+  rows = [];
+  for(let i=0;i<5;i++) rows.push({item:"",price:"",people:"",selected:[],locked:false});
+  renderPeopleBar(); render(); calc();
 }
 
 function doNewBill(){
-document.getElementById("taxValue").value="";
-document.getElementById("tipValue").value="";
-document.getElementById("taxMode").value="amount";
-document.getElementById("tipMode").value="amount";
-document.getElementById("notesBox").value="";
-
-receiptUrl = "";
-lastSavedReceiptUrl = "";
-receiptFileRef = null;
-document.getElementById("receiptPreviewContainer").innerHTML = "";
-
-currentLoadedBillId = null;
-currentLoadedBillTitle = null;
-isArchived = false;
-isDirty = false;
-loadedSnapshot = null;
-newBillFirstInputDate = null;
-
-rows=[];
-nameList=[...defaultNames];
-venmoNames={...defaultVenmoMap};
-
-saveBill();
-loadSavedBillsList();
-updateSaveButtonState();
-updateArchivedUI();
-init();
+  document.getElementById("taxValue").value = "";
+  document.getElementById("tipValue").value = "";
+  document.getElementById("taxMode").value = "amount";
+  document.getElementById("tipMode").value = "amount";
+  document.getElementById("notesBox").value = "";
+  receiptUrl = ""; lastSavedReceiptUrl = ""; receiptFileRef = null;
+  document.getElementById("receiptPreviewContainer").innerHTML = "";
+  currentLoadedBillId = null; currentLoadedBillTitle = null;
+  isArchived = false; isDirty = false; loadedSnapshot = null; newBillFirstInputDate = null;
+  rows = []; nameList = [...defaultNames]; venmoNames = {...defaultVenmoMap};
+  swipeCurrent = null;
+  saveBill(); loadSavedBillsList(); updateSaveButtonState(); updateArchivedUI(); init();
 }
 
 async function clearAll(){
-const proceed = await checkUnsavedBill();
-if(!proceed) return;
-doNewBill();
+  const proceed = await checkUnsavedBill();
+  if(!proceed) return;
+  doNewBill();
 }
 
 function renderPeopleBar(){
-let bar=document.getElementById("personBar");
-bar.innerHTML="";
-nameList.forEach((n,i)=>{
-bar.innerHTML+=`
-<span class="person-tag">
-${n}
-<span class="delete-person" onclick="deletePerson(${i})">✖</span>
-</span>`;
-});
+  const bar = document.getElementById("personBar");
+  bar.innerHTML = "";
+  nameList.forEach((n,i) => {
+    bar.innerHTML += `<span class="person-tag">${n}<span class="delete-person" onclick="deletePerson(${i})">✖</span></span>`;
+  });
 }
 
 function handleAddPerson(e){
-if(isArchived) return;
-if(e.key!=="Enter") return;
-let box=document.getElementById("addPersonBox");
-let name=box.value.trim();
-let key = name.toLowerCase();
-if(!name) return;
-nameList.push(name);
-venmoNames[key] = venmoNames[key] || "";
-box.value="";
-renderPeopleBar();
-render();
-calc();
-saveBill();
-markDirty();
+  if(isArchived || e.key !== "Enter") return;
+  const box = document.getElementById("addPersonBox");
+  const name = box.value.trim();
+  if(!name) return;
+  nameList.push(name);
+  venmoNames[name.toLowerCase()] = venmoNames[name.toLowerCase()] || "";
+  box.value = "";
+  renderPeopleBar(); render(); calc(); saveBill(); markDirty();
 }
 
 function deletePerson(i){
-if(isArchived) return;
-let removed=nameList[i];
-nameList.splice(i,1);
-rows.forEach(r=>{
-r.selected=(r.selected||[]).filter(p=>p!==removed);
-r.people=(r.selected||[]).join(", ");
-});
-renderPeopleBar();
-render();
-calc();
-saveBill();
-markDirty();
+  if(isArchived) return;
+  const removed = nameList.splice(i,1)[0];
+  rows.forEach(r => {
+    r.selected = (r.selected||[]).filter(p => p !== removed);
+    r.people = r.selected.join(", ");
+  });
+  renderPeopleBar(); render(); calc(); saveBill(); markDirty();
 }
 
 function toggleLock(row){
-if(isArchived) return;
-rows[row].locked = !rows[row].locked;
-render();
-saveBill();
-markDirty();
+  if(isArchived) return;
+  rows[row].locked = !rows[row].locked;
+  render(); saveBill(); markDirty();
 }
 
-function update(i,key,val){
-if(isArchived || rows[i].locked) return;
-rows[i][key]=val;
-calc();
-markDirty();
+function update(i, key, val){
+  if(isArchived || rows[i].locked) return;
+  rows[i][key] = val;
+  calc(); markDirty();
 }
 
 function handlePriceInput(row, el){
-if(isArchived || rows[row].locked){
-el.value = rows[row].price;
-return;
-}
-el.value = el.value
-.replace(/[^0-9.]/g,"")
-.replace(/(\..*?)\..*/g,"$1");
-rows[row].price = el.value;
-calc();
-markDirty();
+  if(isArchived || rows[row].locked){ el.value = rows[row].price; return; }
+  el.value = el.value.replace(/[^0-9.]/g,"").replace(/(\..*?)\..*/g,"$1");
+  rows[row].price = el.value;
+  calc(); markDirty();
 }
 
-function toggleName(row,name){
-if(isArchived || rows[row].locked) return;
-let r=rows[row];
-if(!r.selected) r.selected=[];
-let idx=r.selected.indexOf(name);
-if(idx>-1) r.selected.splice(idx,1);
-else r.selected.push(name);
-if(r.selected.length===nameList.length) r.people="EVERYONE";
-else r.people=r.selected.join(", ");
-render();
-calc();
-saveBill();
-markDirty();
+function toggleName(row, name){
+  if(isArchived || rows[row].locked) return;
+  const r = rows[row];
+  if(!r.selected) r.selected = [];
+  const idx = r.selected.indexOf(name);
+  if(idx > -1) r.selected.splice(idx,1); else r.selected.push(name);
+  r.people = r.selected.length === nameList.length ? "EVERYONE" : r.selected.join(", ");
+  render(); calc(); saveBill(); markDirty();
 }
 
 function toggleEveryone(row){
-if(isArchived || rows[row].locked) return;
-let r=rows[row];
-if(r.selected?.length===nameList.length){ r.selected=[]; r.people=""; }
-else { r.selected=[...nameList]; r.people="EVERYONE"; }
-render();
-calc();
-saveBill();
-markDirty();
+  if(isArchived || rows[row].locked) return;
+  const r = rows[row];
+  if(r.selected?.length === nameList.length){ r.selected = []; r.people = ""; }
+  else { r.selected = [...nameList]; r.people = "EVERYONE"; }
+  render(); calc(); saveBill(); markDirty();
 }
 
 function addRow(){
-if(isArchived) return;
-rows.push({item:"",price:"",people:"",selected:[],locked:false});
-render();
-calc();
-saveBill();
+  if(isArchived) return;
+  rows.push({item:"",price:"",people:"",selected:[],locked:false});
+  render(); calc(); saveBill();
 }
 
 function add5Rows(){
-if(isArchived) return;
-for(let i=0;i<5;i++) rows.push({item:"",price:"",people:"",selected:[],locked:false});
-render();
-calc();
-saveBill();
+  if(isArchived) return;
+  for(let i=0;i<5;i++) rows.push({item:"",price:"",people:"",selected:[],locked:false});
+  render(); calc(); saveBill();
 }
 
-function deleteLastRow(){
-if(isArchived) return;
-const msg = document.getElementById("deleteMsg");
-if(msg) msg.textContent = "";
-if(!rows || rows.length === 0) return;
-let lastIndex = rows.length - 1;
-if(rows[lastIndex].locked){ if(msg) msg.textContent = "Unlock last row to delete"; return; }
-rows.pop();
-render();
-calc();
-saveBill();
-markDirty();
+// Delete ALL empty rows (no item AND no price), anywhere in the list
+function deleteEmptyRows(){
+  if(isArchived) return;
+  const before = rows.length;
+  rows = rows.filter(r => r.locked || r.item || r.price);
+  // ensure at least 1 row remains
+  if(rows.length === 0) rows.push({item:"",price:"",people:"",selected:[],locked:false});
+  const removed = before - rows.length;
+  const msg = document.getElementById("deleteMsg");
+  if(msg) msg.textContent = removed > 0 ? `Removed ${removed} empty row${removed>1?"s":""}` : "No empty rows";
+  setTimeout(()=>{ if(msg) msg.textContent = ""; }, 2000);
+  render(); calc(); saveBill(); markDirty();
 }
 
-function nav(e,row,col){
-e.preventDefault();
-let nextRow=row+1;
-if(nextRow>=rows.length){
-addRow();
-setTimeout(()=>{ document.querySelector(`[data-r="${nextRow}"][data-c="${col}"]`)?.focus(); },0);
-return;
+// Delete a specific row by index
+function deleteRow(i){
+  if(isArchived) return;
+  if(rows[i] && rows[i].locked) return;
+  rows.splice(i,1);
+  if(rows.length === 0) rows.push({item:"",price:"",people:"",selected:[],locked:false});
+  swipeCurrent = null;
+  render(); calc(); saveBill(); markDirty();
 }
-setTimeout(()=>{
-let next=document.querySelector(`[data-r="${nextRow}"][data-c="${col}"]`);
-if(next){ next.focus(); next.select?.(); }
-},0);
+
+function nav(e, row, col){
+  e.preventDefault();
+  const nextRow = row + 1;
+  if(nextRow >= rows.length){
+    addRow();
+    setTimeout(()=>{ document.querySelector(`[data-r="${nextRow}"][data-c="${col}"]`)?.focus(); }, 0);
+    return;
+  }
+  setTimeout(()=>{
+    const next = document.querySelector(`[data-r="${nextRow}"][data-c="${col}"]`);
+    if(next){ next.focus(); next.select?.(); }
+  }, 0);
 }
+
+// ── Swipe-to-delete logic ──
+function closeAllSwipes(exceptIndex){
+  document.querySelectorAll('.swipe-tr.swiped').forEach(tr => {
+    const idx = parseInt(tr.dataset.swipeIdx);
+    if(idx !== exceptIndex) tr.classList.remove('swiped');
+  });
+  if(swipeCurrent !== null && swipeCurrent !== exceptIndex) swipeCurrent = null;
+}
+
+function attachSwipe(tr, rowIndex){
+  let startX = 0, startY = 0, dx = 0;
+  let isSwiping = false;
+  let isLocked = rows[rowIndex]?.locked || isArchived;
+
+  tr.addEventListener('touchstart', e => {
+    if(isLocked) return;
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    dx = 0; isSwiping = false;
+  }, {passive: true});
+
+  tr.addEventListener('touchmove', e => {
+    if(isLocked) return;
+    const cx = e.touches[0].clientX;
+    const cy = e.touches[0].clientY;
+    const adx = Math.abs(cx - startX);
+    const ady = Math.abs(cy - startY);
+    if(!isSwiping && ady > adx) return; // scrolling vertically, ignore
+    isSwiping = true;
+    dx = cx - startX;
+  }, {passive: true});
+
+  tr.addEventListener('touchend', () => {
+    if(!isSwiping || isLocked) return;
+    if(dx < -40){
+      // swiped left enough → open
+      closeAllSwipes(rowIndex);
+      tr.classList.add('swiped');
+      swipeCurrent = rowIndex;
+    } else if(dx > 20){
+      // swiped right → close
+      tr.classList.remove('swiped');
+      if(swipeCurrent === rowIndex) swipeCurrent = null;
+    }
+  });
+}
+
+// Close swipe if user taps elsewhere
+document.addEventListener('touchstart', e => {
+  if(swipeCurrent === null) return;
+  const swipedTr = document.querySelector('.swipe-tr.swiped');
+  if(swipedTr && !swipedTr.parentElement.contains(e.target)){
+    swipedTr.classList.remove('swiped');
+    swipeCurrent = null;
+  }
+}, {passive: true});
 
 function render(){
   isRendering = true;
-let body=document.getElementById("tableBody");
-body.innerHTML="";
-rows.forEach((r,i)=>{
-let tapHTML=`
-<button class="name-btn everyone-btn ${r.selected?.length===nameList.length?'selected':''}"
-onclick="toggleEveryone(${i})">EVERYONE</button>
-<div class="tap-grid">
-`;
-nameList.forEach(n=>{
-tapHTML+=`<button class="name-btn ${r.selected?.includes(n)?'selected':''}"
-onclick="toggleName(${i},'${n}')">${n}</button>`;
-});
-tapHTML+=`</div>`;
+  const body = document.getElementById("tableBody");
+  body.innerHTML = "";
 
-let isLocked = r.locked || isArchived;
-let lockIcon = isLocked ? "🔒" : "🔓";
-let lockClass = isLocked ? "locked" : "unlocked";
-let tr=document.createElement("tr");
-if(isLocked) tr.classList.add("locked-row");
+  rows.forEach((r, i) => {
+    let tapHTML = `
+      <button class="name-btn everyone-btn ${r.selected?.length===nameList.length?'selected':''}"
+        onclick="toggleEveryone(${i})">EVERYONE</button>
+      <div class="tap-grid">`;
+    nameList.forEach(n => {
+      tapHTML += `<button class="name-btn ${r.selected?.includes(n)?'selected':''}"
+        onclick="toggleName(${i},'${n}')">${n}</button>`;
+    });
+    tapHTML += `</div>`;
 
-const itemTdOnclick = !isLocked
-  ? `onclick="if(event.target===this){this.querySelector('textarea').focus();}"` 
-  : "";
-const priceTdOnclick = !isLocked
-  ? `onclick="if(event.target===this){this.querySelector('textarea').focus();}"` 
-  : "";
+    const isLocked = r.locked || isArchived;
+    const lockIcon = isLocked ? "🔒" : "🔓";
+    const lockClass = isLocked ? "locked" : "unlocked";
 
-tr.innerHTML=`
-<td class="lock-cell">
-<div style="font-size:11px;color:var(--muted);">${i+1}</div>
-<button class="lock-btn ${lockClass}" onclick="toggleLock(${i})">${lockIcon}</button>
-</td>
-<td class="clickable-cell" ${itemTdOnclick}>
-<textarea data-r="${i}" data-c="0"
-placeholder="optional"
-${isLocked?"disabled":""}
-onkeydown="if(event.key==='Enter'){nav(event,${i},0)}"
-oninput="update(${i},'item',this.value)">${r.item}</textarea>
-</td>
-<td class="clickable-cell" ${priceTdOnclick}>
-<textarea data-r="${i}" data-c="1"
-inputmode="decimal"
-pattern="[0-9]*"
-${isLocked?"disabled":""}
-onkeydown="if(event.key==='Enter'){saveBill();nav(event,${i},1)}"
-onblur="saveBill()"
-oninput="handlePriceInput(${i},this)">${r.price}</textarea>
-</td>
-<td>${tapHTML}</td>
-`;
-body.appendChild(tr);
-});
+    // Wrapper div (acts as the swipe container per row)
+    const wrapper = document.createElement("div");
+    wrapper.className = "swipe-row-wrapper";
+
+    // Delete button (revealed on swipe)
+    const delBtn = document.createElement("button");
+    delBtn.className = "swipe-delete-btn";
+    delBtn.textContent = "Delete";
+    delBtn.onclick = () => deleteRow(i);
+    if(isLocked) delBtn.style.display = "none";
+    wrapper.appendChild(delBtn);
+
+    // The actual table row
+    const tr = document.createElement("tr");
+    tr.className = "swipe-tr" + (isLocked ? " locked-row" : "");
+    tr.dataset.swipeIdx = i;
+
+    const itemTdOnclick = !isLocked
+      ? `onclick="if(event.target===this){this.querySelector('textarea').focus();}"` : "";
+    const priceTdOnclick = !isLocked
+      ? `onclick="if(event.target===this){this.querySelector('textarea').focus();}"` : "";
+
+    tr.innerHTML = `
+      <td class="lock-cell">
+        <div style="font-size:11px;color:var(--muted);">${i+1}</div>
+        <button class="lock-btn ${lockClass}" onclick="toggleLock(${i})">${lockIcon}</button>
+      </td>
+      <td class="clickable-cell" ${itemTdOnclick}>
+        <textarea data-r="${i}" data-c="0"
+          placeholder="optional"
+          ${isLocked?"disabled":""}
+          onkeydown="if(event.key==='Enter'){nav(event,${i},0)}"
+          oninput="update(${i},'item',this.value)">${r.item}</textarea>
+      </td>
+      <td class="clickable-cell" ${priceTdOnclick}>
+        <textarea data-r="${i}" data-c="1"
+          inputmode="decimal"
+          pattern="[0-9]*"
+          ${isLocked?"disabled":""}
+          onkeydown="if(event.key==='Enter'){saveBill();nav(event,${i},1)}"
+          onblur="saveBill()"
+          oninput="handlePriceInput(${i},this)">${r.price}</textarea>
+      </td>
+      <td>${tapHTML}</td>`;
+
+    wrapper.appendChild(tr);
+
+    // Attach swipe listeners
+    if(!isLocked) attachSwipe(tr, i);
+
+    // We can't put a div inside tbody directly, so we use a "display:contents" trick:
+    // Insert wrapper as a custom element workaround — instead, append tr directly and
+    // use a separate overlay approach. Actually the cleanest solution for table rows
+    // is to make the tbody itself handle the swipe at the tr level with a clip container.
+    // We'll use a single-cell spanning approach: append the wrapper as a block inside a tr.
+    const wrapperTr = document.createElement("tr");
+    wrapperTr.style.cssText = "padding:0;margin:0;border:none;";
+    const wrapperTd = document.createElement("td");
+    wrapperTd.colSpan = 4;
+    wrapperTd.style.cssText = "padding:0;border:none;border-bottom:1px solid var(--border);";
+    wrapperTd.appendChild(wrapper);
+
+    // Move the tr's content INTO the wrapper so the swipe container wraps it
+    // Re-architecture: put the real tr inside the wrapper td
+    wrapper.removeChild(tr); // remove from wrapper
+    wrapper.appendChild(tr); // re-add after delBtn (correct order already)
+
+    wrapperTr.appendChild(wrapperTd);
+    body.appendChild(wrapperTr);
+
+    // Re-attach swipe to tr (already done above)
+  });
+
+  // Fix last row border
+  const lastWrapperTd = body.querySelector("tr:last-child td");
+  if(lastWrapperTd) lastWrapperTd.style.borderBottom = "none";
+
   isRendering = false;
 }
 
 function calc(){
-let subtotal=0;
-let people={};
-let taxVal=parseFloat(document.getElementById("taxValue").value)||0;
-let tipVal=parseFloat(document.getElementById("tipValue").value)||0;
-let taxMode=document.getElementById("taxMode").value;
-let tipMode=document.getElementById("tipMode").value;
+  let subtotal = 0;
+  const people = {};
+  const taxVal = parseFloat(document.getElementById("taxValue").value) || 0;
+  const tipVal = parseFloat(document.getElementById("tipValue").value) || 0;
+  const taxMode = document.getElementById("taxMode").value;
+  const tipMode = document.getElementById("tipMode").value;
 
-rows.forEach(r=>{
-if(r.price){
-let price=parseFloat(r.price);
-if(!isNaN(price)) subtotal+=price;
-let list=r.people==="EVERYONE"
-?nameList
-:(r.people||"").split(",").map(p=>p.trim()).filter(Boolean);
-let share=price/list.length||0;
-list.forEach(p=>{
-if(!people[p]) people[p]={subtotalShare:0};
-people[p].subtotalShare+=share;
-});
-}
-});
+  rows.forEach(r => {
+    if(!r.price) return;
+    const price = parseFloat(r.price);
+    if(isNaN(price)) return;
+    subtotal += price;
+    const list = r.people === "EVERYONE" ? nameList
+      : (r.people||"").split(",").map(p=>p.trim()).filter(Boolean);
+    const share = price / (list.length || 1);
+    list.forEach(p => {
+      if(!people[p]) people[p] = {subtotalShare:0};
+      people[p].subtotalShare += share;
+    });
+  });
 
-let taxAmount=taxMode==="percent"?subtotal*(taxVal/100):taxVal;
-let tipAmount=tipMode==="percent"?subtotal*(tipVal/100):tipVal;
-let total=subtotal+taxAmount+tipAmount;
+  const taxAmount = taxMode === "percent" ? subtotal*(taxVal/100) : taxVal;
+  const tipAmount = tipMode === "percent" ? subtotal*(tipVal/100) : tipVal;
+  const total = subtotal + taxAmount + tipAmount;
 
-Object.keys(people).forEach(p=>{
-let share=people[p].subtotalShare||0;
-let ratio=subtotal?share/subtotal:0;
-people[p].total=share+(taxAmount*ratio)+(tipAmount*ratio);
-});
+  Object.keys(people).forEach(p => {
+    const share = people[p].subtotalShare || 0;
+    const ratio = subtotal ? share/subtotal : 0;
+    people[p].total = share + (taxAmount*ratio) + (tipAmount*ratio);
+  });
 
-let taxPct=subtotal?(taxAmount/subtotal*100):0;
-let tipPct=subtotal?(tipAmount/subtotal*100):0;
+  const taxPct = subtotal ? (taxAmount/subtotal*100) : 0;
+  const tipPct = subtotal ? (tipAmount/subtotal*100) : 0;
 
-summary.innerHTML=`
-<div class="sum-table">
-<div class="row"><div class="label">Subtotal</div><div class="value">${subtotal.toFixed(2)}</div></div>
-<div class="row"><div class="label">Tax (${taxPct.toFixed(2)}%)</div><div class="value">${taxAmount.toFixed(2)}</div></div>
-<div class="row"><div class="label">Tip (${tipPct.toFixed(2)}%)</div><div class="value">${tipAmount.toFixed(2)}</div></div>
-<div class="row total"><div class="label">Total</div><div class="value">${total.toFixed(2)}</div></div>
-</div>
-`;
+  document.getElementById("summary").innerHTML = `
+    <div class="sum-table">
+      <div class="row"><div class="label">Subtotal</div><div class="value">${subtotal.toFixed(2)}</div></div>
+      <div class="row"><div class="label">Tax (${taxPct.toFixed(2)}%)</div><div class="value">${taxAmount.toFixed(2)}</div></div>
+      <div class="row"><div class="label">Tip (${tipPct.toFixed(2)}%)</div><div class="value">${tipAmount.toFixed(2)}</div></div>
+      <div class="row total"><div class="label">Total</div><div class="value">${total.toFixed(2)}</div></div>
+    </div>`;
 
-let div=document.getElementById("totals");
-div.innerHTML="";
-Object.keys(people).forEach(p=>{
-let venmoId=venmoNames[p.toLowerCase()]||"";
-div.innerHTML+=`
-<div class="result">
-<span>${p} owes $${people[p].total.toFixed(2)}</span>
-${venmoId?`<button class="venmo-btn" onclick="window.open('https://venmo.com/?txn=request&recipients=${encodeURIComponent(venmoId)}&amount=${people[p].total.toFixed(2)}','_blank')">Request</button>`:""}
-</div>`;
-});
+  const div = document.getElementById("totals");
+  div.innerHTML = "";
+  Object.keys(people).forEach(p => {
+    const venmoId = venmoNames[p.toLowerCase()] || "";
+    div.innerHTML += `
+      <div class="result">
+        <span>${p} owes $${people[p].total.toFixed(2)}</span>
+        ${venmoId ? `<button class="venmo-btn" onclick="window.open('https://venmo.com/?txn=request&recipients=${encodeURIComponent(venmoId)}&amount=${people[p].total.toFixed(2)}','_blank')">Request</button>` : ""}
+      </div>`;
+  });
 }
 
 billLoaded = false;
