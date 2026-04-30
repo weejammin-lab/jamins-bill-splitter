@@ -322,7 +322,7 @@ html, body {
 #personBar {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  grid-auto-rows: 38px;
+  grid-auto-rows: 41px;
   gap: 4px;
   flex: 1;
   max-width: 50%;
@@ -332,27 +332,29 @@ html, body {
 .person-tag {
   border: 1.5px solid var(--border);
   background: var(--card);
-  padding: 3px 4px;
+  padding: 0 4px;
   font-size: 12px;
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1px;
+  justify-content: center;
+  gap: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   border-radius: 8px;
   box-shadow: var(--shadow);
-  height: 38px;
+  height: 41px;
 }
 .delete-person {
   color: var(--accent2) !important;
   cursor: pointer;
   margin-left: 0;
-  margin-top: -7px;
+  margin-top: 2px;
   -webkit-text-fill-color: var(--accent2);
   font-size: 16px;
+  line-height: 1;
 }
 
 .notes-box {
