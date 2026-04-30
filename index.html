@@ -460,24 +460,48 @@ td textarea::placeholder { color: var(--muted); font-size: 12px; opacity: 1; }
 td.clickable-cell { cursor: text; }
 
 /* ── Swipe-to-delete ── */
-/* The people-td clips overflow so the delete btn is only visible when tr slides left */
+/*
+  FIX: The table row itself slides left. The delete button lives OUTSIDE
+  the row in an absolutely-positioned wrapper anchored to the table container,
+  so it stays visually stationary on the right while the row slides under it.
+  We achieve this by wrapping the table in a position:relative div, and
+  rendering the delete button as a fixed-position overlay that tracks the row.
+
+  Simpler pure-CSS approach used here:
+  - people-td has overflow:visible (not hidden)
+  - swipe-delete-btn is position:fixed, right-anchored, hidden off-screen right
+  - On swipe open, we position it via JS to align with the row's bounding rect
+*/
+
+/* Outer wrapper for the table so we can position delete buttons inside it */
+.table-wrap {
+  position: relative;
+  overflow: hidden; /* clips the sliding rows AND the delete buttons */
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  border: 1.5px solid var(--border);
+}
+.table-wrap table {
+  border-radius: 0;
+  box-shadow: none;
+  border: none;
+}
+
 .people-td {
   position: relative;
-  overflow: hidden;
   padding: 0;
+  /* overflow visible so content isn't clipped — clipping is on .table-wrap */
 }
 
 .people-content {
   padding: 2px;
 }
 
-/* Delete button: pinned to right edge of people-td, hidden off-right via translateX(100%) */
+/* Delete button: absolutely positioned inside .table-wrap, slides in from right */
 .swipe-delete-btn {
   position: absolute;
-  top: 0;
   right: 0;
   width: 70px;
-  height: 100%;
   background: var(--accent2);
   color: #fff;
   border: none;
@@ -488,9 +512,15 @@ td.clickable-cell { cursor: text; }
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 2;
+  z-index: 5;
+  /* starts hidden off the right edge of the clip container */
   transform: translateX(100%);
   transition: transform 0.2s ease;
+  pointer-events: none;
+}
+.swipe-delete-btn.visible {
+  transform: translateX(0);
+  pointer-events: auto;
 }
 
 /* tr slides left on swipe */
@@ -504,7 +534,6 @@ td.clickable-cell { cursor: text; }
 .swipe-tr.locked-row td { background: #fafaf9; opacity: 0.85; }
 .swipe-tr.locked-row textarea { background: transparent; }
 .swipe-tr.swiped-open { transform: translateX(-70px); }
-.swipe-tr.swiped-open .swipe-delete-btn { transform: translateX(0); }
 
 /* CHANGED: lock-cell with proper spacing for lock icon and eraser */
 .lock-cell-td {
@@ -612,7 +641,7 @@ td.clickable-cell { cursor: text; }
   font-weight: 600;
 }
 
-/* CHANGED: Undo button same style as +1 Row, add5Rows, etc. */
+/* Undo button same style as +1 Row, add5Rows, etc. */
 #addRowBtn, #add5RowsBtn, #deleteEmptyRowsBtn, #undoBtn {
   font-size: 12px;
   padding: 4px 10px;
@@ -633,6 +662,27 @@ td.clickable-cell { cursor: text; }
 #deleteEmptyRowsBtn:hover { border-color: var(--accent2); background: var(--accent2-light); }
 #undoBtn:hover { border-color: var(--accent); background: var(--accent-light); }
 #undoBtn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+/* Undo button in the top archive-save-row */
+#undoBtnTop {
+  font-size: 12px;
+  padding: 4px 10px;
+  border: 1.5px solid var(--border);
+  border-radius: 20px;
+  background: var(--card);
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 500;
+  color: var(--text);
+  transition: border-color 0.15s, background 0.15s;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+#undoBtnTop:hover { border-color: var(--accent); background: var(--accent-light); }
+#undoBtnTop:disabled { opacity: 0.35; cursor: not-allowed; }
 
 #deleteMsg {
   font-size: 12px;
@@ -676,7 +726,7 @@ td.clickable-cell { cursor: text; }
 }
 .tax-tip-input:focus { border-color: var(--accent); }
 
-/* CHANGED: summary box is flexible width */
+/* summary box is flexible width */
 .summary-save-row {
   display: flex;
   align-items: flex-start;
@@ -843,13 +893,23 @@ td.clickable-cell { cursor: text; }
   <div id="personBar"></div>
 </div>
 
+<!-- FIX 1: Undo button moved here, left of the top Save button -->
 <div class="archive-save-row" id="archiveSaveRow">
   <span id="archivedLabel" class="archived-label" style="display:none;">⛔ ARCHIVED — edits cannot be made</span>
   <span style="flex:1;"></span>
+  <button id="undoBtnTop" onclick="doUndo()" disabled title="Undo last action">
+    <svg width="13" height="13" viewBox="0 0 13 13" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M2 5.5 C2 3 4 1.5 6.5 1.5 C9 1.5 11 3.5 11 6 C11 8.5 9 10.5 6.5 10.5 C4.8 10.5 3.3 9.6 2.5 8.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+      <path d="M2 2.5 L2 5.5 L5 5.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    </svg>
+    Undo
+  </button>
   <button class="save-bill-btn" id="saveBillBtn" onclick="saveNewBill()">Save</button>
 </div>
 
 <div id="mainContentSection">
+<!-- FIX 3: table wrapped in .table-wrap for swipe delete positioning -->
+<div class="table-wrap">
 <table>
 <thead>
 <tr>
@@ -861,20 +921,14 @@ td.clickable-cell { cursor: text; }
 </thead>
 <tbody id="tableBody"></tbody>
 </table>
+</div><!-- end .table-wrap -->
 
 <div style="margin:7px 0; display:flex; gap:5px; align-items:center; flex-wrap:wrap;">
   <button id="addRowBtn" onclick="addRow()">+ 1 Row</button>
   <button id="add5RowsBtn" onclick="add5Rows()">+ 5 Rows</button>
   <button id="deleteEmptyRowsBtn" onclick="deleteEmptyRows()">Delete Empty Rows</button>
   <span id="deleteMsg" style="display:none;"></span>
-  <!-- CHANGED: Undo button, left of Save -->
-  <button id="undoBtn" onclick="doUndo()" disabled title="Undo last action">
-    <svg width="13" height="13" viewBox="0 0 13 13" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M2 5.5 C2 3 4 1.5 6.5 1.5 C9 1.5 11 3.5 11 6 C11 8.5 9 10.5 6.5 10.5 C4.8 10.5 3.3 9.6 2.5 8.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/>
-      <path d="M2 2.5 L2 5.5 L5 5.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-    </svg>
-    Undo
-  </button>
+  <!-- Bottom save button (no undo here anymore) -->
   <button
     class="save-bill-btn"
     id="saveBillBtnBottom"
@@ -966,7 +1020,7 @@ let isUploadingReceipt = false;
 // ── Undo stack (up to 5 undos, can't undo past last save) ──
 const MAX_UNDO = 5;
 let undoStack = [];
-let undoSaveFloor = 0; // can't undo to index below this
+let undoSaveFloor = 0;
 
 function captureUndoState(){
   return JSON.stringify({
@@ -992,17 +1046,19 @@ function pushUndo(){
 }
 
 function markSaveInUndo(){
-  // Push current state then set floor so user can't undo past this
   const state = captureUndoState();
   if(undoStack.length === 0 || undoStack[undoStack.length-1] !== state) undoStack.push(state);
   undoSaveFloor = undoStack.length - 1;
   updateUndoBtn();
 }
 
+// FIX 1: updateUndoBtn now targets both #undoBtnTop and legacy #undoBtn (removed from bottom)
 function updateUndoBtn(){
-  const btn = document.getElementById("undoBtn");
-  if(!btn) return;
-  btn.disabled = undoStack.length <= 1 || (undoStack.length - 1) <= undoSaveFloor;
+  const canUndo = undoStack.length > 1 && (undoStack.length - 1) > undoSaveFloor;
+  ["undoBtnTop", "undoBtn"].forEach(id => {
+    const btn = document.getElementById(id);
+    if(btn) btn.disabled = !canUndo;
+  });
 }
 
 function applyUndoState(state){
@@ -1025,7 +1081,7 @@ function doUndo(){
   updateUndoBtn();
 }
 
-// ── Tax/tip: max 5 digits total (e.g. 666.66 ok, 6666.66 not → 6666.6) ──
+// ── Tax/tip: max 5 digits total ──
 function enforceTaxTipDigits(el){
   let val = el.value.replace(/[^0-9.]/g,"").replace(/(\..*?)\..*/g,"$1");
   const dotIdx = val.indexOf(".");
@@ -1261,19 +1317,42 @@ function showReceiptThumbnail(url){
   container.appendChild(wrap);
 }
 
+// FIX 2: parseReceiptText now detects tax/tip lines and fills their inputs
 function parseReceiptText(text){
   const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
   const rightPriceRegex = /\$?\s*(\d+\.\d{2})\s*$/;
-  const skipKeywords = /\b(subtotal|sub[-\s]?total|total|tax|tip|gratuity|service\s*fee|surcharge|discount|change|cash|credit|debit|visa|mastercard|amex|discover|balance|amount\s*due|amount\s*paid|thank|receipt|order\s*#|table\s*#|server|guest|check\s*#|qty|quantity|void|comp)\b/i;
+
+  // Keywords that identify tax/tip lines (excluded from rows but used for inputs)
+  const taxKeywords = /\b(tax|hst|gst|pst|vat|sales\s*tax)\b/i;
+  const tipKeywords = /\b(tip|gratuity|service\s*charge|service\s*fee)\b/i;
+
+  // Keywords to skip entirely (not tax/tip, not a food item)
+  const skipKeywords = /\b(subtotal|sub[-\s]?total|total|change|cash|credit|debit|visa|mastercard|amex|discover|balance|amount\s*due|amount\s*paid|thank|receipt|order\s*#|table\s*#|server|guest|check\s*#|qty|quantity|void|comp|discount|surcharge)\b/i;
 
   const parsed = [];
+  let detectedTax = null;
+  let detectedTip = null;
+
   lines.forEach(line => {
     const priceMatch = line.match(rightPriceRegex);
     if(!priceMatch) return;
     const price = priceMatch[1];
     const priceFloat = parseFloat(price);
     if(priceFloat <= 0 || priceFloat > 300) return;
+
+    // Check tax line
+    if(taxKeywords.test(line)){
+      if(detectedTax === null || priceFloat > parseFloat(detectedTax)) detectedTax = price;
+      return;
+    }
+    // Check tip line
+    if(tipKeywords.test(line)){
+      if(detectedTip === null || priceFloat > parseFloat(detectedTip)) detectedTip = price;
+      return;
+    }
+    // Skip non-item lines
     if(skipKeywords.test(line)) return;
+
     let item = line.slice(0, line.length - priceMatch[0].length).trim();
     item = item.replace(/^[^a-zA-Z0-9]+/, '').trim();
     item = item.replace(/[\.\-\*\_\s]+$/, '').trim();
@@ -1282,20 +1361,35 @@ function parseReceiptText(text){
     parsed.push({ item, price });
   });
 
-  if(parsed.length === 0){
+  if(parsed.length === 0 && detectedTax === null && detectedTip === null){
     alert("No items found. Try a flat, well-lit photo with prices clearly on the right side.");
     return;
   }
 
   pushUndo();
-  const lockedRows = rows.filter(r => r.locked);
-  rows = [...lockedRows];
-  parsed.forEach(p => {
-    rows.push({ item: p.item, price: p.price, people: '', selected: [], locked: false });
-  });
-  while(rows.length < 5){
-    rows.push({ item:'', price:'', people:'', selected:[], locked:false });
+
+  // Fill tax/tip inputs if detected
+  if(detectedTax !== null){
+    document.getElementById("taxMode").value = "amount";
+    document.getElementById("taxValue").value = detectedTax;
   }
+  if(detectedTip !== null){
+    document.getElementById("tipMode").value = "amount";
+    document.getElementById("tipValue").value = detectedTip;
+  }
+
+  // Only put food items in rows
+  if(parsed.length > 0){
+    const lockedRows = rows.filter(r => r.locked);
+    rows = [...lockedRows];
+    parsed.forEach(p => {
+      rows.push({ item: p.item, price: p.price, people: '', selected: [], locked: false });
+    });
+    while(rows.length < 5){
+      rows.push({ item:'', price:'', people:'', selected:[], locked:false });
+    }
+  }
+
   render(); calc(); saveBill(); markDirty();
 }
 
@@ -1768,32 +1862,109 @@ function nav(e, row, col){
   }, 0);
 }
 
-// ── Swipe-to-delete — true email-app style ──
-// tr slides left by 70px. The delete btn is pinned to right:0 inside people-td (overflow:hidden),
-// starts translateX(100%) and animates to translateX(0) proportionally during drag.
+// ── FIX 3: Swipe-to-delete — stationary delete button ──
+//
+// Strategy: The delete button is rendered as a child of .table-wrap (not the tr),
+// absolutely positioned. It stays fixed at the right edge of .table-wrap.
+// The tr slides left. The button is shown/hidden independently.
+//
+// We create one shared delete button overlay that we reposition per-row on swipe open.
+
+let swipeDeleteOverlay = null;
+let swipeDeleteRowIndex = null;
+
+function getOrCreateDeleteOverlay(){
+  if(swipeDeleteOverlay) return swipeDeleteOverlay;
+  const wrap = document.querySelector('.table-wrap');
+  const btn = document.createElement('button');
+  btn.className = 'swipe-delete-btn';
+  btn.textContent = 'Delete';
+  btn.style.cssText = `
+    position: absolute;
+    right: 0;
+    width: 70px;
+    background: var(--accent2);
+    color: #fff;
+    border: none;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 5;
+    transform: translateX(100%);
+    transition: transform 0.2s ease;
+    pointer-events: none;
+  `;
+  btn.addEventListener('click', () => {
+    if(swipeDeleteRowIndex !== null) deleteRow(swipeDeleteRowIndex);
+  });
+  wrap.appendChild(btn);
+  swipeDeleteOverlay = btn;
+  return btn;
+}
+
+function positionDeleteOverlay(tr){
+  const wrap = document.querySelector('.table-wrap');
+  const wrapRect = wrap.getBoundingClientRect();
+  const trRect = tr.getBoundingClientRect();
+  const btn = getOrCreateDeleteOverlay();
+  const top = trRect.top - wrapRect.top + wrap.scrollTop;
+  const height = trRect.height;
+  btn.style.top = top + 'px';
+  btn.style.height = height + 'px';
+}
+
+function showDeleteOverlay(tr, rowIndex){
+  const btn = getOrCreateDeleteOverlay();
+  positionDeleteOverlay(tr);
+  swipeDeleteRowIndex = rowIndex;
+  // force reflow then animate
+  btn.style.transition = 'none';
+  btn.style.transform = 'translateX(100%)';
+  btn.style.pointerEvents = 'none';
+  requestAnimationFrame(()=>{
+    btn.style.transition = 'transform 0.2s ease';
+    btn.style.transform = 'translateX(0)';
+    btn.style.pointerEvents = 'auto';
+  });
+}
+
+function hideDeleteOverlay(){
+  if(!swipeDeleteOverlay) return;
+  swipeDeleteOverlay.style.transition = 'transform 0.2s ease';
+  swipeDeleteOverlay.style.transform = 'translateX(100%)';
+  swipeDeleteOverlay.style.pointerEvents = 'none';
+  swipeDeleteRowIndex = null;
+}
 
 function openSwipe(tr, rowIndex){
-  tr.style.transform = `translateX(-70px)`;
-  const btn = tr.querySelector('.swipe-delete-btn');
-  if(btn) btn.style.transform = 'translateX(0)';
+  tr.style.transition = 'transform 0.2s ease';
+  tr.style.transform = 'translateX(-70px)';
   tr.classList.add('swiped-open');
   swipeCurrent = rowIndex;
+  showDeleteOverlay(tr, rowIndex);
 }
 
 function closeSwipeEl(tr){
   tr.style.transition = 'transform 0.2s ease';
   tr.style.transform = 'translateX(0)';
-  const btn = tr.querySelector('.swipe-delete-btn');
-  if(btn){ btn.style.transition = 'transform 0.2s ease'; btn.style.transform = 'translateX(100%)'; }
   tr.classList.remove('swiped-open');
 }
 
 function closeAllSwipes(exceptIndex){
   document.querySelectorAll('.swipe-tr.swiped-open').forEach(tr => {
     const idx = parseInt(tr.dataset.swipeIdx);
-    if(idx !== exceptIndex) closeSwipeEl(tr);
+    if(idx !== exceptIndex){
+      closeSwipeEl(tr);
+    }
   });
-  if(swipeCurrent !== null && swipeCurrent !== exceptIndex) swipeCurrent = null;
+  if(swipeCurrent !== null && swipeCurrent !== exceptIndex){
+    hideDeleteOverlay();
+    swipeCurrent = null;
+  }
 }
 
 function attachSwipe(tr, rowIndex){
@@ -1811,8 +1982,6 @@ function attachSwipe(tr, rowIndex){
     const matrix = new WebKitCSSMatrix(window.getComputedStyle(tr).transform);
     startOffsetX = matrix.m41;
     tr.style.transition = 'none';
-    const btn = tr.querySelector('.swipe-delete-btn');
-    if(btn) btn.style.transition = 'none';
   }, {passive: true});
 
   tr.addEventListener('touchmove', e => {
@@ -1834,18 +2003,15 @@ function attachSwipe(tr, rowIndex){
     newX = Math.max(-MAX_SWIPE, Math.min(0, newX));
     tr.style.transform = `translateX(${newX}px)`;
 
-    // Reveal delete button proportionally
-    const reveal = Math.abs(newX) / MAX_SWIPE; // 0..1
-    const btnX = (1 - reveal) * 100; // 100%..0%
-    const btn = tr.querySelector('.swipe-delete-btn');
-    if(btn) btn.style.transform = `translateX(${btnX}%)`;
+    // Keep delete overlay positioned correctly as row moves
+    if(swipeDeleteRowIndex === rowIndex){
+      positionDeleteOverlay(tr);
+    }
   }, {passive: true});
 
   tr.addEventListener('touchend', () => {
     if(!isSwiping || isArchived || rows[rowIndex]?.locked) return;
     tr.style.transition = 'transform 0.2s ease';
-    const btn = tr.querySelector('.swipe-delete-btn');
-    if(btn) btn.style.transition = 'transform 0.2s ease';
 
     const matrix = new WebKitCSSMatrix(window.getComputedStyle(tr).transform);
     const finalX = matrix.m41;
@@ -1854,7 +2020,10 @@ function attachSwipe(tr, rowIndex){
       openSwipe(tr, rowIndex);
     } else {
       closeSwipeEl(tr);
-      if(swipeCurrent === rowIndex) swipeCurrent = null;
+      if(swipeCurrent === rowIndex){
+        hideDeleteOverlay();
+        swipeCurrent = null;
+      }
     }
   });
 }
@@ -1862,16 +2031,23 @@ function attachSwipe(tr, rowIndex){
 // Tap outside open swipe to close it
 document.addEventListener('touchstart', e => {
   if(swipeCurrent === null) return;
-  document.querySelectorAll('.swipe-tr.swiped-open').forEach(tr => {
-    if(!tr.contains(e.target)){
-      closeSwipeEl(tr);
-      swipeCurrent = null;
-    }
-  });
+  const openTr = document.querySelector('.swipe-tr.swiped-open');
+  const delBtn = swipeDeleteOverlay;
+  const clickedInsideTr = openTr && openTr.contains(e.target);
+  const clickedDeleteBtn = delBtn && delBtn.contains(e.target);
+  if(!clickedInsideTr && !clickedDeleteBtn){
+    if(openTr) closeSwipeEl(openTr);
+    hideDeleteOverlay();
+    swipeCurrent = null;
+  }
 }, {passive: true});
 
 function render(){
   isRendering = true;
+  // Hide delete overlay during re-render
+  hideDeleteOverlay();
+  swipeCurrent = null;
+
   const body = document.getElementById("tableBody");
   body.innerHTML = "";
 
@@ -1896,10 +2072,6 @@ function render(){
     });
     tapHTML += `</div>`;
 
-    // Delete button hidden off-right (translateX 100%), revealed on swipe
-    const deleteBtnHTML = !isLocked
-      ? `<button class="swipe-delete-btn" onclick="deleteRow(${i})">Delete</button>` : '';
-
     const tr = document.createElement("tr");
     tr.className = "swipe-tr" + (isLocked ? " locked-row" : "");
     tr.dataset.swipeIdx = i;
@@ -1914,7 +2086,7 @@ function render(){
           <div class="lock-erase-spacer"></div>
           <button class="erase-btn" onclick="eraseRow(${i})" ${eraseDisabled} title="Clear row">
 <img 
-  src="data:image/png;base64,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"
+  src="data:image/png;base64,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"
   style="width:24px;height:24px;object-fit:contain;display:block;"
 >
           </button>
@@ -1937,7 +2109,6 @@ function render(){
           oninput="handlePriceInput(${i},this)">${r.price}</textarea>
       </td>
       <td class="people-td">
-        ${deleteBtnHTML}
         <div class="people-content">${tapHTML}</div>
       </td>`;
 
@@ -1995,10 +2166,7 @@ function calc(){
   div.innerHTML = "";
   Object.keys(people).forEach(p => {
     const key = p.toLowerCase().trim();
-const venmoId =
-  venmoNames[key] ||
-  defaultVenmoMap[key] ||
-  "";
+    const venmoId = venmoNames[key] || defaultVenmoMap[key] || "";
     div.innerHTML += `
       <div class="result">
         <span>${p} owes $${people[p].total.toFixed(2)}</span>
