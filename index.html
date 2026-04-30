@@ -108,16 +108,10 @@ html, body {
   gap: 7px;
   flex: 1;
 }
-.remove-receipt {
-  font-size: 19px;
-  color: var(--accent2);
-  cursor: pointer;
-  line-height: 1;
-  background: none;
-  border: none;
-  padding: 2px 4px;
-  font-weight: bold;
-  flex-shrink: 0;
+
+/* CHANGED: extra margin-left on ocr-btn so gap from X is ~20px more */
+.receipt-thumb-wrap .ocr-btn {
+  margin-left: 20px;
 }
 
 .ocr-btn {
@@ -133,10 +127,21 @@ html, body {
   white-space: nowrap;
   transition: background 0.15s;
   flex-shrink: 0;
-  margin-left: auto;
 }
 .ocr-btn:hover { background: #d8d0ff; }
 .ocr-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.remove-receipt {
+  font-size: 19px;
+  color: var(--accent2);
+  cursor: pointer;
+  line-height: 1;
+  background: none;
+  border: none;
+  padding: 2px 4px;
+  font-weight: bold;
+  flex-shrink: 0;
+}
 
 .action-row {
   display: flex;
@@ -153,11 +158,13 @@ html, body {
   flex-shrink: 0;
 }
 
+/* CHANGED: position:relative so the return btn can be positioned inside */
 .name-input-wrap {
   display: flex;
   flex-direction: column;
   gap: 2px;
   flex-shrink: 0;
+  position: relative;
 }
 .people-label {
   font-size: 10px;
@@ -168,8 +175,9 @@ html, body {
   margin: 0; padding: 0; line-height: 1;
 }
 
+/* CHANGED: extra right padding for the return arrow */
 .add-person-input {
-  padding: 5px 8px;
+  padding: 5px 30px 5px 8px;
   font-size: 14px;
   width: 136px;
   border: 1.5px solid var(--border);
@@ -182,6 +190,27 @@ html, body {
 }
 .add-person-input:focus { border-color: var(--accent); }
 .add-person-input::placeholder { color: var(--muted); font-size: 12px; }
+
+/* Return arrow button inside the input field */
+.add-person-return-btn {
+  position: absolute;
+  right: 7px;
+  bottom: 4px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  color: var(--muted);
+  transition: color 0.15s, transform 0.1s;
+  border-radius: 50%;
+}
+.add-person-return-btn:hover { color: var(--accent); transform: scale(1.15); }
+.add-person-return-btn svg { width: 14px; height: 14px; display: block; }
 
 .upload-btn {
   font-size: 12px;
@@ -241,10 +270,11 @@ html, body {
 .save-bill-btn:hover { background: #6a58e5; }
 .save-bill-btn:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
 
+/* CHANGED: bigger New Bill button */
 #newBillBtn {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 700;
-  padding: 6px 12px;
+  padding: 8px 15px;
   background: var(--text);
   color: #fff;
   border: none;
@@ -257,7 +287,6 @@ html, body {
 }
 #newBillBtn:hover { background: #444; }
 
-/* ── Archive/Save inline row (below notes) ── */
 .archive-save-row {
   display: flex;
   align-items: center;
@@ -289,13 +318,16 @@ html, body {
   margin-bottom: 8px;
 }
 
+/* CHANGED: fixed 2-row grid, each cell has fixed height so <=3 names doesn't shrink */
 #personBar {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
+  grid-auto-rows: 38px;
   gap: 4px;
   flex: 1;
   max-width: 50%;
   margin-bottom: 2px;
+  align-content: start;
 }
 .person-tag {
   border: 1.5px solid var(--border);
@@ -312,6 +344,7 @@ html, body {
   white-space: nowrap;
   border-radius: 8px;
   box-shadow: var(--shadow);
+  height: 38px;
 }
 .delete-person {
   color: var(--accent2) !important;
@@ -337,14 +370,8 @@ html, body {
   outline: none;
   transition: border-color 0.15s;
 }
-
-  .notes-box {
-  text-align: left;
-}
-
-.notes-box::placeholder {
-  text-align: center;
-}
+.notes-box { text-align: left; }
+.notes-box::placeholder { text-align: center; }
 .notes-box:focus { border-color: var(--accent); }
 .notes-box::placeholder { color: var(--muted); font-size: 11px; opacity: 1; }
 
@@ -391,17 +418,6 @@ th:nth-child(2), td:nth-child(2) { width: 20%; }
 th:nth-child(3), td:nth-child(3) { width: 15%; }
 th:nth-child(4), td:nth-child(4) { width: 57%; }
 
-.lock-cell {
-  text-align: center;
-  font-size: 12px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  padding: 3px 2px;
-}
-
-/* Make the item column td act as a flex container so textarea fills full height */
 td.item-cell {
   padding: 0;
   position: relative;
@@ -433,30 +449,34 @@ td textarea {
 td:nth-child(3) textarea {
   text-align: center;
   font-family: 'DM Mono', monospace;
-  font-size:14px;
+  font-size: 14px;
   min-height: 23px;
   height: 23px;
   padding: 1px;
 }
 td textarea::placeholder { color: var(--muted); font-size: 11px; opacity: 1; }
 
-td.clickable-cell {
-  cursor: text;
-}
+td.clickable-cell { cursor: text; }
 
 /* ── Swipe-to-delete ── */
-/* People td is the clipping context for the delete button */
+/* The people-td clips overflow so the delete btn is only visible when tr slides left */
 .people-td {
   position: relative;
   overflow: hidden;
+  padding: 0;
 }
 
-/* Delete button inside .people-td, hidden to the right, slides in as tr slides left */
+.people-content {
+  padding: 2px;
+}
+
+/* Delete button: pinned to right edge of people-td, hidden off-right via translateX(100%) */
 .swipe-delete-btn {
   position: absolute;
-  top: 0; right: 0;
-  height: 100%;
+  top: 0;
+  right: 0;
   width: 70px;
+  height: 100%;
   background: var(--accent2);
   color: #fff;
   border: none;
@@ -467,21 +487,25 @@ td.clickable-cell {
   display: flex;
   align-items: center;
   justify-content: center;
-  /* Hidden off the right edge initially; revealed as tr translates left */
-  pointer-events: none;
+  z-index: 2;
+  transform: translateX(100%);
+  transition: transform 0.2s ease;
 }
 
-/* The tr slides left; overflow:hidden on people-td clips things correctly */
+/* tr slides left on swipe */
 .swipe-tr {
   transform: translateX(0);
   transition: transform 0.2s ease;
   will-change: transform;
   background: var(--card);
+  position: relative;
 }
 .swipe-tr.locked-row td { background: #fafaf9; opacity: 0.85; }
 .swipe-tr.locked-row textarea { background: transparent; }
+.swipe-tr.swiped-open { transform: translateX(-70px); }
+.swipe-tr.swiped-open .swipe-delete-btn { transform: translateX(0); }
 
-/* lock-cell needs to be a normal td but with flex content inside */
+/* CHANGED: lock-cell with proper spacing for lock icon and eraser */
 .lock-cell-td {
   text-align: center;
   vertical-align: top;
@@ -490,9 +514,53 @@ td.clickable-cell {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
-  padding: 3px 2px;
+  padding: 0px 2px 6px 2px;
+  min-height: 90px;
 }
+.lock-row-num {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 4px;
+  margin-bottom: 2px;
+}
+/* CHANGED: lock button slightly bigger */
+.lock-btn {
+  padding: 3px 5px;
+  font-size: 14px;
+  cursor: pointer;
+  border: 1.5px solid var(--border);
+  background: #f7f6f3;
+  border-radius: 20px;
+  transition: 0.15s;
+  line-height: 1;
+  font-family: 'DM Sans', sans-serif;
+  margin-top: 2px;
+}
+.lock-btn.locked { background: var(--accent2-light); border-color: var(--accent2); }
+.lock-btn.unlocked { opacity: 0.6; }
+
+/* Spacer: pushes eraser down so gap between lock and eraser is >= 20px */
+.lock-erase-spacer {
+  flex: 1;
+  min-height: 20px;
+}
+
+.erase-btn {
+  width: 28px;
+  height: 20px;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  padding: 0;
+  opacity: 0.75;
+  transition: opacity 0.15s, transform 0.1s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.erase-btn:hover:not(:disabled) { opacity: 1; transform: scale(1.15); }
+.erase-btn:disabled { opacity: 0.25; cursor: not-allowed; }
+.erase-btn svg { width: 26px; height: 18px; display: block; }
 
 .tap-grid {
   display: grid;
@@ -524,7 +592,7 @@ td.clickable-cell {
   font-weight: 600;
 }
 .everyone-btn {
-   width: calc(100% - 4px);
+  width: calc(100% - 4px);
   margin: 0 2px 4px 2px;
   font-size: 14px;
   padding: 4px 1px;
@@ -543,49 +611,8 @@ td.clickable-cell {
   font-weight: 600;
 }
 
-.lock-btn {
-  padding: 2px 4px;
-  font-size: 11px;
-  cursor: pointer;
-  border: 1.5px solid var(--border);
-  background: #f7f6f3;
-  border-radius: 20px;
-  transition: 0.15s;
-  line-height: 1;
-  font-family: 'DM Sans', sans-serif;
-}
-.lock-btn.locked { background: var(--accent2-light); border-color: var(--accent2); }
-.lock-btn.unlocked { opacity: 0.6; }
-
-.erase-btn {
-  width: 28px;
-  height: 20px;
-  cursor: pointer;
-  border: none;
-  background: transparent;
-  padding: 0;
-  margin-top: 5px;
-  opacity: 0.75;
-  transition: opacity 0.15s, transform 0.1s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.erase-btn:hover:not(:disabled) {
-  opacity: 1;
-  transform: scale(1.15);
-}
-.erase-btn:disabled {
-  opacity: 0.25;
-  cursor: not-allowed;
-}
-.erase-btn svg {
-  width: 26px;
-  height: 18px;
-  display: block;
-}
-
-#addRowBtn, #add5RowsBtn, #deleteEmptyRowsBtn {
+/* CHANGED: Undo button same style as +1 Row, add5Rows, etc. */
+#addRowBtn, #add5RowsBtn, #deleteEmptyRowsBtn, #undoBtn {
   font-size: 12px;
   padding: 4px 10px;
   border: 1.5px solid var(--border);
@@ -596,11 +623,16 @@ td.clickable-cell {
   font-weight: 500;
   color: var(--text);
   transition: border-color 0.15s, background 0.15s;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 #addRowBtn:hover, #add5RowsBtn:hover { border-color: var(--accent); background: var(--accent-light); }
 #deleteEmptyRowsBtn:hover { border-color: var(--accent2); background: var(--accent2-light); }
+#undoBtn:hover { border-color: var(--accent); background: var(--accent-light); }
+#undoBtn:disabled { opacity: 0.35; cursor: not-allowed; }
 
-/* Delete message that replaces the Delete Empty button */
 #deleteMsg {
   font-size: 12px;
   color: var(--accent2);
@@ -643,10 +675,11 @@ td.clickable-cell {
 }
 .tax-tip-input:focus { border-color: var(--accent); }
 
+/* CHANGED: summary box is flexible width */
 .summary-save-row {
   display: flex;
   align-items: flex-start;
-  justify-content: space-between;
+  justify-content: flex-start;
   margin-top: 10px;
   gap: 8px;
 }
@@ -655,10 +688,11 @@ td.clickable-cell {
   border: 1.5px solid var(--border);
   border-radius: var(--radius);
   padding: 8px 10px;
-  width: 30%;
-  max-width: 260px;
+  width: auto;
   min-width: 160px;
+  max-width: 100%;
   box-shadow: var(--shadow);
+  display: inline-block;
 }
 .sum-table {
   font-family: 'DM Mono', monospace;
@@ -668,7 +702,7 @@ td.clickable-cell {
 .row {
   display: grid;
   grid-template-columns: 1fr auto;
-  column-gap: 6px;
+  column-gap: 12px;
   align-items: center;
   white-space: nowrap;
   padding: 1px 0;
@@ -756,14 +790,12 @@ td.clickable-cell {
 .archived-section { opacity: 0.75; }
 .th-people { line-height: 1.3; }
 
-/* tbody needs relative positioning so swipe wrappers work */
 #tableBody { position: relative; }
 </style>
 
 </head>
 <body>
 
-<!-- ROW 1: New Bill | Upload Receipt + thumbnail | Save -->
 <div class="header-row">
   <button id="newBillBtn" onclick="clearAll()">+ New Bill</button>
 
@@ -778,10 +810,8 @@ td.clickable-cell {
     </button>
     <div id="receiptPreviewContainer"></div>
   </div>
-
 </div>
 
-<!-- ROW 2: Load dropdown -->
 <div class="load-row">
   <select id="billDropdown" onchange="loadSavedBill(this.value)">
     <option value="" disabled selected style="color:#aaa;">— load a saved bill —</option>
@@ -793,6 +823,13 @@ td.clickable-cell {
       id="addPersonBox"
       placeholder="type name + Enter"
       onkeydown="handleAddPerson(event)">
+    <!-- Pretty return/enter arrow button -->
+    <button class="add-person-return-btn" title="Add person" onclick="addPersonFromBtn()">
+      <svg viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M11 3 L11 8 L2 8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M5 5 L2 8 L5 11" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
   </div>
 </div>
 
@@ -805,7 +842,6 @@ td.clickable-cell {
   <div id="personBar"></div>
 </div>
 
-<!-- Archive label + Save button row (below notes, above table) -->
 <div class="archive-save-row" id="archiveSaveRow">
   <span id="archivedLabel" class="archived-label" style="display:none;">⛔ ARCHIVED — edits cannot be made</span>
   <span style="flex:1;"></span>
@@ -825,11 +861,19 @@ td.clickable-cell {
 <tbody id="tableBody"></tbody>
 </table>
 
-<div style="margin:7px 0; display:flex; gap:5px; align-items:center;">
+<div style="margin:7px 0; display:flex; gap:5px; align-items:center; flex-wrap:wrap;">
   <button id="addRowBtn" onclick="addRow()">+ 1 Row</button>
   <button id="add5RowsBtn" onclick="add5Rows()">+ 5 Rows</button>
   <button id="deleteEmptyRowsBtn" onclick="deleteEmptyRows()">Delete Empty Rows</button>
   <span id="deleteMsg" style="display:none;"></span>
+  <!-- CHANGED: Undo button, left of Save -->
+  <button id="undoBtn" onclick="doUndo()" disabled title="Undo last action">
+    <svg width="13" height="13" viewBox="0 0 13 13" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M2 5.5 C2 3 4 1.5 6.5 1.5 C9 1.5 11 3.5 11 6 C11 8.5 9 10.5 6.5 10.5 C4.8 10.5 3.3 9.6 2.5 8.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+      <path d="M2 2.5 L2 5.5 L5 5.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    </svg>
+    Undo
+  </button>
   <button
     class="save-bill-btn"
     id="saveBillBtnBottom"
@@ -848,7 +892,7 @@ td.clickable-cell {
   <input id="taxValue" class="tax-tip-input"
     inputmode="decimal"
     onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('tipValue').focus();}"
-    oninput="calc(); markDirty()">
+    oninput="enforceTaxTipDigits(this); calc(); markDirty()">
 </div>
 
 <div class="tax-tip-wrap" id="tipWrap">
@@ -859,11 +903,10 @@ td.clickable-cell {
   </select>
   <input id="tipValue" class="tax-tip-input"
     inputmode="decimal"
-    oninput="calc(); markDirty()">
+    oninput="enforceTaxTipDigits(this); calc(); markDirty()">
 </div>
 </div>
 
-<!-- Summary -->
 <div class="summary-save-row">
   <div class="summary-box" id="summary"></div>
 </div>
@@ -917,6 +960,88 @@ let isDirty = false;
 let loadedSnapshot = null;
 let newBillFirstInputDate = null;
 let isUploadingReceipt = false;
+
+// ── Undo stack (up to 5 undos, can't undo past last save) ──
+const MAX_UNDO = 5;
+let undoStack = [];
+let undoSaveFloor = 0; // can't undo to index below this
+
+function captureUndoState(){
+  return JSON.stringify({
+    rows: JSON.parse(JSON.stringify(rows)),
+    nameList: [...nameList],
+    taxValue: document.getElementById("taxValue").value,
+    tipValue: document.getElementById("tipValue").value,
+    taxMode: document.getElementById("taxMode").value,
+    tipMode: document.getElementById("tipMode").value,
+    notes: document.getElementById("notesBox").value
+  });
+}
+
+function pushUndo(){
+  const state = captureUndoState();
+  if(undoStack.length > 0 && undoStack[undoStack.length-1] === state) return;
+  undoStack.push(state);
+  if(undoStack.length > MAX_UNDO + 1){
+    undoStack.shift();
+    if(undoSaveFloor > 0) undoSaveFloor--;
+  }
+  updateUndoBtn();
+}
+
+function markSaveInUndo(){
+  // Push current state then set floor so user can't undo past this
+  const state = captureUndoState();
+  if(undoStack.length === 0 || undoStack[undoStack.length-1] !== state) undoStack.push(state);
+  undoSaveFloor = undoStack.length - 1;
+  updateUndoBtn();
+}
+
+function updateUndoBtn(){
+  const btn = document.getElementById("undoBtn");
+  if(!btn) return;
+  btn.disabled = undoStack.length <= 1 || (undoStack.length - 1) <= undoSaveFloor;
+}
+
+function applyUndoState(state){
+  const s = JSON.parse(state);
+  rows = s.rows;
+  nameList = s.nameList;
+  document.getElementById("taxValue").value = s.taxValue;
+  document.getElementById("tipValue").value = s.tipValue;
+  document.getElementById("taxMode").value = s.taxMode;
+  document.getElementById("tipMode").value = s.tipMode;
+  document.getElementById("notesBox").value = s.notes;
+  renderPeopleBar(); render(); calc(); saveBill(); markDirty();
+}
+
+function doUndo(){
+  if(undoStack.length <= 1 || (undoStack.length - 1) <= undoSaveFloor) return;
+  undoStack.pop();
+  const prev = undoStack[undoStack.length - 1];
+  applyUndoState(prev);
+  updateUndoBtn();
+}
+
+// ── Tax/tip: max 5 digits total (e.g. 666.66 ok, 6666.66 not → 6666.6) ──
+function enforceTaxTipDigits(el){
+  let val = el.value.replace(/[^0-9.]/g,"").replace(/(\..*?)\..*/g,"$1");
+  const dotIdx = val.indexOf(".");
+  const digits = val.replace(/\./g,"");
+  if(digits.length > 5){
+    if(dotIdx === -1){
+      val = val.slice(0, 5);
+    } else {
+      const intPart = val.slice(0, dotIdx);
+      const decPart = val.slice(dotIdx + 1);
+      const combined = intPart + decPart;
+      const trimmed = combined.slice(0, 5);
+      const newDotIdx = Math.min(dotIdx, trimmed.length);
+      val = trimmed.slice(0, newDotIdx) + (newDotIdx < trimmed.length ? "." + trimmed.slice(newDotIdx) : "");
+    }
+  }
+  el.value = val;
+}
 
 // ── Swipe state ──
 let swipeCurrent = null;
@@ -1134,7 +1259,6 @@ function showReceiptThumbnail(url){
   container.appendChild(wrap);
 }
 
-// ── OCR ──
 function parseReceiptText(text){
   const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
   const rightPriceRegex = /\$?\s*(\d+\.\d{2})\s*$/;
@@ -1161,6 +1285,7 @@ function parseReceiptText(text){
     return;
   }
 
+  pushUndo();
   const lockedRows = rows.filter(r => r.locked);
   rows = [...lockedRows];
   parsed.forEach(p => {
@@ -1231,6 +1356,9 @@ function loadBill(){
     }
     renderPeopleBar(); render(); calc();
     updateSaveButtonState(); updateArchivedUI();
+    undoStack = [captureUndoState()];
+    undoSaveFloor = 0;
+    updateUndoBtn();
     loadSavedBillsList().then(()=>{
       if(currentLoadedBillId) document.getElementById("billDropdown").value = currentLoadedBillId;
     });
@@ -1329,6 +1457,7 @@ async function saveNewBill(){
       tipMode: document.getElementById("tipMode").value,
       notes: document.getElementById("notesBox").value
     });
+    markSaveInUndo();
     showSavedFeedback();
     await loadSavedBillsList();
     document.getElementById("billDropdown").value = currentLoadedBillId;
@@ -1348,6 +1477,7 @@ async function saveNewBill(){
       tipMode: document.getElementById("tipMode").value,
       notes: document.getElementById("notesBox").value
     });
+    markSaveInUndo();
     saveBill();
     alert(`"${title}" saved!`);
     await loadSavedBillsList();
@@ -1438,6 +1568,9 @@ async function loadSavedBill(id){
     taxMode: data.taxMode || "amount", tipMode: data.tipMode || "amount",
     notes: data.notes || ""
   });
+  undoStack = [captureUndoState()];
+  undoSaveFloor = 0;
+  updateUndoBtn();
   saveBill();
   await loadSavedBillsList();
   document.getElementById("billDropdown").value = id;
@@ -1455,6 +1588,9 @@ function saveNotes(){
 function init(){
   rows = [];
   for(let i=0;i<5;i++) rows.push({item:"",price:"",people:"",selected:[],locked:false});
+  undoStack = [captureUndoState()];
+  undoSaveFloor = 0;
+  updateUndoBtn();
   renderPeopleBar(); render(); calc();
 }
 
@@ -1487,11 +1623,24 @@ function renderPeopleBar(){
   });
 }
 
+function addPersonFromBtn(){
+  if(isArchived) return;
+  const box = document.getElementById("addPersonBox");
+  const name = box.value.trim();
+  if(!name) return;
+  pushUndo();
+  nameList.push(name);
+  venmoNames[name.toLowerCase()] = venmoNames[name.toLowerCase()] || "";
+  box.value = "";
+  renderPeopleBar(); render(); calc(); saveBill(); markDirty();
+}
+
 function handleAddPerson(e){
   if(isArchived || e.key !== "Enter") return;
   const box = document.getElementById("addPersonBox");
   const name = box.value.trim();
   if(!name) return;
+  pushUndo();
   nameList.push(name);
   venmoNames[name.toLowerCase()] = venmoNames[name.toLowerCase()] || "";
   box.value = "";
@@ -1500,6 +1649,7 @@ function handleAddPerson(e){
 
 function deletePerson(i){
   if(isArchived) return;
+  pushUndo();
   const removed = nameList.splice(i,1)[0];
   rows.forEach(r => {
     r.selected = (r.selected||[]).filter(p => p !== removed);
@@ -1510,12 +1660,14 @@ function deletePerson(i){
 
 function toggleLock(row){
   if(isArchived) return;
+  pushUndo();
   rows[row].locked = !rows[row].locked;
   render(); saveBill(); markDirty();
 }
 
 function eraseRow(i){
   if(isArchived || rows[i].locked) return;
+  pushUndo();
   rows[i] = { item:"", price:"", people:"", selected:[], locked:false };
   render(); calc(); saveBill(); markDirty();
 }
@@ -1535,6 +1687,7 @@ function handlePriceInput(row, el){
 
 function toggleName(row, name){
   if(isArchived || rows[row].locked) return;
+  pushUndo();
   const r = rows[row];
   if(!r.selected) r.selected = [];
   const idx = r.selected.indexOf(name);
@@ -1545,6 +1698,7 @@ function toggleName(row, name){
 
 function toggleEveryone(row){
   if(isArchived || rows[row].locked) return;
+  pushUndo();
   const r = rows[row];
   if(r.selected?.length === nameList.length){ r.selected = []; r.people = ""; }
   else { r.selected = [...nameList]; r.people = "EVERYONE"; }
@@ -1553,26 +1707,26 @@ function toggleEveryone(row){
 
 function addRow(){
   if(isArchived) return;
+  pushUndo();
   rows.push({item:"",price:"",people:"",selected:[],locked:false});
   render(); calc(); saveBill();
 }
 
 function add5Rows(){
   if(isArchived) return;
+  pushUndo();
   for(let i=0;i<5;i++) rows.push({item:"",price:"",people:"",selected:[],locked:false});
   render(); calc(); saveBill();
 }
 
-// Delete ALL truly empty rows (item, price, AND selected/people all empty)
 function deleteEmptyRows(){
   if(isArchived) return;
+  pushUndo();
   const before = rows.length;
-  // A row is empty only if item, price, AND no people selected
   rows = rows.filter(r => r.locked || r.item || r.price || (r.selected && r.selected.length > 0));
   if(rows.length === 0) rows.push({item:"",price:"",people:"",selected:[],locked:false});
   const removed = before - rows.length;
 
-  // Hide the Delete Empty button and show message in its place
   const deleteBtn = document.getElementById("deleteEmptyRowsBtn");
   const msg = document.getElementById("deleteMsg");
   if(deleteBtn) deleteBtn.style.display = "none";
@@ -1588,10 +1742,10 @@ function deleteEmptyRows(){
   render(); calc(); saveBill(); markDirty();
 }
 
-// Delete a specific row by index
 function deleteRow(i){
   if(isArchived) return;
   if(rows[i] && rows[i].locked) return;
+  pushUndo();
   rows.splice(i,1);
   if(rows.length === 0) rows.push({item:"",price:"",people:"",selected:[],locked:false});
   swipeCurrent = null;
@@ -1612,14 +1766,30 @@ function nav(e, row, col){
   }, 0);
 }
 
-// ── Swipe-to-delete logic (progressive/live tracking) ──
+// ── Swipe-to-delete — true email-app style ──
+// tr slides left by 70px. The delete btn is pinned to right:0 inside people-td (overflow:hidden),
+// starts translateX(100%) and animates to translateX(0) proportionally during drag.
+
+function openSwipe(tr, rowIndex){
+  tr.style.transform = `translateX(-70px)`;
+  const btn = tr.querySelector('.swipe-delete-btn');
+  if(btn) btn.style.transform = 'translateX(0)';
+  tr.classList.add('swiped-open');
+  swipeCurrent = rowIndex;
+}
+
+function closeSwipeEl(tr){
+  tr.style.transition = 'transform 0.2s ease';
+  tr.style.transform = 'translateX(0)';
+  const btn = tr.querySelector('.swipe-delete-btn');
+  if(btn){ btn.style.transition = 'transform 0.2s ease'; btn.style.transform = 'translateX(100%)'; }
+  tr.classList.remove('swiped-open');
+}
+
 function closeAllSwipes(exceptIndex){
-  document.querySelectorAll('.swipe-tr').forEach(tr => {
+  document.querySelectorAll('.swipe-tr.swiped-open').forEach(tr => {
     const idx = parseInt(tr.dataset.swipeIdx);
-    if(idx !== exceptIndex){
-      tr.style.transition = 'transform 0.2s ease';
-      tr.style.transform = 'translateX(0)';
-    }
+    if(idx !== exceptIndex) closeSwipeEl(tr);
   });
   if(swipeCurrent !== null && swipeCurrent !== exceptIndex) swipeCurrent = null;
 }
@@ -1628,21 +1798,19 @@ function attachSwipe(tr, rowIndex){
   let startX = 0, startY = 0;
   let isSwiping = false;
   let isDetermining = true;
-  let currentOffset = 0; // track current open amount
-
+  let startOffsetX = 0;
   const MAX_SWIPE = 70;
 
   tr.addEventListener('touchstart', e => {
     if(isArchived || rows[rowIndex]?.locked) return;
     startX = e.touches[0].clientX;
     startY = e.touches[0].clientY;
-    isSwiping = false;
-    isDetermining = true;
-    // Get current translateX
-    const style = window.getComputedStyle(tr);
-    const matrix = new WebKitCSSMatrix(style.transform);
-    currentOffset = matrix.m41; // negative value = swiped left
-    tr.style.transition = 'none'; // disable transition during drag
+    isSwiping = false; isDetermining = true;
+    const matrix = new WebKitCSSMatrix(window.getComputedStyle(tr).transform);
+    startOffsetX = matrix.m41;
+    tr.style.transition = 'none';
+    const btn = tr.querySelector('.swipe-delete-btn');
+    if(btn) btn.style.transition = 'none';
   }, {passive: true});
 
   tr.addEventListener('touchmove', e => {
@@ -1653,51 +1821,48 @@ function attachSwipe(tr, rowIndex){
     const ady = Math.abs(cy - startY);
 
     if(isDetermining){
-      if(ady > adx) return; // vertical scroll, ignore
-      if(adx > 5) { isSwiping = true; isDetermining = false; closeAllSwipes(rowIndex); }
+      if(ady > adx) return;
+      if(adx > 5){ isSwiping = true; isDetermining = false; closeAllSwipes(rowIndex); }
       else return;
     }
-
     if(!isSwiping) return;
 
     const rawDelta = cx - startX;
-    // new position = currentOffset + rawDelta, clamped between -MAX_SWIPE and 0
-    let newX = currentOffset + rawDelta;
+    let newX = startOffsetX + rawDelta;
     newX = Math.max(-MAX_SWIPE, Math.min(0, newX));
     tr.style.transform = `translateX(${newX}px)`;
+
+    // Reveal delete button proportionally
+    const reveal = Math.abs(newX) / MAX_SWIPE; // 0..1
+    const btnX = (1 - reveal) * 100; // 100%..0%
+    const btn = tr.querySelector('.swipe-delete-btn');
+    if(btn) btn.style.transform = `translateX(${btnX}%)`;
   }, {passive: true});
 
-  tr.addEventListener('touchend', e => {
+  tr.addEventListener('touchend', () => {
     if(!isSwiping || isArchived || rows[rowIndex]?.locked) return;
     tr.style.transition = 'transform 0.2s ease';
-    const style = window.getComputedStyle(tr);
-    const matrix = new WebKitCSSMatrix(style.transform);
+    const btn = tr.querySelector('.swipe-delete-btn');
+    if(btn) btn.style.transition = 'transform 0.2s ease';
+
+    const matrix = new WebKitCSSMatrix(window.getComputedStyle(tr).transform);
     const finalX = matrix.m41;
 
     if(finalX < -35){
-      // snap open
-      tr.style.transform = `translateX(-${MAX_SWIPE}px)`;
-      swipeCurrent = rowIndex;
+      openSwipe(tr, rowIndex);
     } else {
-      // snap closed
-      tr.style.transform = 'translateX(0)';
+      closeSwipeEl(tr);
       if(swipeCurrent === rowIndex) swipeCurrent = null;
     }
   });
 }
 
-// Close swipe if user taps elsewhere
+// Tap outside open swipe to close it
 document.addEventListener('touchstart', e => {
   if(swipeCurrent === null) return;
-  const swipedTr = document.querySelector('.swipe-tr[style*="translateX(-70px)"], .swipe-tr[style*="translateX(-"]');
-  // Check if tap is outside swiped row
-  const allSwipedTrs = document.querySelectorAll('.swipe-tr');
-  allSwipedTrs.forEach(tr => {
-    const style = window.getComputedStyle(tr);
-    const matrix = new WebKitCSSMatrix(style.transform);
-    if(matrix.m41 < -5 && !tr.parentElement.contains(e.target)){
-      tr.style.transition = 'transform 0.2s ease';
-      tr.style.transform = 'translateX(0)';
+  document.querySelectorAll('.swipe-tr.swiped-open').forEach(tr => {
+    if(!tr.contains(e.target)){
+      closeSwipeEl(tr);
       swipeCurrent = null;
     }
   });
@@ -1719,7 +1884,6 @@ function render(){
     const priceTdOnclick = !isLocked
       ? `onclick="if(event.target===this){this.querySelector('textarea').focus();}"` : "";
 
-    // Build people buttons
     let tapHTML = `
       <button class="name-btn everyone-btn ${r.selected?.length===nameList.length?'selected':''}"
         onclick="toggleEveryone(${i})">EVERYONE</button>
@@ -1730,9 +1894,9 @@ function render(){
     });
     tapHTML += `</div>`;
 
-    // Delete button goes inside the people td, absolutely positioned to its right
-    const deleteBtnHTML = !isLocked ? `
-      <button class="swipe-delete-btn" id="del-btn-${i}" onclick="deleteRow(${i})">Delete</button>` : '';
+    // Delete button hidden off-right (translateX 100%), revealed on swipe
+    const deleteBtnHTML = !isLocked
+      ? `<button class="swipe-delete-btn" onclick="deleteRow(${i})">Delete</button>` : '';
 
     const tr = document.createElement("tr");
     tr.className = "swipe-tr" + (isLocked ? " locked-row" : "");
@@ -1743,13 +1907,13 @@ function render(){
     tr.innerHTML = `
       <td class="lock-cell-td">
         <div class="lock-cell-inner">
-          <div style="font-size:11px;color:var(--muted);">${i+1}</div>
+          <div class="lock-row-num">${i+1}</div>
           <button class="lock-btn ${lockClass}" onclick="toggleLock(${i})">${lockIcon}</button>
+          <div class="lock-erase-spacer"></div>
           <button class="erase-btn" onclick="eraseRow(${i})" ${eraseDisabled} title="Clear row">
-            <img 
-  src="data:image/png;base64,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"
-  style="width:24px;height:24px;object-fit:contain;display:block;"
->
+            <img
+              src="data:image/png;base64,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"
+              style="width:24px;height:24px;object-fit:contain;display:block;">
           </button>
         </div>
       </td>
@@ -1775,8 +1939,6 @@ function render(){
       </td>`;
 
     body.appendChild(tr);
-
-    // Attach swipe listeners to the tr itself
     if(!isLocked) attachSwipe(tr, i);
   });
 
