@@ -942,24 +942,26 @@ td.clickable-cell { cursor: text; }
 
 <div class="tax-tip-wrap" id="taxWrap">
   <label>Tax</label>
-  <select id="taxMode" onchange="calc(); markDirty()">
+  <select id="taxMode" onchange="pushUndo(); calc(); markDirty()">
     <option value="amount" selected>$</option>
     <option value="percent">%</option>
   </select>
   <input id="taxValue" class="tax-tip-input"
     inputmode="decimal"
     onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('tipValue').focus();}"
+    onfocus="pushUndo()"
     oninput="enforceTaxTipDigits(this); calc(); markDirty()">
 </div>
 
 <div class="tax-tip-wrap" id="tipWrap">
   <label>Tip</label>
-  <select id="tipMode" onchange="calc(); markDirty()">
+  <select id="tipMode" onchange="pushUndo(); calc(); markDirty()">
     <option value="amount" selected>$</option>
     <option value="percent">%</option>
   </select>
   <input id="tipValue" class="tax-tip-input"
     inputmode="decimal"
+    onfocus="pushUndo()"
     oninput="enforceTaxTipDigits(this); calc(); markDirty()">
 </div>
 </div>
