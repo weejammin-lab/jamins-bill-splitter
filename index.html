@@ -1993,7 +1993,11 @@ function calc(){
   const div = document.getElementById("totals");
   div.innerHTML = "";
   Object.keys(people).forEach(p => {
-    const venmoId = venmoNames[p.toLowerCase()] || "";
+    const key = p.toLowerCase().trim();
+const venmoId =
+  venmoNames[key] ||
+  defaultVenmoMap[key] ||
+  "";
     div.innerHTML += `
       <div class="result">
         <span>${p} owes $${people[p].total.toFixed(2)}</span>
