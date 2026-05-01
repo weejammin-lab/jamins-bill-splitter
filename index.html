@@ -47,6 +47,37 @@ html, body {
   overscroll-behavior-y: contain;
 }
 
+/* ── Toast notification (IMPROVEMENT 4) ── */
+#toastContainer {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  pointer-events: none;
+}
+.toast {
+  background: #2d2a26;
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 16px;
+  border-radius: 20px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.2s, transform 0.2s;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.toast.toast-error { background: var(--accent2); }
+.toast.show { opacity: 1; transform: translateY(0); }
+
 .receipt-overlay {
   position: fixed;
   top: 0; left: 0;
@@ -109,7 +140,6 @@ html, body {
   flex: 1;
 }
 
-/* CHANGED: extra margin-left on ocr-btn so gap from X is ~20px more */
 .receipt-thumb-wrap .ocr-btn {
   margin-left: 20px;
 }
@@ -158,7 +188,6 @@ html, body {
   flex-shrink: 0;
 }
 
-/* CHANGED: position:relative so the return btn can be positioned inside */
 .name-input-wrap {
   display: flex;
   flex-direction: column;
@@ -175,7 +204,6 @@ html, body {
   margin: 0; padding: 0; line-height: 1;
 }
 
-/* CHANGED: extra right padding for the return arrow */
 .add-person-input {
   padding: 5px 30px 5px 8px;
   font-size: 14px;
@@ -191,7 +219,6 @@ html, body {
 .add-person-input:focus { border-color: var(--accent); }
 .add-person-input::placeholder { color: var(--muted); font-size: 12px; }
 
-/* Return arrow button inside the input field */
 .add-person-return-btn {
   position: absolute;
   right: 7px;
@@ -270,7 +297,6 @@ html, body {
 .save-bill-btn:hover { background: #6a58e5; }
 .save-bill-btn:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
 
-/* CHANGED: bigger New Bill button */
 #newBillBtn {
   font-size: 15px;
   font-weight: 700;
@@ -318,7 +344,6 @@ html, body {
   margin-bottom: 8px;
 }
 
-/* CHANGED: fixed 2-row grid, each cell has fixed height so <=3 names doesn't shrink */
 #personBar {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -461,24 +486,9 @@ td textarea::placeholder { color: var(--muted); font-size: 12px; opacity: 1; }
 
 td.clickable-cell { cursor: text; }
 
-/* ── Swipe-to-delete ── */
-/*
-  FIX: The table row itself slides left. The delete button lives OUTSIDE
-  the row in an absolutely-positioned wrapper anchored to the table container,
-  so it stays visually stationary on the right while the row slides under it.
-  We achieve this by wrapping the table in a position:relative div, and
-  rendering the delete button as a fixed-position overlay that tracks the row.
-
-  Simpler pure-CSS approach used here:
-  - people-td has overflow:visible (not hidden)
-  - swipe-delete-btn is position:fixed, right-anchored, hidden off-screen right
-  - On swipe open, we position it via JS to align with the row's bounding rect
-*/
-
-/* Outer wrapper for the table so we can position delete buttons inside it */
 .table-wrap {
   position: relative;
-  overflow: hidden; /* clips the sliding rows AND the delete buttons */
+  overflow: hidden;
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   border: 1.5px solid var(--border);
@@ -492,14 +502,12 @@ td.clickable-cell { cursor: text; }
 .people-td {
   position: relative;
   padding: 0;
-  /* overflow visible so content isn't clipped — clipping is on .table-wrap */
 }
 
 .people-content {
   padding: 2px;
 }
 
-/* Delete button: absolutely positioned inside .table-wrap, slides in from right */
 .swipe-delete-btn {
   position: absolute;
   right: 0;
@@ -515,7 +523,6 @@ td.clickable-cell { cursor: text; }
   align-items: center;
   justify-content: center;
   z-index: 5;
-  /* starts hidden off the right edge of the clip container */
   transform: translateX(100%);
   transition: transform 0.2s ease;
   pointer-events: none;
@@ -525,7 +532,6 @@ td.clickable-cell { cursor: text; }
   pointer-events: auto;
 }
 
-/* tr slides left on swipe */
 .swipe-tr {
   transform: translateX(0);
   transition: transform 0.2s ease;
@@ -537,7 +543,6 @@ td.clickable-cell { cursor: text; }
 .swipe-tr.locked-row textarea { background: transparent; }
 .swipe-tr.swiped-open { transform: translateX(-70px); }
 
-/* CHANGED: lock-cell with proper spacing for lock icon and eraser */
 .lock-cell-td {
   text-align: center;
   vertical-align: top;
@@ -555,7 +560,6 @@ td.clickable-cell { cursor: text; }
   margin-top: 4px;
   margin-bottom: 2px;
 }
-/* CHANGED: lock button slightly bigger */
 .lock-btn {
   padding: 3px 5px;
   font-size: 14px;
@@ -571,7 +575,6 @@ td.clickable-cell { cursor: text; }
 .lock-btn.locked { background: var(--accent2-light); border-color: var(--accent2); }
 .lock-btn.unlocked { opacity: 0.6; }
 
-/* Spacer: pushes eraser down so gap between lock and eraser is >= 20px */
 .lock-erase-spacer {
   flex: 1;
   min-height: 24px;
@@ -643,7 +646,6 @@ td.clickable-cell { cursor: text; }
   font-weight: 600;
 }
 
-/* Undo button same style as +1 Row, add5Rows, etc. */
 #addRowBtn, #add5RowsBtn, #deleteEmptyRowsBtn, #undoBtn {
   font-size: 12px;
   padding: 4px 10px;
@@ -665,7 +667,6 @@ td.clickable-cell { cursor: text; }
 #undoBtn:hover { border-color: var(--accent); background: var(--accent-light); }
 #undoBtn:disabled { opacity: 0.35; cursor: not-allowed; }
 
-/* Undo button in the top archive-save-row */
 #undoBtnTop {
   font-size: 12px;
   padding: 4px 10px;
@@ -728,7 +729,6 @@ td.clickable-cell { cursor: text; }
 }
 .tax-tip-input:focus { border-color: var(--accent); }
 
-/* summary box is flexible width */
 .summary-save-row {
   display: flex;
   align-items: flex-start;
@@ -849,6 +849,9 @@ td.clickable-cell { cursor: text; }
 </head>
 <body>
 
+<!-- Toast container for error notifications (IMPROVEMENT 4) -->
+<div id="toastContainer"></div>
+
 <div class="header-row">
   <button id="newBillBtn" onclick="clearAll()">+ New Bill</button>
 
@@ -876,7 +879,6 @@ td.clickable-cell { cursor: text; }
       id="addPersonBox"
       placeholder="type name + Enter"
       onkeydown="handleAddPerson(event)">
-    <!-- Pretty return/enter arrow button -->
     <button class="add-person-return-btn" title="Add person" onclick="addPersonFromBtn()">
       <svg viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path d="M11 3 L11 8 L2 8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
@@ -895,9 +897,8 @@ td.clickable-cell { cursor: text; }
   <div id="personBar"></div>
 </div>
 
-<!-- FIX 1: Undo button moved here, left of the top Save button -->
 <div class="archive-save-row" id="archiveSaveRow">
-  <span id="archivedLabel" class="archived-label" style="display:none;">⛔ ARCHIVED — edits cannot be made</span>
+  <span id="archivedLabel" class="archived-label" style="display:none;">&#x26D4; ARCHIVED &mdash; edits cannot be made</span>
   <span style="flex:1;"></span>
   <button id="undoBtnTop" onclick="doUndo()" disabled title="Undo last action" style="display:none;">
     <svg width="13" height="13" viewBox="0 0 13 13" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -910,7 +911,6 @@ td.clickable-cell { cursor: text; }
 </div>
 
 <div id="mainContentSection">
-<!-- FIX 3: table wrapped in .table-wrap for swipe delete positioning -->
 <div class="table-wrap">
 <table>
 <thead>
@@ -923,14 +923,13 @@ td.clickable-cell { cursor: text; }
 </thead>
 <tbody id="tableBody"></tbody>
 </table>
-</div><!-- end .table-wrap -->
+</div>
 
 <div style="margin:7px 0; display:flex; gap:5px; align-items:center; flex-wrap:wrap;">
   <button id="addRowBtn" onclick="addRow()">+ 1 Row</button>
   <button id="add5RowsBtn" onclick="add5Rows()">+ 5 Rows</button>
   <button id="deleteEmptyRowsBtn" onclick="deleteEmptyRows()">Delete Empty Rows</button>
   <span id="deleteMsg" style="display:none;"></span>
-  <!-- Bottom save button (no undo here anymore) -->
   <button
     class="save-bill-btn"
     id="saveBillBtnBottom"
@@ -993,21 +992,43 @@ const db = firebase.firestore();
 const billRef = db.collection("bills").doc("main");
 const storage = firebase.storage();
 
+// ─────────────────────────────────────────────────────────────
+// IMPROVEMENT 3: Single source of truth for Venmo IDs
+//
+// Previously defaultVenmoMap was defined then immediately shallow-copied
+// into venmoNames, creating two copies that could drift apart. Now:
+//   • defaultVenmoMap  — read-only fallback, never mutated
+//   • venmoNames       — per-bill overrides only (loaded from Firestore)
+//   • resolveVenmoId() — single lookup that checks overrides then falls back
+//
+// This removes the fragile {...defaultVenmoMap} merge on every new-person
+// add and every bill load, and makes the intent explicit.
+// ─────────────────────────────────────────────────────────────
 const defaultVenmoMap = {
   jamin:"jamin-chen", jc:"jamin-chen", mint:"jamin-chen",
-  jack:"jack-bao", cliff:"clifford-chao", cc:"clifford-chao", clifford: "clifford-chao",
-  howard:"braveclaw", hc:"braveclaw", hoe:"braveclaw", willie:"willie-zeng", wz:"willie-zeng",lin:"linlin221", linlin:"linlin221", ll:"linlin221",
-  freddy:"freddy-dai",fd:"freddy-dai", fdai:"freddy-dai",viv:"vivian-bang", vivian:"vivian-bang",
-  maria:"mariapdiaz", ria:"mariapdiaz", paarus:"paarus-ali", anna:"anna-claire-choi",acc:"anna-claire-choi",
+  jack:"jack-bao", cliff:"clifford-chao", cc:"clifford-chao", clifford:"clifford-chao",
+  howard:"braveclaw", hc:"braveclaw", hoe:"braveclaw",
+  willie:"willie-zeng", wz:"willie-zeng",
+  lin:"linlin221", linlin:"linlin221", ll:"linlin221",
+  freddy:"freddy-dai", fd:"freddy-dai", fdai:"freddy-dai",
+  viv:"vivian-bang", vivian:"vivian-bang",
+  maria:"mariapdiaz", ria:"mariapdiaz", paarus:"paarus-ali",
+  anna:"anna-claire-choi", acc:"anna-claire-choi",
   michelle:"michelletran9", mich:"michelletran9",
   victoria:"victoriabao", vic:"victoriabao",
 };
+
+function resolveVenmoId(name) {
+  const key = name.toLowerCase().trim();
+  return venmoNames[key] || defaultVenmoMap[key] || "";
+}
 
 let defaultNames = ["jamin","jack","cliff","willie","howard","lin"];
 let billLoaded = false;
 let nameList = [...defaultNames];
 let rows = [];
-let venmoNames = {...defaultVenmoMap};
+// venmoNames now stores per-bill overrides only — not a full copy of defaultVenmoMap
+let venmoNames = {};
 let isRendering = false;
 let receiptUrl = "";
 let receiptFileRef = null;
@@ -1020,6 +1041,50 @@ let isDirty = false;
 let loadedSnapshot = null;
 let newBillFirstInputDate = null;
 let isUploadingReceipt = false;
+
+// ─────────────────────────────────────────────────────────────
+// IMPROVEMENT 1: Debounced saveBill
+//
+// saveBill() previously fired on every keystroke (item textarea oninput,
+// every name toggle, tax/tip input) — potentially dozens of Firestore
+// writes per second. Now:
+//   • debouncedSaveBill() — waits 800 ms after the last call, used for
+//     continuous input (typing in item/price fields, toggling names).
+//   • flushSaveBill()     — cancels any pending debounce and writes
+//     immediately; used for discrete, high-importance events (blur,
+//     delete row, load bill, archive, undo apply).
+// ─────────────────────────────────────────────────────────────
+let _saveBillTimer = null;
+
+function debouncedSaveBill() {
+  clearTimeout(_saveBillTimer);
+  _saveBillTimer = setTimeout(() => saveBill(), 800);
+}
+
+function flushSaveBill() {
+  clearTimeout(_saveBillTimer);
+  saveBill();
+}
+
+// ─────────────────────────────────────────────────────────────
+// IMPROVEMENT 4: Toast notifications for Firestore errors
+//
+// Previously all Firestore writes silently failed offline. Now every
+// .set()/.update()/.add()/.delete() has a .catch() that calls showToast()
+// so the user sees a non-blocking error message.
+// ─────────────────────────────────────────────────────────────
+function showToast(msg, isError = false) {
+  const container = document.getElementById("toastContainer");
+  const toast = document.createElement("div");
+  toast.className = "toast" + (isError ? " toast-error" : "");
+  toast.textContent = msg;
+  container.appendChild(toast);
+  requestAnimationFrame(() => requestAnimationFrame(() => toast.classList.add("show")));
+  setTimeout(() => {
+    toast.classList.remove("show");
+    setTimeout(() => toast.remove(), 250);
+  }, 3000);
+}
 
 // ── Undo stack (up to 5 undos, can't undo past last save) ──
 const MAX_UNDO = 5;
@@ -1056,7 +1121,6 @@ function markSaveInUndo(){
   updateUndoBtn();
 }
 
-// FIX 1: updateUndoBtn now targets both #undoBtnTop and legacy #undoBtn (removed from bottom)
 function updateUndoBtn(){
   const canUndo = undoStack.length > 1 && (undoStack.length - 1) > undoSaveFloor;
   ["undoBtnTop", "undoBtn"].forEach(id => {
@@ -1074,7 +1138,7 @@ function applyUndoState(state){
   document.getElementById("taxMode").value = s.taxMode;
   document.getElementById("tipMode").value = s.tipMode;
   document.getElementById("notesBox").value = s.notes;
-  renderPeopleBar(); render(); calc(); saveBill(); markDirty();
+  renderPeopleBar(); render(); calc(); flushSaveBill(); markDirty();
 }
 
 function doUndo(){
@@ -1303,13 +1367,13 @@ function showReceiptThumbnail(url){
   };
 
   const removeBtn = document.createElement("button");
-  removeBtn.className = "remove-receipt"; removeBtn.textContent = "✖"; removeBtn.title = "Remove receipt";
+  removeBtn.className = "remove-receipt"; removeBtn.textContent = "\u2716"; removeBtn.title = "Remove receipt";
   removeBtn.onclick = async function(){
     if(isArchived) return;
     const confirmed = await confirmAction("Remove the uploaded receipt?");
     if(!confirmed) return;
     receiptUrl = ""; lastSavedReceiptUrl = ""; receiptFileRef = null;
-    container.innerHTML = ""; saveBill(); markDirty();
+    container.innerHTML = ""; flushSaveBill(); markDirty();
   };
 
   const ocrBtn = document.createElement("button");
@@ -1321,16 +1385,11 @@ function showReceiptThumbnail(url){
   container.appendChild(wrap);
 }
 
-// FIX 2: parseReceiptText now detects tax/tip lines and fills their inputs
 function parseReceiptText(text){
   const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
   const rightPriceRegex = /\$?\s*(\d+\.\d{2})\s*$/;
-
-  // Keywords that identify tax/tip lines (excluded from rows but used for inputs)
   const taxKeywords = /\b(tax|hst|gst|pst|vat|sales\s*tax)\b/i;
   const tipKeywords = /\b(tip|gratuity|service\s*charge|service\s*fee)\b/i;
-
-  // Keywords to skip entirely (not tax/tip, not a food item)
   const skipKeywords = /\b(subtotal|sub[-\s]?total|total|change|cash|credit|debit|visa|mastercard|amex|discover|balance|amount\s*due|amount\s*paid|thank|receipt|order\s*#|table\s*#|server|guest|check\s*#|qty|quantity|void|comp|discount|surcharge)\b/i;
 
   const parsed = [];
@@ -1344,17 +1403,14 @@ function parseReceiptText(text){
     const priceFloat = parseFloat(price);
     if(priceFloat <= 0 || priceFloat > 300) return;
 
-    // Check tax line
     if(taxKeywords.test(line)){
       if(detectedTax === null || priceFloat > parseFloat(detectedTax)) detectedTax = price;
       return;
     }
-    // Check tip line
     if(tipKeywords.test(line)){
       if(detectedTip === null || priceFloat > parseFloat(detectedTip)) detectedTip = price;
       return;
     }
-    // Skip non-item lines
     if(skipKeywords.test(line)) return;
 
     let item = line.slice(0, line.length - priceMatch[0].length).trim();
@@ -1372,7 +1428,6 @@ function parseReceiptText(text){
 
   pushUndo();
 
-  // Fill tax/tip inputs if detected
   if(detectedTax !== null){
     document.getElementById("taxMode").value = "amount";
     document.getElementById("taxValue").value = detectedTax;
@@ -1382,7 +1437,6 @@ function parseReceiptText(text){
     document.getElementById("tipValue").value = detectedTip;
   }
 
-  // Only put food items in rows
   if(parsed.length > 0){
     const lockedRows = rows.filter(r => r.locked);
     rows = [...lockedRows];
@@ -1394,20 +1448,20 @@ function parseReceiptText(text){
     }
   }
 
-  render(); calc(); saveBill(); markDirty();
+  render(); calc(); flushSaveBill(); markDirty();
 }
 
 async function runOCR(){
   if(isArchived) return;
   if(!receiptFileRef && !receiptUrl){ alert("No receipt uploaded."); return; }
   const btn = document.getElementById("ocrBtn");
-  if(btn){ btn.textContent = "Scanning…"; btn.disabled = true; }
+  if(btn){ btn.textContent = "Scanning\u2026"; btn.disabled = true; }
   try {
     const source = receiptFileRef || receiptUrl;
     const { data: { text } } = await Tesseract.recognize(source, 'eng');
     parseReceiptText(text);
   } catch(err){
-    alert("Scan failed — please try again.");
+    alert("Scan failed \u2014 please try again.");
     console.error(err);
   } finally {
     if(btn){ btn.textContent = "Use AI"; btn.disabled = false; }
@@ -1417,6 +1471,7 @@ async function runOCR(){
 function applyLiveData(data){
   rows = data.rows || [];
   nameList = data.nameList || [];
+  // IMPROVEMENT 3: load only per-bill overrides, not a merged copy of defaultVenmoMap
   venmoNames = data.venmoNames || {};
   receiptUrl = data.receiptUrl || "";
   lastSavedReceiptUrl = receiptUrl;
@@ -1484,6 +1539,7 @@ async function handleReceiptUpload(event){
     const url = await storageRef.getDownloadURL();
     receiptUrl = url; lastSavedReceiptUrl = url; receiptFileRef = file;
     showReceiptThumbnail(url);
+    // IMPROVEMENT 4: error handling on receipt save
     await billRef.set({
       rows, nameList, venmoNames, receiptUrl: url,
       taxValue: document.getElementById("taxValue").value,
@@ -1492,6 +1548,9 @@ async function handleReceiptUpload(event){
       tipMode: document.getElementById("tipMode").value,
       notes: document.getElementById("notesBox").value,
       currentLoadedBillId, currentLoadedBillTitle, isArchived
+    }).catch(err => {
+      console.error("Firestore write failed:", err);
+      showToast("\u26a0\ufe0f Couldn't save receipt \u2014 check your connection", true);
     });
     markDirty();
   } finally {
@@ -1500,6 +1559,7 @@ async function handleReceiptUpload(event){
   }
 }
 
+// IMPROVEMENT 4: All Firestore writes now have .catch() with toast feedback
 function saveBill(){
   if(!billLoaded) return;
   isLocalUpdate = true;
@@ -1514,6 +1574,9 @@ function saveBill(){
     currentLoadedBillId, currentLoadedBillTitle, isArchived
   }).then(()=>{
     if(receiptUrl && receiptUrl.length > 5) lastSavedReceiptUrl = receiptUrl;
+  }).catch(err => {
+    console.error("Firestore write failed:", err);
+    showToast("\u26a0\ufe0f Couldn't save \u2014 check your connection", true);
   }).finally(()=>{ setTimeout(()=>isLocalUpdate=false, 300); });
 }
 
@@ -1544,10 +1607,17 @@ function showSavedFeedback(){
   });
 }
 
+// IMPROVEMENT 4: error handling on savedBills writes
 async function saveNewBill(){
   if(isArchived) return;
   if(currentLoadedBillId){
-    await db.collection("savedBills").doc(currentLoadedBillId).update({ ...getCurrentBillData() });
+    try {
+      await db.collection("savedBills").doc(currentLoadedBillId).update({ ...getCurrentBillData() });
+    } catch(err) {
+      console.error("Save failed:", err);
+      showToast("\u26a0\ufe0f Save failed \u2014 check your connection", true);
+      return;
+    }
     isDirty = false;
     loadedSnapshot = JSON.stringify({
       rows, nameList, receiptUrl,
@@ -1566,7 +1636,14 @@ async function saveNewBill(){
     if(!title || !title.trim()) return;
     title = title.trim().slice(0,15);
     const billData = { title, savedAt: newBillFirstInputDate || Date.now(), ...getCurrentBillData() };
-    const docRef = await db.collection("savedBills").add(billData);
+    let docRef;
+    try {
+      docRef = await db.collection("savedBills").add(billData);
+    } catch(err) {
+      console.error("Save failed:", err);
+      showToast("\u26a0\ufe0f Save failed \u2014 check your connection", true);
+      return;
+    }
     currentLoadedBillId = docRef.id; currentLoadedBillTitle = title;
     isDirty = false; newBillFirstInputDate = null;
     loadedSnapshot = JSON.stringify({
@@ -1578,7 +1655,7 @@ async function saveNewBill(){
       notes: document.getElementById("notesBox").value
     });
     markSaveInUndo();
-    saveBill();
+    flushSaveBill();
     alert(`"${title}" saved!`);
     await loadSavedBillsList();
     document.getElementById("billDropdown").value = docRef.id;
@@ -1593,8 +1670,9 @@ async function toggleArchive(){
     if(!pw) return;
     if(pw.trim().toLowerCase() !== "unarchive"){ alert("Incorrect password."); return; }
     rows.forEach(r => r.locked = false);
-    await db.collection("savedBills").doc(currentLoadedBillId).update({ archived: false, rows });
-    isArchived = false; isDirty = false; saveBill();
+    await db.collection("savedBills").doc(currentLoadedBillId).update({ archived: false, rows })
+      .catch(err => { console.error(err); showToast("\u26a0\ufe0f Couldn't unarchive \u2014 check your connection", true); });
+    isArchived = false; isDirty = false; flushSaveBill();
     await loadSavedBillsList();
     document.getElementById("billDropdown").value = currentLoadedBillId;
     updateArchivedUI(); render();
@@ -1604,8 +1682,9 @@ async function toggleArchive(){
     if(!confirmed) return;
     rows.forEach(r => r.locked = true);
     rows = rows.filter(r => r.price || r.item || (r.selected && r.selected.length));
-    await db.collection("savedBills").doc(currentLoadedBillId).update({ ...getCurrentBillData(), rows, archived: true });
-    isArchived = true; isDirty = false; saveBill();
+    await db.collection("savedBills").doc(currentLoadedBillId).update({ ...getCurrentBillData(), rows, archived: true })
+      .catch(err => { console.error(err); showToast("\u26a0\ufe0f Couldn't archive \u2014 check your connection", true); });
+    isArchived = true; isDirty = false; flushSaveBill();
     await loadSavedBillsList();
     document.getElementById("billDropdown").value = currentLoadedBillId;
     updateArchivedUI(); render();
@@ -1615,10 +1694,11 @@ async function toggleArchive(){
 
 async function deleteBill(){
   if(isArchived){ alert("Archived bills cannot be deleted."); return; }
-  if(!currentLoadedBillId){ alert("This bill hasn't been saved yet — nothing to delete."); return; }
+  if(!currentLoadedBillId){ alert("This bill hasn't been saved yet \u2014 nothing to delete."); return; }
   const confirmed = confirm(`Delete "${currentLoadedBillTitle}"? This cannot be undone.`);
   if(!confirmed) return;
-  await db.collection("savedBills").doc(currentLoadedBillId).delete();
+  await db.collection("savedBills").doc(currentLoadedBillId).delete()
+    .catch(err => { console.error(err); showToast("\u26a0\ufe0f Couldn't delete \u2014 check your connection", true); });
   doNewBill();
 }
 
@@ -1629,7 +1709,7 @@ async function loadSavedBillsList(){
   dropdown.innerHTML = "";
   if(!currentLoadedBillId){
     const ph = document.createElement("option");
-    ph.value = ""; ph.textContent = "— load a saved bill —";
+    ph.value = ""; ph.textContent = "\u2014 load a saved bill \u2014";
     ph.disabled = true; ph.selected = true; ph.style.color = "#aaa";
     dropdown.appendChild(ph);
   }
@@ -1637,7 +1717,7 @@ async function loadSavedBillsList(){
     const d = doc.data();
     const opt = document.createElement("option");
     opt.value = doc.id;
-    opt.textContent = `${d.title} (${formatDate(d.savedAt)})${d.archived ? "🔒" : ""}`;
+    opt.textContent = `${d.title} (${formatDate(d.savedAt)})${d.archived ? "\uD83D\uDD12" : ""}`;
     dropdown.appendChild(opt);
   });
   if(currentVal) dropdown.value = currentVal;
@@ -1653,6 +1733,7 @@ async function loadSavedBill(id){
   currentLoadedBillId = id; currentLoadedBillTitle = data.title;
   isArchived = data.archived || false; isDirty = false; newBillFirstInputDate = null;
   rows = data.rows || []; nameList = data.nameList || [];
+  // IMPROVEMENT 3: load only per-bill overrides
   venmoNames = data.venmoNames || {};
   receiptUrl = data.receiptUrl || ""; lastSavedReceiptUrl = receiptUrl; receiptFileRef = null;
   document.getElementById("taxValue").value = data.taxValue || "";
@@ -1671,7 +1752,7 @@ async function loadSavedBill(id){
   undoStack = [captureUndoState()];
   undoSaveFloor = 0;
   updateUndoBtn();
-  saveBill();
+  flushSaveBill();
   await loadSavedBillsList();
   document.getElementById("billDropdown").value = id;
   updateSaveButtonState(); updateArchivedUI();
@@ -1681,7 +1762,12 @@ async function loadSavedBill(id){
 function saveNotes(){
   if(isArchived) return;
   isLocalUpdate = true;
+  // IMPROVEMENT 4: error handling on notes update
   billRef.update({ notes: document.getElementById("notesBox").value })
+    .catch(err => {
+      console.error("Notes save failed:", err);
+      showToast("\u26a0\ufe0f Couldn't save notes \u2014 check your connection", true);
+    })
     .finally(()=>{ setTimeout(()=>isLocalUpdate=false, 300); });
 }
 
@@ -1704,9 +1790,10 @@ function doNewBill(){
   document.getElementById("receiptPreviewContainer").innerHTML = "";
   currentLoadedBillId = null; currentLoadedBillTitle = null;
   isArchived = false; isDirty = false; loadedSnapshot = null; newBillFirstInputDate = null;
-  rows = []; nameList = [...defaultNames]; venmoNames = {...defaultVenmoMap};
+  // IMPROVEMENT 3: reset to empty overrides, not a copy of defaultVenmoMap
+  rows = []; nameList = [...defaultNames]; venmoNames = {};
   swipeCurrent = null;
-  saveBill(); loadSavedBillsList(); updateSaveButtonState(); updateArchivedUI(); init();
+  flushSaveBill(); loadSavedBillsList(); updateSaveButtonState(); updateArchivedUI(); init();
 }
 
 async function clearAll(){
@@ -1719,7 +1806,7 @@ function renderPeopleBar(){
   const bar = document.getElementById("personBar");
   bar.innerHTML = "";
   nameList.forEach((n,i) => {
-    bar.innerHTML += `<span class="person-tag">${n}<span class="delete-person" onclick="deletePerson(${i})">✖</span></span>`;
+    bar.innerHTML += `<span class="person-tag">${n}<span class="delete-person" onclick="deletePerson(${i})">\u2716</span></span>`;
   });
 }
 
@@ -1730,9 +1817,10 @@ function addPersonFromBtn(){
   if(!name) return;
   pushUndo();
   nameList.push(name);
-  venmoNames[name.toLowerCase()] = venmoNames[name.toLowerCase()] || "";
+  // IMPROVEMENT 3: no longer need to copy defaultVenmoMap entry here;
+  // resolveVenmoId() handles the fallback lookup automatically
   box.value = "";
-  renderPeopleBar(); render(); calc(); saveBill(); markDirty();
+  renderPeopleBar(); render(); calc(); debouncedSaveBill(); markDirty();
 }
 
 function handleAddPerson(e){
@@ -1742,9 +1830,8 @@ function handleAddPerson(e){
   if(!name) return;
   pushUndo();
   nameList.push(name);
-  venmoNames[name.toLowerCase()] = venmoNames[name.toLowerCase()] || "";
   box.value = "";
-  renderPeopleBar(); render(); calc(); saveBill(); markDirty();
+  renderPeopleBar(); render(); calc(); debouncedSaveBill(); markDirty();
 }
 
 function deletePerson(i){
@@ -1755,21 +1842,90 @@ function deletePerson(i){
     r.selected = (r.selected||[]).filter(p => p !== removed);
     r.people = r.selected.join(", ");
   });
-  renderPeopleBar(); render(); calc(); saveBill(); markDirty();
+  renderPeopleBar(); render(); calc(); flushSaveBill(); markDirty();
 }
+
+// ─────────────────────────────────────────────────────────────
+// IMPROVEMENT 2: Targeted DOM updates for toggle-only operations
+//
+// toggleLock, toggleName, and toggleEveryone previously called the full
+// render() function, which rebuilds every row from scratch. This caused:
+//   • Layout thrash on every name tap
+//   • Loss of textarea focus/cursor position
+//   • Unnecessary DOM churn for all unrelated rows
+//
+// Now:
+//   • toggleLock   → _patchRowLock(i)   updates only that row's lock btn,
+//                    locked-row class, textarea disabled state, and erase btn
+//   • toggleName   → _patchRowNames(i)  updates only the name button classes
+//   • toggleEveryone → same _patchRowNames(i)
+//
+// Both helpers fall back to full render() if the row's DOM element is
+// missing (e.g. after an undo that changed row count), so correctness is
+// maintained even in edge cases.
+// ─────────────────────────────────────────────────────────────
 
 function toggleLock(row){
   if(isArchived) return;
   pushUndo();
   rows[row].locked = !rows[row].locked;
-  render(); saveBill(); markDirty();
+  _patchRowLock(row);
+  debouncedSaveBill(); markDirty();
+}
+
+function _patchRowLock(i){
+  const tr = document.querySelector(`.swipe-tr[data-swipe-idx="${i}"]`);
+  if(!tr){ render(); return; }
+  const isLocked = rows[i].locked || isArchived;
+  tr.classList.toggle("locked-row", isLocked);
+  const lockBtn = tr.querySelector(".lock-btn");
+  if(lockBtn){
+    lockBtn.textContent = isLocked ? "\uD83D\uDD12" : "\uD83D\uDD13";
+    lockBtn.className = "lock-btn " + (isLocked ? "locked" : "unlocked");
+  }
+  const eraseBtn = tr.querySelector(".erase-btn");
+  if(eraseBtn) eraseBtn.disabled = isLocked;
+  tr.querySelectorAll("textarea").forEach(ta => { ta.disabled = isLocked; });
+}
+
+function toggleName(row, name){
+  if(isArchived || rows[row].locked) return;
+  pushUndo();
+  const r = rows[row];
+  if(!r.selected) r.selected = [];
+  const idx = r.selected.indexOf(name);
+  if(idx > -1) r.selected.splice(idx,1); else r.selected.push(name);
+  r.people = r.selected.length === nameList.length ? "EVERYONE" : r.selected.join(", ");
+  _patchRowNames(row);
+  calc(); debouncedSaveBill(); markDirty();
+}
+
+function toggleEveryone(row){
+  if(isArchived || rows[row].locked) return;
+  pushUndo();
+  const r = rows[row];
+  if(r.selected?.length === nameList.length){ r.selected = []; r.people = ""; }
+  else { r.selected = [...nameList]; r.people = "EVERYONE"; }
+  _patchRowNames(row);
+  calc(); debouncedSaveBill(); markDirty();
+}
+
+function _patchRowNames(i){
+  const tr = document.querySelector(`.swipe-tr[data-swipe-idx="${i}"]`);
+  if(!tr){ render(); return; }
+  const r = rows[i];
+  const everyoneBtn = tr.querySelector(".everyone-btn");
+  if(everyoneBtn) everyoneBtn.classList.toggle("selected", r.selected?.length === nameList.length);
+  tr.querySelectorAll(".name-btn:not(.everyone-btn)").forEach(btn => {
+    btn.classList.toggle("selected", !!r.selected?.includes(btn.textContent));
+  });
 }
 
 function eraseRow(i){
   if(isArchived || rows[i].locked) return;
   pushUndo();
   rows[i] = { item:"", price:"", people:"", selected:[], locked:false };
-  render(); calc(); saveBill(); markDirty();
+  render(); calc(); debouncedSaveBill(); markDirty();
 }
 
 function update(i, key, val){
@@ -1785,38 +1941,18 @@ function handlePriceInput(row, el){
   calc(); markDirty();
 }
 
-function toggleName(row, name){
-  if(isArchived || rows[row].locked) return;
-  pushUndo();
-  const r = rows[row];
-  if(!r.selected) r.selected = [];
-  const idx = r.selected.indexOf(name);
-  if(idx > -1) r.selected.splice(idx,1); else r.selected.push(name);
-  r.people = r.selected.length === nameList.length ? "EVERYONE" : r.selected.join(", ");
-  render(); calc(); saveBill(); markDirty();
-}
-
-function toggleEveryone(row){
-  if(isArchived || rows[row].locked) return;
-  pushUndo();
-  const r = rows[row];
-  if(r.selected?.length === nameList.length){ r.selected = []; r.people = ""; }
-  else { r.selected = [...nameList]; r.people = "EVERYONE"; }
-  render(); calc(); saveBill(); markDirty();
-}
-
 function addRow(){
   if(isArchived) return;
   pushUndo();
   rows.push({item:"",price:"",people:"",selected:[],locked:false});
-  render(); calc(); saveBill();
+  render(); calc(); debouncedSaveBill();
 }
 
 function add5Rows(){
   if(isArchived) return;
   pushUndo();
   for(let i=0;i<5;i++) rows.push({item:"",price:"",people:"",selected:[],locked:false});
-  render(); calc(); saveBill();
+  render(); calc(); debouncedSaveBill();
 }
 
 function deleteEmptyRows(){
@@ -1839,7 +1975,7 @@ function deleteEmptyRows(){
     if(msg) msg.style.display = "none";
   }, 2000);
 
-  render(); calc(); saveBill(); markDirty();
+  render(); calc(); debouncedSaveBill(); markDirty();
 }
 
 function deleteRow(i){
@@ -1849,7 +1985,7 @@ function deleteRow(i){
   rows.splice(i,1);
   if(rows.length === 0) rows.push({item:"",price:"",people:"",selected:[],locked:false});
   swipeCurrent = null;
-  render(); calc(); saveBill(); markDirty();
+  render(); calc(); flushSaveBill(); markDirty();
 }
 
 function nav(e, row, col){
@@ -1866,14 +2002,7 @@ function nav(e, row, col){
   }, 0);
 }
 
-// ── FIX 3: Swipe-to-delete — stationary delete button ──
-//
-// Strategy: The delete button is rendered as a child of .table-wrap (not the tr),
-// absolutely positioned. It stays fixed at the right edge of .table-wrap.
-// The tr slides left. The button is shown/hidden independently.
-//
-// We create one shared delete button overlay that we reposition per-row on swipe open.
-
+// ── Swipe-to-delete (unchanged) ──
 let swipeDeleteOverlay = null;
 let swipeDeleteRowIndex = null;
 
@@ -1925,7 +2054,6 @@ function showDeleteOverlay(tr, rowIndex){
   const btn = getOrCreateDeleteOverlay();
   positionDeleteOverlay(tr);
   swipeDeleteRowIndex = rowIndex;
-  // force reflow then animate
   btn.style.transition = 'none';
   btn.style.transform = 'translateX(100%)';
   btn.style.pointerEvents = 'none';
@@ -1961,9 +2089,7 @@ function closeSwipeEl(tr){
 function closeAllSwipes(exceptIndex){
   document.querySelectorAll('.swipe-tr.swiped-open').forEach(tr => {
     const idx = parseInt(tr.dataset.swipeIdx);
-    if(idx !== exceptIndex){
-      closeSwipeEl(tr);
-    }
+    if(idx !== exceptIndex) closeSwipeEl(tr);
   });
   if(swipeCurrent !== null && swipeCurrent !== exceptIndex){
     hideDeleteOverlay();
@@ -1994,45 +2120,33 @@ function attachSwipe(tr, rowIndex){
     const cy = e.touches[0].clientY;
     const adx = Math.abs(cx - startX);
     const ady = Math.abs(cy - startY);
-
     if(isDetermining){
       if(ady > adx) return;
       if(adx > 5){ isSwiping = true; isDetermining = false; closeAllSwipes(rowIndex); }
       else return;
     }
     if(!isSwiping) return;
-
     const rawDelta = cx - startX;
     let newX = startOffsetX + rawDelta;
     newX = Math.max(-MAX_SWIPE, Math.min(0, newX));
     tr.style.transform = `translateX(${newX}px)`;
-
-    // Keep delete overlay positioned correctly as row moves
-    if(swipeDeleteRowIndex === rowIndex){
-      positionDeleteOverlay(tr);
-    }
+    if(swipeDeleteRowIndex === rowIndex) positionDeleteOverlay(tr);
   }, {passive: true});
 
   tr.addEventListener('touchend', () => {
     if(!isSwiping || isArchived || rows[rowIndex]?.locked) return;
     tr.style.transition = 'transform 0.2s ease';
-
     const matrix = new WebKitCSSMatrix(window.getComputedStyle(tr).transform);
     const finalX = matrix.m41;
-
     if(finalX < -35){
       openSwipe(tr, rowIndex);
     } else {
       closeSwipeEl(tr);
-      if(swipeCurrent === rowIndex){
-        hideDeleteOverlay();
-        swipeCurrent = null;
-      }
+      if(swipeCurrent === rowIndex){ hideDeleteOverlay(); swipeCurrent = null; }
     }
   });
 }
 
-// Tap outside open swipe to close it
 document.addEventListener('touchstart', e => {
   if(swipeCurrent === null) return;
   const openTr = document.querySelector('.swipe-tr.swiped-open');
@@ -2048,7 +2162,6 @@ document.addEventListener('touchstart', e => {
 
 function render(){
   isRendering = true;
-  // Hide delete overlay during re-render
   hideDeleteOverlay();
   swipeCurrent = null;
 
@@ -2057,7 +2170,7 @@ function render(){
 
   rows.forEach((r, i) => {
     const isLocked = r.locked || isArchived;
-    const lockIcon = isLocked ? "🔒" : "🔓";
+    const lockIcon = isLocked ? "\uD83D\uDD12" : "\uD83D\uDD13";
     const lockClass = isLocked ? "locked" : "unlocked";
     const eraseDisabled = isLocked ? "disabled" : "";
 
@@ -2101,15 +2214,15 @@ function render(){
           placeholder="optional"
           ${isLocked?"disabled":""}
           onkeydown="if(event.key==='Enter'){nav(event,${i},0)}"
-          oninput="update(${i},'item',this.value)">${r.item}</textarea>
+          oninput="update(${i},'item',this.value); debouncedSaveBill();">${r.item}</textarea>
       </td>
       <td class="clickable-cell" ${priceTdOnclick}>
         <textarea data-r="${i}" data-c="1"
           inputmode="decimal"
           pattern="[0-9]*"
           ${isLocked?"disabled":""}
-          onkeydown="if(event.key==='Enter'){saveBill();nav(event,${i},1)}"
-          onblur="saveBill()"
+          onkeydown="if(event.key==='Enter'){flushSaveBill();nav(event,${i},1)}"
+          onblur="flushSaveBill()"
           oninput="handlePriceInput(${i},this)">${r.price}</textarea>
       </td>
       <td class="people-td">
@@ -2169,8 +2282,8 @@ function calc(){
   const div = document.getElementById("totals");
   div.innerHTML = "";
   Object.keys(people).forEach(p => {
-    const key = p.toLowerCase().trim();
-    const venmoId = venmoNames[key] || defaultVenmoMap[key] || "";
+    // IMPROVEMENT 3: use resolveVenmoId() instead of inline duplicate lookup
+    const venmoId = resolveVenmoId(p);
     div.innerHTML += `
       <div class="result">
         <span>${p} owes $${people[p].total.toFixed(2)}</span>
