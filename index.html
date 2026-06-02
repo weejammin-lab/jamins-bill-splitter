@@ -1478,7 +1478,8 @@ function loadBill(){
     const data = doc.data();
     if(!data) return;
     console.log("snapshot fired, tipValue:", data.tipValue, new Date().toISOString());
-    applyLiveData(data);
+applyLiveData(data);
+console.log("after applyLiveData, tip field:", document.getElementById("tipValue").value);
     billLoaded = true; isDirty = false;
     if(!rows || rows.length === 0){
       rows = [];
@@ -1534,6 +1535,7 @@ async function handleReceiptUpload(event){
 }
 
 function saveBill(){
+  console.log("saveBill called, tip field:", document.getElementById("tipValue").value);
   if(!billLoaded) return;
   isLocalUpdate = true;
   if(!receiptUrl || receiptUrl.length < 5) receiptUrl = lastSavedReceiptUrl || "";
