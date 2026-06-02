@@ -1549,7 +1549,7 @@ function saveBill(){
   }).catch(err => {
     console.error("Firestore write failed:", err);
     showToast("\u26a0\ufe0f Couldn't save \u2014 check your connection", true);
-  }).finally(()=>{ setTimeout(()=>isLocalUpdate=false, 300); });
+  }).finally(()=>{ setTimeout(()=>isLocalUpdate=false, 1500); });
 }
 
 function getCurrentBillData(){
@@ -1739,7 +1739,7 @@ function saveNotes(){
       console.error("Notes save failed:", err);
       showToast("\u26a0\ufe0f Couldn't save notes \u2014 check your connection", true);
     })
-    .finally(()=>{ setTimeout(()=>isLocalUpdate=false, 300); });
+    .finally(()=>{ setTimeout(()=>isLocalUpdate=false, 1500); });
 }
 
 function init(){
