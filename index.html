@@ -539,7 +539,7 @@ td.clickable-cell { cursor: text; }
   background: var(--card);
   position: relative;
 }
-.swipe-tr.locked-row td { background: #fafaf9; opacity: 0.85; }
+.swipe-tr.locked-row td { background: #fafaf9; opacity: 0.9; }
 .swipe-tr.locked-row textarea { background: transparent; }
 .swipe-tr.swiped-open { transform: translateX(-70px); }
 
@@ -840,7 +840,7 @@ td.clickable-cell { cursor: text; }
 }
 
 .row-btn-disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
-.archived-section { opacity: 0.75; }
+.archived-section { opacity: 0.85; }
 .th-people { line-height: 1.3; }
 
 #tableBody { position: relative; }
@@ -891,7 +891,7 @@ td.clickable-cell { cursor: text; }
 <div class="top-row">
   <textarea class="notes-box"
     id="notesBox"
-    placeholder="-upload receipt to try AI&#10;-lock icon locks that row&#10;-eraser icon clears that row&#10;-swipe left to delete a row"
+    placeholder="-upload receipt to OCR&#10;-lock icon locks that row&#10;-eraser icon clears that row&#10;-swipe left to delete a row"
     oninput="saveNotes(); markDirty()"></textarea>
 
   <div id="personBar"></div>
@@ -1436,7 +1436,7 @@ async function runOCR(){
     alert("Scan failed \u2014 please try again.");
     console.error(err);
   } finally {
-    if(btn){ btn.textContent = "Use AI"; btn.disabled = false; }
+    if(btn){ btn.textContent = "Use OCR"; btn.disabled = false; }
   }
 }
 
